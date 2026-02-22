@@ -3,7 +3,14 @@ import Shared
 
 struct MembersTab: View {
     let members: [Shared.MemberListItemInfo]
+    var currentUserId: String = ""
+    var userRole: Shared.Role? = nil
+    var onChangeRole: (String) -> Void = { _ in }
+    var onRemoveMember: (String) -> Void = { _ in }
+
     @State private var showRoleInfo = false
+
+    private var isAdminOrAbove: Bool { userRole == .owner || userRole == .admin }
 
     var body: some View {
         ScrollView {
@@ -29,7 +36,12 @@ struct MembersTab: View {
                     .padding(8)
 
                     ForEach(Array(members.enumerated()), id: \.offset) { index, member in
-                        MemberListItem(member: member)
+                        MemberListItem(
+                            member: member,
+                            showAdminActions: isAdminOrAbove && member.userId != currentUserId,
+                            onChangeRole: { onChangeRole(member.memberId) },
+                            onRemoveMember: { onRemoveMember(member.memberId) }
+                        )
 
                         if index < members.count - 1 {
                             Divider()
@@ -106,10 +118,12 @@ struct RoleInfoItem: View {
 // MARK: - Member List Item
 struct MemberListItem: View {
     let member: Shared.MemberListItemInfo
+    var showAdminActions: Bool = false
+    var onChangeRole: () -> Void = {}
+    var onRemoveMember: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Member avatar
             MemberAvatar(
                 avatarUrl: member.avatarUrl,
                 size: 40,
@@ -127,6 +141,16 @@ struct MemberListItem: View {
             }
 
             Spacer()
+
+            if showAdminActions {
+                Menu {
+                    Button("Change Role") { onChangeRole() }
+                    Button("Remove from Club", role: .destructive) { onRemoveMember() }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(.secondary)
+                }
+            }
         }
         .padding(.vertical, 12)
     }

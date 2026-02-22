@@ -52,9 +52,9 @@ struct ClubSelectorSheet: View {
 #Preview {
     ClubSelectorSheet(
         clubs: [
-            ClubListItem(id: "1", name: "My Book Club"),
-            ClubListItem(id: "2", name: "Sci-Fi Readers"),
-            ClubListItem(id: "3", name: "Classic Literature")
+            ClubListItem(id: "1", name: "My Book Club", role: Role.admin),
+            ClubListItem(id: "2", name: "Sci-Fi Readers", role: Role.admin),
+            ClubListItem(id: "3", name: "Classic Literature", role: Role.admin)
         ],
         selectedClubId: "1",
         onClubSelected: { _ in }
