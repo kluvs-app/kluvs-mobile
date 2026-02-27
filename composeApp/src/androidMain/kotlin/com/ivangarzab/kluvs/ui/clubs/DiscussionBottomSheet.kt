@@ -145,7 +145,8 @@ fun DiscussionBottomSheet(
                 selectedMinute != (initialDate?.minute ?: 0)
             Button(
                 onClick = {
-                    val dateTime = buildLocalDateTime(selectedDateMillis!!, selectedHour, selectedMinute)
+                    val millis = selectedDateMillis ?: return@Button
+                    val dateTime = buildLocalDateTime(millis, selectedHour, selectedMinute)
                     onSave(title.trim(), location.trim(), dateTime)
                 },
                 modifier = Modifier.fillMaxWidth(),

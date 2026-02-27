@@ -37,7 +37,7 @@ class RemoveMemberUseCase(
         val memberResult = memberRepository.getMember(params.memberId)
         if (memberResult.isFailure) {
             Bark.e("Failed to fetch member before removing from club (Member ID: ${params.memberId}).", memberResult.exceptionOrNull())
-            return memberResult.map { it }
+            return memberResult
         }
 
         val updatedClubIds = memberResult.getOrThrow().clubs

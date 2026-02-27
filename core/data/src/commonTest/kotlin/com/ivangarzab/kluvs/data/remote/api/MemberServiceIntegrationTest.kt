@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for MemberService using local Supabase instance with seed data.
  *
- * Test data from /kluvs-api/supabase/seed.sql:
+ * Test data from /kluvs-backend/supabase/seed.sql:
  * - 1: Ivan Garza (clubs: club-1, club-2)
  * - 2: Monica Morales (clubs: club-1, club-2)
  * - 3: Marco Rivera (clubs: club-3)

@@ -28,9 +28,9 @@ abstract class BaseAdminUseCase<Params, T> {
 
     internal companion object {
         /** Roles that are allowed to perform owner-only operations. */
-        val OWNER_ONLY = setOf(Role.OWNER)
+        internal val OWNER_ONLY = setOf(Role.OWNER)
 
         /** Roles that are allowed to perform admin-and-above operations. */
-        val ADMIN_AND_ABOVE = setOf(Role.OWNER, Role.ADMIN)
+        internal val ADMIN_AND_ABOVE = setOf(Role.OWNER, Role.ADMIN)
     }
 }

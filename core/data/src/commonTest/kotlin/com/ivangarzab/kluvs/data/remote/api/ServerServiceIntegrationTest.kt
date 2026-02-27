@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for ServerService using local Supabase instance with seed data.
  *
- * Test data from /kluvs-api/supabase/seed.sql:
+ * Test data from /kluvs-backend/supabase/seed.sql:
  * - 1039326367428395038: Production Server
  * - 1234567890123456789: Test Server Alpha
  * - 987654321098765432: Test Server Beta

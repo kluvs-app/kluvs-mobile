@@ -272,7 +272,6 @@ class ClubDetailsViewModel(
             val result = block()
             result
                 .onSuccess {
-                    Bark.i(successMessage)
                     _state.update {
                         it.copy(
                             isOperationInProgress = false,

@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.Closeable
@@ -53,8 +54,10 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun onDeleteSession() = viewModel.onDeleteSession()
 
     // Discussion operations — dates passed as ISO strings
-    fun onCreateDiscussion(title: String, location: String, dateIso: String) =
-        viewModel.onCreateDiscussion(title, location, dateIso.toLocalDateTime())
+    fun onCreateDiscussion(title: String, location: String, dateIso: String) {
+        val date = dateIso.toLocalDateTime() ?: return
+        viewModel.onCreateDiscussion(title, location, date)
+    }
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, dateIso: String?) =
         viewModel.onUpdateDiscussion(discussionId, title, location, dateIso?.toLocalDateTime())
     fun onDeleteDiscussion(discussionId: String) = viewModel.onDeleteDiscussion(discussionId)
@@ -89,5 +92,9 @@ class ClubDetailsViewModelHelper : KoinComponent {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private fun String.toLocalDateTime(): LocalDateTime = LocalDateTime.parse(this)
+    private fun String.toLocalDateTime(): LocalDateTime? = runCatching {
+        LocalDateTime.parse(this)
+    }.onFailure { e ->
+        Bark.e("Failed to parse ISO date string '$this'", e)
+    }.getOrNull()
 }

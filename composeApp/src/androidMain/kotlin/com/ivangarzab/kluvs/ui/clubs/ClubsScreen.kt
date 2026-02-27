@@ -39,6 +39,7 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
 import com.ivangarzab.kluvs.clubs.presentation.OperationResult
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.ErrorScreen
@@ -125,7 +126,7 @@ fun ClubsScreenContent(
     onCreateDiscussion: (String, String, LocalDateTime) -> Unit = { _, _, _ -> },
     onUpdateDiscussion: (String, String?, String?, LocalDateTime?) -> Unit = { _, _, _, _ -> },
     onDeleteDiscussion: (String) -> Unit = {},
-    onUpdateMemberRole: (memberId: String, newRole: com.ivangarzab.kluvs.model.Role) -> Unit = { _, _ -> },
+    onUpdateMemberRole: (memberId: String, newRole: Role) -> Unit = { _, _ -> },
     onRemoveMember: (memberId: String) -> Unit = {},
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -281,7 +282,7 @@ fun ClubsScreenContent(
                     )
                 }
 
-                // TODO: Everything underneath there is screaming for a ViewMoel, with side effect handling
+                // TODO: Everything underneath there is screaming for a ViewModel, with side effect handling
                 //  and at least one new extra enum--we'll need that soon
                 // ---- General tab sheets / dialogs ----
 
@@ -378,7 +379,7 @@ fun ClubsScreenContent(
                     val member = state.members.find { it.memberId == memberId }
                     ChangeRoleBottomSheet(
                         memberName = member?.name ?: "",
-                        currentRole = member?.role ?: com.ivangarzab.kluvs.model.Role.MEMBER,
+                        currentRole = member?.role ?: Role.MEMBER,
                         onSave = { newRole ->
                             onUpdateMemberRole(memberId, newRole)
                             changingRoleMemberId = null

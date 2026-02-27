@@ -122,7 +122,7 @@ The project uses GitHub Actions for continuous integration:
 
 - Built with [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html)
 - Powered by [Supabase](https://supabase.com)
-- Backend API: [kluvs-api](https://github.com/ivangarzab/kluvs-api)
+- Backend API: [kluvs-backend](https://github.com/ivangarzab/kluvs-backend)
 - Discord companion bot: [quill-bot](https://github.com/ivangarzab/quill-bot)
 - KMP Logging: [barK](https://github.com/ivangarzab/barK)
 

@@ -32,7 +32,7 @@ class CreateDiscussionUseCase(
         val sessionResult = sessionRepository.getSession(params.sessionId)
         if (sessionResult.isFailure) {
             Bark.e("Failed to fetch session before creating discussion (Session ID: ${params.sessionId}).", sessionResult.exceptionOrNull())
-            return sessionResult.map { it } // propagate the failure as Result<Session>
+            return sessionResult
         }
 
         val currentDiscussions = sessionResult.getOrThrow().discussions

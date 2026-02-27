@@ -11,6 +11,7 @@ struct MembersTab: View {
     @State private var showRoleInfo = false
 
     private var isAdminOrAbove: Bool { userRole == .owner || userRole == .admin }
+    private var isOwner: Bool { userRole == .owner }
 
     var body: some View {
         ScrollView {
@@ -38,7 +39,8 @@ struct MembersTab: View {
                     ForEach(Array(members.enumerated()), id: \.offset) { index, member in
                         MemberListItem(
                             member: member,
-                            showAdminActions: isAdminOrAbove && member.userId != currentUserId,
+                            showChangeRole: isAdminOrAbove && member.userId != currentUserId,
+                            showRemoveMember: isOwner && member.userId != currentUserId && member.role != .owner,
                             onChangeRole: { onChangeRole(member.memberId) },
                             onRemoveMember: { onRemoveMember(member.memberId) }
                         )
@@ -118,7 +120,8 @@ struct RoleInfoItem: View {
 // MARK: - Member List Item
 struct MemberListItem: View {
     let member: Shared.MemberListItemInfo
-    var showAdminActions: Bool = false
+    var showChangeRole: Bool = false
+    var showRemoveMember: Bool = false
     var onChangeRole: () -> Void = {}
     var onRemoveMember: () -> Void = {}
 
@@ -142,10 +145,14 @@ struct MemberListItem: View {
 
             Spacer()
 
-            if showAdminActions {
+            if showChangeRole || showRemoveMember {
                 Menu {
-                    Button("Change Role") { onChangeRole() }
-                    Button("Remove from Club", role: .destructive) { onRemoveMember() }
+                    if showChangeRole {
+                        Button("Change Role") { onChangeRole() }
+                    }
+                    if showRemoveMember {
+                        Button("Remove from Club", role: .destructive) { onRemoveMember() }
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
                         .foregroundColor(.secondary)
