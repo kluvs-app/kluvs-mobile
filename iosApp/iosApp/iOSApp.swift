@@ -28,7 +28,7 @@ struct iOSApp: App {
         #endif
         
         Bark.autoTagDisabled = false
-        Bark.train(trainer: NSLogTrainer(volume: Level.verbose))
+        Bark.train(trainer: NSLogTrainer(minLevel: Level.verbose))
         Bark.train(trainer: SentryTrainer())
         Bark.v("Bark has been initilized for iOS successfully!")
     }
