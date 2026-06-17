@@ -64,16 +64,22 @@ tasks.named("openApiGenerate") {
     dependsOn(stripPathsFromSpec)
 }
 
-// Generated DTOs are committed to source control (per the epic: every
-// regeneration opens a reviewable PR, which only works if the diff is
-// visible in git). outputDir resolves to this module's own root because the
-// "multiplatform" library writes its own src/commonMain/kotlin/<package>/...
-// tree relative to it — don't point this at build/.
+val generatedModelPackagePath = "com/ivangarzab/kluvs/api/models"
+
+// The "kotlin"/"multiplatform" library always writes to
+// <outputDir>/src/commonMain/kotlin/<package>/... — it can't be pointed
+// directly at the final models folder without doubling that path. So we
+// generate into a throwaway build/ directory here, then sync just the model
+// files into source control via the syncGeneratedApiModels task below.
+// Generating straight into committed source previously meant any cleanup
+// step (e.g. cleanupOutput) was scoped to the whole module root and could
+// wipe build.gradle.kts / openapi.json alongside it — this keeps destructive
+// operations confined to build/, never the committed tree directly.
 openApiGenerate {
     generatorName.set("kotlin")
     library.set("multiplatform")
     inputSpec.set(schemaOnlySpec.map { it.asFile.path })
-    outputDir.set(projectDir.path)
+    outputDir.set(layout.buildDirectory.dir("generated/openapi").get().asFile.path)
     packageName.set("com.ivangarzab.kluvs.api")
     modelPackage.set("com.ivangarzab.kluvs.api.models")
     globalProperties.set(
@@ -96,4 +102,20 @@ openApiGenerate {
             "dateLibrary" to "string"
         )
     )
+}
+
+// Copies generated models from build/ into the committed source tree. Sync
+// (unlike Copy) deletes anything already in the destination that's no longer
+// present in the source — so a model renamed/removed from components.schemas
+// gets its old .kt file cleaned up automatically, scoped only to this one
+// folder. This is the task to actually run after a spec update; it pulls in
+// openApiGenerate as a dependency so a single invocation does both steps.
+val syncGeneratedApiModels by tasks.registering(Sync::class) {
+    dependsOn(tasks.named("openApiGenerate"))
+    from(layout.buildDirectory.dir("generated/openapi/src/commonMain/kotlin/$generatedModelPackagePath"))
+    into("src/commonMain/kotlin/$generatedModelPackagePath")
+}
+
+tasks.named("openApiGenerate") {
+    finalizedBy(syncGeneratedApiModels)
 }
