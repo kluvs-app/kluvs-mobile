@@ -20,7 +20,7 @@ class AppleSignInHandlerTests: XCTestCase {
         super.setUp()
 
         Bark.releaseAllTrainers()
-        Bark.train(trainer: ColoredUnitTestTrainer(volume: Level.debug, showTimestamp: false))
+        Bark.train(trainer: NSLogTrainer(minLevel: Level.debug))
 
         Bark.i("=== Setting up AppleSignInHandlerTests ===")
 
