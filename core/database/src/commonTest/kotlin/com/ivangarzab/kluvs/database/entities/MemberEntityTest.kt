@@ -15,7 +15,6 @@ class MemberEntityTest {
             handle = "@johndoe",
             avatarPath = "/avatars/johndoe.png",
             booksRead = 5,
-            role = "admin",
             createdAt = "2024-01-01T12:00:00Z",
             lastFetchedAt = 1234567890L
         )
@@ -27,7 +26,6 @@ class MemberEntityTest {
         assertEquals("@johndoe", memberEntity.handle)
         assertEquals("/avatars/johndoe.png", memberEntity.avatarPath)
         assertEquals(5, memberEntity.booksRead)
-        assertEquals("admin", memberEntity.role)
         assertEquals("2024-01-01T12:00:00Z", memberEntity.createdAt)
         assertEquals(1234567890L, memberEntity.lastFetchedAt)
     }
@@ -42,7 +40,6 @@ class MemberEntityTest {
             handle = null,
             avatarPath = null,
             booksRead = 0,
-            role = null,
             createdAt = null,
             lastFetchedAt = 1234567890L
         )
@@ -53,7 +50,6 @@ class MemberEntityTest {
         assertEquals(null, memberEntity.name)
         assertEquals(null, memberEntity.handle)
         assertEquals(null, memberEntity.avatarPath)
-        assertEquals(null, memberEntity.role)
         assertEquals(null, memberEntity.createdAt)
         assertEquals(0, memberEntity.booksRead)
     }
@@ -68,7 +64,6 @@ class MemberEntityTest {
             handle = "@johndoe",
             avatarPath = "/avatars/johndoe.png",
             booksRead = 5,
-            role = "member",
             createdAt = "2024-01-01T12:00:00Z",
             lastFetchedAt = 1234567890L
         )
@@ -96,7 +91,6 @@ class MemberEntityTest {
             handle = "@johndoe",
             avatarPath = "/avatars/johndoe.png",
             booksRead = 5,
-            role = "member",
             createdAt = "2024-01-01T12:00:00Z",
             lastFetchedAt = 1234567890L
         )
@@ -108,7 +102,6 @@ class MemberEntityTest {
             handle = "@johndoe",
             avatarPath = "/avatars/johndoe.png",
             booksRead = 5,
-            role = "member",
             createdAt = "2024-01-01T12:00:00Z",
             lastFetchedAt = 1234567890L
         )
@@ -120,7 +113,6 @@ class MemberEntityTest {
             handle = "@janedoe",
             avatarPath = "/avatars/janedoe.png",
             booksRead = 3,
-            role = "member",
             createdAt = "2024-01-15T12:00:00Z",
             lastFetchedAt = 1234567890L
         )

@@ -26,7 +26,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for ClubDataSource using local Supabase instance with seed data.
  *
- * Test data is defined in /kluvs-api/supabase/seed.sql:
+ * Test data is defined in /kluvs-backend/supabase/seed.sql:
  *
  * Servers:
  * - 1039326367428395038: Production Server
@@ -168,9 +168,9 @@ class ClubServiceIntegrationTest {
         assertTrue(memberNames.contains("Joel Salinas"), "Should include Joel Salinas")
 
         // All members should have valid IDs
-        response.members.forEach { member ->
-            assertNotNull(member.id, "Member should have ID")
-            assertTrue(member.id.toIntOrNull() != null, "Member ID should be an integer")
+        response.members.forEach { clubMember ->
+            assertNotNull(clubMember.id, "Member should have ID")
+            assertTrue(clubMember.id.toIntOrNull() != null, "Member ID should be an integer")
         }
     }
 
@@ -295,10 +295,10 @@ class ClubServiceIntegrationTest {
 
         // Then: all member IDs should be valid integers
         assertTrue(response.members.isNotEmpty(), "Club should have members")
-        response.members.forEach { member ->
-            assertTrue(member.id.toIntOrNull() != null,
-                "Member ID '${member.id}' should be a valid integer")
-            assertTrue(member.id.toInt() > 0,
+        response.members.forEach { clubMember ->
+            assertTrue(clubMember.id.toIntOrNull() != null,
+                "Member ID '${clubMember.id}' should be a valid integer")
+            assertTrue(clubMember.id.toInt() > 0,
                 "Member ID should be positive")
         }
     }

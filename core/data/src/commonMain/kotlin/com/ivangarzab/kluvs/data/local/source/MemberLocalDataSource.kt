@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.data.local.mappers.toEntity
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.model.Role
 
 /**
  * Local data source for Member entities.
@@ -17,7 +18,7 @@ interface MemberLocalDataSource {
     suspend fun getMembersForClub(clubId: String): List<Member>
     suspend fun insertMember(member: Member)
     suspend fun insertMembers(members: List<Member>)
-    suspend fun insertClubMemberRelationship(clubId: String, memberId: String)
+    suspend fun insertClubMemberRelationship(clubId: String, memberId: String, role: String = "member")
     suspend fun deleteClubMemberRelationship(clubId: String, memberId: String)
     suspend fun deleteMember(memberId: String)
     suspend fun getLastFetchedAt(memberId: String): Long?
@@ -37,14 +38,26 @@ class MemberLocalDataSourceImpl(
     override suspend fun getMember(memberId: String): Member? {
         val memberEntity = memberDao.getMember(memberId) ?: return null
         val clubEntities = memberDao.getClubsForMember(memberId)
-        val clubs = if (clubEntities.isNotEmpty()) clubEntities.map { it.toDomain() } else null
+        val clubs = if (clubEntities.isNotEmpty()) {
+            val crossRefs = memberDao.getClubMemberCrossRefsForMember(memberId)
+            val roleMap = crossRefs.associate { it.clubId to it.role }
+            clubEntities.map { clubEntity ->
+                clubEntity.toDomain().copy(role = roleMap[clubEntity.id]?.let { Role.fromString(it) })
+            }
+        } else null
         return memberEntity.toDomain().copy(clubs = clubs)
     }
 
     override suspend fun getMemberByUserId(userId: String): Member? {
         val memberEntity = memberDao.getMemberByUserId(userId) ?: return null
         val clubEntities = memberDao.getClubsForMember(memberEntity.id)
-        val clubs = if (clubEntities.isNotEmpty()) clubEntities.map { it.toDomain() } else null
+        val clubs = if (clubEntities.isNotEmpty()) {
+            val crossRefs = memberDao.getClubMemberCrossRefsForMember(memberEntity.id)
+            val roleMap = crossRefs.associate { it.clubId to it.role }
+            clubEntities.map { clubEntity ->
+                clubEntity.toDomain().copy(role = roleMap[clubEntity.id]?.let { Role.fromString(it) })
+            }
+        } else null
         return memberEntity.toDomain().copy(clubs = clubs)
     }
 
@@ -67,7 +80,11 @@ class MemberLocalDataSourceImpl(
                 clubs.forEach { club ->
                     try {
                         memberDao.insertClubMemberCrossRef(
-                            ClubMemberCrossRef(clubId = club.id, memberId = member.id)
+                            ClubMemberCrossRef(
+                                clubId = club.id,
+                                memberId = member.id,
+                                role = club.role?.name?.lowercase() ?: "member" // Convert Role enum to string or default to "member"
+                            )
                         )
                         successCount++
                     } catch (e: Exception) {
@@ -94,11 +111,11 @@ class MemberLocalDataSourceImpl(
         }
     }
 
-    override suspend fun insertClubMemberRelationship(clubId: String, memberId: String) {
-        Bark.d("Adding member (ID: $memberId) to club (ID: $clubId)")
+    override suspend fun insertClubMemberRelationship(clubId: String, memberId: String, role: String) {
+        Bark.d("Adding member (ID: $memberId) to club (ID: $clubId) with role: $role")
         try {
             memberDao.insertClubMemberCrossRef(
-                ClubMemberCrossRef(clubId = clubId, memberId = memberId)
+                ClubMemberCrossRef(clubId = clubId, memberId = memberId, role = role)
             )
             Bark.d("Successfully added member (ID: $memberId) to club (ID: $clubId)")
         } catch (e: Exception) {

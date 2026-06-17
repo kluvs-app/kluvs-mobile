@@ -3,6 +3,11 @@ import Shared
 
 struct GeneralTab: View {
     let clubDetails: Shared.ClubDetails?
+    var userRole: Shared.Role? = nil
+    var onEditClub: () -> Void = {}
+    var onDeleteClub: () -> Void = {}
+
+    private var isOwner: Bool { userRole == .owner }
 
     var body: some View {
         ScrollView {
@@ -10,18 +15,28 @@ struct GeneralTab: View {
                 VStack(spacing: 12) {
                     // Club Info Card
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(clubDetails.clubName)
-                            .font(.headline)
-
-                        Text(String(format: NSLocalizedString("label_members_count", comment: ""), clubDetails.memberCount))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        if isOwner {
+                            HStack {
+                                Spacer()
+                                Menu {
+                                    Button("Edit Club Name") { onEditClub() }
+                                    Button("Delete Club", role: .destructive) { onDeleteClub() }
+                                } label: {
+                                    Image(systemName: "ellipsis.circle")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
 
                         if let foundedYear = clubDetails.foundedYear {
                             Text(String(format: NSLocalizedString("label_founded_in", comment: ""), foundedYear))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
+
+                        Text(String(format: NSLocalizedString("label_members_count", comment: ""), clubDetails.memberCount))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()

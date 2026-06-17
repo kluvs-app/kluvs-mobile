@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.data.remote.source
 
 import com.ivangarzab.kluvs.data.remote.api.ClubService
 import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
+import com.ivangarzab.kluvs.data.remote.dtos.ClubMemberDto
 import com.ivangarzab.kluvs.data.remote.dtos.ClubResponseDto
 import com.ivangarzab.kluvs.data.remote.dtos.ClubSuccessResponseDto
 import com.ivangarzab.kluvs.data.remote.dtos.CreateClubRequestDto
@@ -39,12 +40,12 @@ class ClubRemoteDataSourceTest {
             discord_channel = "123456789",
             server_id = "987654321",
             members = listOf(
-                MemberDto(
+                ClubMemberDto(
                     id = "1",
                     name = "John",
                     books_read = 5,
                     user_id = null,
-                    role = null,
+                    role = "owner",
                     clubs = emptyList()
                 )
             ),
@@ -64,7 +65,7 @@ class ClubRemoteDataSourceTest {
         assertEquals("club-1", club.id)
         assertEquals("Test Club", club.name)
         assertEquals(1, club.members?.size)
-        assertEquals("John", club.members?.first()?.name)
+        assertEquals("John", club.members?.first()?.member?.name)
         assertEquals(1, club.shameList.size)
 
         verifySuspend { clubService.get("club-1", "987654321") }

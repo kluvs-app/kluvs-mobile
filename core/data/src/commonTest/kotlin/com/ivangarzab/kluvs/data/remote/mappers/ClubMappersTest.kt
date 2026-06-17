@@ -2,10 +2,11 @@ package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.data.remote.dtos.BookDto
 import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
+import com.ivangarzab.kluvs.data.remote.dtos.ClubMemberDto
 import com.ivangarzab.kluvs.data.remote.dtos.ClubResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberDto
 import com.ivangarzab.kluvs.data.remote.dtos.ServerClubDto
 import com.ivangarzab.kluvs.data.remote.dtos.SessionDto
+import com.ivangarzab.kluvs.model.Role
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -32,6 +33,7 @@ class ClubMappersTest {
         assertEquals("Book Club", domain.name)
         assertEquals("123456789", domain.discordChannel)
         assertEquals("987654321", domain.serverId)
+        assertNull(domain.role) // No role when club is fetched standalone
         assertTrue(domain.shameList.isEmpty())
         assertNull(domain.members)
         assertNull(domain.activeSession)
@@ -41,7 +43,7 @@ class ClubMappersTest {
     @Test
     fun `ClubResponseDto toDomain maps all nested relations`() {
         // Given: A ClubResponseDto with nested data
-        val memberDto = MemberDto(
+        val clubMemberDto = ClubMemberDto(
             id = "1",
             name = "John Doe",
             books_read = 5,
@@ -69,7 +71,7 @@ class ClubMappersTest {
             name = "Full Club",
             discord_channel = "123456789",
             server_id = "987654321",
-            members = listOf(memberDto),
+            members = listOf(clubMemberDto),
             active_session = sessionDto,
             past_sessions = listOf(sessionDto),
             shame_list = listOf("1", "2")
@@ -83,7 +85,8 @@ class ClubMappersTest {
         assertEquals("Full Club", domain.name)
         assertNotNull(domain.members)
         assertEquals(1, domain.members?.size)
-        assertEquals("John Doe", domain.members?.first()?.name)
+        assertEquals(Role.ADMIN, domain.members?.first()?.role)
+        assertEquals("John Doe", domain.members?.first()?.member?.name)
         assertNotNull(domain.activeSession)
         assertEquals("session-1", domain.activeSession?.id)
         assertNotNull(domain.pastSessions)

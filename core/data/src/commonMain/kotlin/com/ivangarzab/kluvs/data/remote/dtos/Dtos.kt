@@ -48,12 +48,27 @@ data class MemberDto(
 )
 
 @Serializable
+data class ClubMemberDto(
+    @Serializable(with = IntToStringSerializer::class)
+    val id: String,
+    val name: String? = null,
+    val handle: String? = null,
+    val avatar_path: String? = null,
+    val books_read: Int = 0,
+    val user_id: String? = null,
+    val role: String,  // Required: member's role in this specific club
+    val created_at: String? = null,
+    val clubs: List<String> = emptyList()
+)
+
+@Serializable
 data class ClubDto(
     val id: String,
     val name: String,
     val discord_channel: String? = null,
     val server_id: String? = null,
-    val founded_date: String? = null
+    val founded_date: String? = null,
+    val role: String? = null  // Optional: populated when club is in member's clubs list
 )
 
 @Serializable
@@ -101,7 +116,7 @@ data class ClubResponseDto(
     val discord_channel: String?,
     val server_id: String?,
     val founded_date: String? = null,
-    val members: List<MemberDto>,
+    val members: List<ClubMemberDto>,
     val active_session: SessionDto?,
     val past_sessions: List<SessionDto>,
     @Serializable(with = IntListToStringListSerializer::class)
@@ -152,7 +167,6 @@ data class MemberResponseDto(
     val avatar_path: String? = null,
     val books_read: Int,
     val user_id: String?,
-    val role: String?,
     val created_at: String? = null,
     val clubs: List<ClubDto>,
     val shame_clubs: List<ClubDto>
@@ -174,11 +188,13 @@ data class UpdateMemberRequestDto(
     @Serializable(with = IntToStringSerializer::class)
     val id: String,
     val name: String? = null,
+    val handle: String? = null,
     val avatar_path: String? = null,
     val books_read: Int? = null,
     val user_id: String? = null,
     val role: String? = null,
-    val clubs: List<String>? = null
+    val clubs: List<String>? = null,
+    val club_roles: Map<String, String>? = null
 )
 
 @Serializable

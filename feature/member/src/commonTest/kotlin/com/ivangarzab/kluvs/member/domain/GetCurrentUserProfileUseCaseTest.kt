@@ -39,7 +39,6 @@ class GetCurrentUserProfileUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = "admin",
             booksRead = 15
         )
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
@@ -67,7 +66,6 @@ class GetCurrentUserProfileUseCaseTest {
             id = "member-456",
             name = "Alice Smith",
             userId = userId,
-            role = null,
             booksRead = 0
         )
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
@@ -91,7 +89,6 @@ class GetCurrentUserProfileUseCaseTest {
             id = "member-456",
             name = "Mary Jane Watson",
             userId = userId,
-            role = null,
             booksRead = 0
         )
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
@@ -133,7 +130,6 @@ class GetCurrentUserProfileUseCaseTest {
             name = "Jane Doe",
             userId = userId,
             avatarPath = avatarPath,
-            role = "member",
             booksRead = 8
         )
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
@@ -159,7 +155,6 @@ class GetCurrentUserProfileUseCaseTest {
             name = "Jane Doe",
             userId = userId,
             avatarPath = null,
-            role = "member",
             booksRead = 8
         )
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)

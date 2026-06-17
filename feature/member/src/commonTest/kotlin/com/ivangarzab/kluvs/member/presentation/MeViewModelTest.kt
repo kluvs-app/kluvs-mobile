@@ -132,9 +132,9 @@ class MeViewModelTest {
             name = "Alice Johnson",
             booksRead = 12,
             clubs = listOf(
-                Club("club-1", "Fantasy Readers", null, null, null, emptyList(), null, null, emptyList()),
-                Club("club-2", "Sci-Fi Club", null, null, null, emptyList(), null, null, emptyList()),
-                Club("club-3", "Mystery Book Club", null, null, null, emptyList(), null, null, emptyList())
+                Club(id = "club-1", name = "Fantasy Readers", role = null),
+                Club(id = "club-2", name = "Sci-Fi Club", role = null),
+                Club(id = "club-3", name = "Mystery Book Club", role = null)
             )
         )
 
@@ -167,9 +167,9 @@ class MeViewModelTest {
             )
         )
 
-        val club1 = Club("club-1", "Fantasy Readers", null, null, null, emptyList(), null, session1, emptyList())
-        val club2 = Club("club-2", "Sci-Fi Club", null, null, null, emptyList(), null, session2, emptyList())
-        val club3 = Club("club-3", "Mystery Book Club", null, null, null, emptyList(), null, null, emptyList())
+        val club1 = Club(id = "club-1", name = "Fantasy Readers", activeSession = session1)
+        val club2 = Club(id = "club-2", name = "Sci-Fi Club", activeSession = session2)
+        val club3 = Club(id = "club-3", name = "Mystery Book Club")
 
         everySuspend { clubRepository.getClub("club-1") } returns Result.success(club1)
         everySuspend { clubRepository.getClub("club-2") } returns Result.success(club2)
@@ -257,7 +257,7 @@ class MeViewModelTest {
             name = "Alice",
             booksRead = 5,
             clubs = listOf(
-                Club("club-1", "Test Club", null, null, null, emptyList(), null, null, emptyList())
+                Club(id = "club-1", name = "Test Club", role = null)
             )
         )
 
@@ -275,7 +275,7 @@ class MeViewModelTest {
             )
         )
 
-        val club = Club("club-1", "Test Club", null, null, null, emptyList(), null, session, emptyList())
+        val club = Club(id = "club-1", name = "Test Club", activeSession = session)
 
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
         everySuspend { clubRepository.getClub("club-1") } returns Result.success(club)
@@ -386,11 +386,11 @@ class MeViewModelTest {
             name = "Alice",
             booksRead = 5,
             clubs = listOf(
-                Club("club-1", "Inactive Club", null, null, null, emptyList(), null, null, emptyList())
+                Club(id = "club-1", name = "Inactive Club", role = null)
             )
         )
 
-        val club = Club("club-1", "Inactive Club", null, null, null, emptyList(), null, null, emptyList())
+        val club = Club(id = "club-1", name = "Inactive Club")
 
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
         everySuspend { clubRepository.getClub("club-1") } returns Result.success(club)

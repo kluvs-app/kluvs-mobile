@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -50,8 +51,7 @@ class MemberRepositoryTest {
             id = memberId,
             name = "John Doe",
             booksRead = 5,
-            userId = "user-789",
-            role = "Reader"
+            userId = "user-789"
         )
         everySuspend { remoteDataSource.getMember(memberId) } returns Result.success(expectedMember)
 
@@ -139,7 +139,6 @@ class MemberRepositoryTest {
             id = "member-new",
             name = memberName,
             userId = userId,
-            role = role,
             booksRead = 0
         )
         everySuspend { remoteDataSource.createMember(any()) } returns Result.success(expectedMember)
@@ -231,7 +230,6 @@ class MemberRepositoryTest {
             id = memberId,
             name = newName,
             userId = newUserId,
-            role = newRole,
             booksRead = newBooksRead
         )
         everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(expectedMember)
@@ -316,6 +314,42 @@ class MemberRepositoryTest {
         assertTrue(result.isSuccess)
         assertEquals("Updated Name", result.getOrNull()?.name)
         verifySuspend { remoteDataSource.updateMember(any()) }
+    }
+
+    @Test
+    fun `updateMember with handle updates handle`() = runTest {
+        val memberId = "member-123"
+        val newHandle = "alice_reads"
+        val expectedMember = Member(
+            id = memberId,
+            name = "Alice",
+            handle = newHandle,
+            booksRead = 5
+        )
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(expectedMember)
+
+        val result = repository.updateMember(memberId = memberId, handle = newHandle)
+
+        assertTrue(result.isSuccess)
+        assertEquals(newHandle, result.getOrNull()?.handle)
+        verifySuspend { remoteDataSource.updateMember(any()) }
+    }
+
+    @Test
+    fun `updateMember with clubRoles passes club_roles to remote data source`() = runTest {
+        val memberId = "member-123"
+        val clubRoles = mapOf("club-1" to "admin")
+        val expectedMember = Member(id = memberId, name = "Alice", booksRead = 5)
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(expectedMember)
+
+        val result = repository.updateMember(memberId = memberId, clubRoles = clubRoles)
+
+        assertTrue(result.isSuccess)
+        verifySuspend {
+            remoteDataSource.updateMember(
+                UpdateMemberRequestDto(id = memberId, club_roles = clubRoles)
+            )
+        }
     }
 
     @Test

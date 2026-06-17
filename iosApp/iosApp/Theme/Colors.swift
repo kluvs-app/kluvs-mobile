@@ -7,6 +7,7 @@ extension Color {
     static let brandOrange = Color(hex: 0xD16D30)
     static let brandGreen = Color(hex: 0x48A480)
     static let brandBlue = Color(hex: 0x006781)
+    static let brandGold = Color(hex: 0xEFBF04)
 
     // Auth screen colors (matching Android)
     static let discordBlue = Color(hex: 0x5865F2)

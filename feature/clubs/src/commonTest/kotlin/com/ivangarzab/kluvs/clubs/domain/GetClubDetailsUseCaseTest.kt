@@ -4,8 +4,10 @@ import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Club
+import com.ivangarzab.kluvs.model.ClubMember
 import com.ivangarzab.kluvs.model.Discussion
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
 import dev.mokkery.answering.returns
@@ -42,8 +44,14 @@ class GetClubDetailsUseCaseTest {
             serverId = null,
             discordChannel = null,
             members = listOf(
-                Member(id = "m1", name = "Alice", userId = null, role = null, booksRead = 5),
-                Member(id = "m2", name = "Bob", userId = null, role = null, booksRead = 3)
+                ClubMember(
+                    role = Role.MEMBER,
+                    member = Member(id = "m1", name = "Alice", userId = null, booksRead = 5)
+                ),
+                ClubMember(
+                    role = Role.MEMBER,
+                    member = Member(id = "m2", name = "Bob", userId = null, booksRead = 3)
+                )
             ),
             activeSession = null,
             pastSessions = emptyList(),
@@ -90,7 +98,12 @@ class GetClubDetailsUseCaseTest {
             name = "Test Club",
             serverId = null,
             discordChannel = null,
-            members = listOf(Member(id = "m1", name = "Alice", userId = null, role = null, booksRead = 5)),
+            members = listOf(
+                ClubMember(
+                    role = Role.MEMBER,
+                    member = Member(id = "m1", name = "Alice", userId = null, booksRead = 5)
+                )
+            ),
             activeSession = session,
             pastSessions = emptyList(),
             shameList = emptyList()

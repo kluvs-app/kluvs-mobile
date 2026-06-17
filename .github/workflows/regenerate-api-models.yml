@@ -1,0 +1,99 @@
+#
+# Regenerates :core:api's OpenAPI-generated DTOs whenever the canonical spec
+# in kluvs-api changes, and opens a PR against develop with the diff.
+#
+# Triggered by:
+#   - repository_dispatch[api-spec-updated] — sent by kluvs-api's
+#     notify-consumers.yml whenever openapi.json changes on its main branch.
+#   - workflow_dispatch — for manual testing without waiting on a real spec change.
+#
+# No spec blob arrives in the dispatch payload (source_sha + source_repo only) —
+# this workflow fetches openapi.json directly from kluvs-api at that SHA, the
+# same fetch-don't-forward pattern kluvs-api itself uses when pulling from
+# kluvs-backend.
+#
+# Human review/merge of the opened PR is the only manual step in the pipeline.
+#
+# Secrets required:
+#   API_SPEC_FETCH_PAT — fine-grained PAT with Contents: Read on kluvs-api only.
+#     Pushing the branch and opening the PR here in kluvs-mobile uses the
+#     workflow's own GITHUB_TOKEN (see permissions: below) — no PAT scope
+#     needed on this repo.
+#
+
+name: Regenerate API Models
+
+on:
+  repository_dispatch:
+    types: [api-spec-updated]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "kluvs-api ref to fetch openapi.json from (commit SHA or branch name, e.g. main)"
+        required: false
+        default: "main"
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    name: Regenerate :core:api models
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout kluvs-mobile
+        uses: actions/checkout@v5
+
+      - name: Resolve source ref
+        id: source
+        env:
+          DISPATCH_SHA: ${{ github.event.client_payload.source_sha }}
+          MANUAL_REF: ${{ inputs.source_sha }}
+        run: |
+          echo "ref=${DISPATCH_SHA:-$MANUAL_REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch openapi.json from kluvs-api
+        env:
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        run: |
+          curl -fSs \
+            -H "Authorization: token ${{ secrets.API_SPEC_FETCH_PAT }}" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/kluvs-app/kluvs-api/contents/openapi.json?ref=${SOURCE_REF}" \
+            -o core/api/openapi.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2 #TODO: Beware of version bump; it breaks the workflow
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Regenerate models
+        run: ./gradlew :core:api:openApiGenerate
+
+      - name: Open PR with regenerated models
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: develop
+          branch: chore/regenerate-api-models
+          delete-branch: true
+          commit-message: "chore: regenerate api models from spec ${{ steps.source.outputs.ref }}"
+          title: "chore: regenerate api models from spec ${{ steps.source.outputs.ref }}"
+          body: |
+            Regenerated `:core:api` DTOs from [`kluvs-api@${{ steps.source.outputs.ref }}`](https://github.com/kluvs-app/kluvs-api/commit/${{ steps.source.outputs.ref }}).
+
+            Opened automatically by `regenerate-api-models.yml` — review the diff and merge.
+          add-paths: |
+            core/api/openapi.json
+            core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models/**

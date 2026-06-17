@@ -142,8 +142,8 @@ class GetActiveSessionUseCaseTest {
         // Given
         val clubId = "club-123"
         val pastDate = LocalDateTime(2024, 1, 1, 19, 0)
-        val futureDate1 = LocalDateTime(2026, 6, 1, 19, 0)
-        val futureDate2 = LocalDateTime(2026, 7, 1, 19, 0)
+        val futureDate1 = LocalDateTime(2099, 6, 1, 19, 0)
+        val futureDate2 = LocalDateTime(2099, 7, 1, 19, 0)
 
         val discussions = listOf(
             Discussion(id = "d1", sessionId = "s1", title = "Past", date = pastDate, location = null),

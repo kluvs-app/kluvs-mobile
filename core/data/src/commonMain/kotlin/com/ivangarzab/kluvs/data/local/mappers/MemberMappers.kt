@@ -18,7 +18,6 @@ fun MemberEntity.toDomain(): Member {
         avatarPath = avatarPath,
         booksRead = booksRead,
         userId = userId,
-        role = role,
         createdAt = createdAt?.parseDateString(),
         clubs = null, // Relationship not stored in entity
         shameClubs = null // Relationship not stored in entity
@@ -38,7 +37,6 @@ fun Member.toEntity(): MemberEntity {
         handle = handle,
         avatarPath = avatarPath,
         booksRead = booksRead,
-        role = role,
         createdAt = createdAt?.toString(),
         lastFetchedAt = Clock.System.now().toEpochMilliseconds()
     )

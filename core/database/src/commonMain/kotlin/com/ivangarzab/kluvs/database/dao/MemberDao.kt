@@ -34,6 +34,15 @@ interface MemberDao {
     """)
     suspend fun getClubsForMember(memberId: String): List<ClubEntity>
 
+    @Query("SELECT * FROM club_members WHERE clubId = :clubId")
+    suspend fun getClubMemberCrossRefsForClub(clubId: String): List<ClubMemberCrossRef>
+
+    @Query("SELECT * FROM club_members WHERE memberId = :memberId")
+    suspend fun getClubMemberCrossRefsForMember(memberId: String): List<ClubMemberCrossRef>
+
+    @Query("SELECT role FROM club_members WHERE clubId = :clubId AND memberId = :memberId")
+    suspend fun getMemberRoleInClub(clubId: String, memberId: String): String?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMember(member: MemberEntity)
 

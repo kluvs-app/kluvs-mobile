@@ -42,7 +42,6 @@ class GetCurrentlyReadingBooksUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = null
         )
@@ -68,7 +67,6 @@ class GetCurrentlyReadingBooksUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = listOf(club1, club2)
         )
@@ -132,15 +130,14 @@ class GetCurrentlyReadingBooksUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = listOf(club)
         )
 
         val pastDate1 = LocalDateTime(2024, 1, 1, 19, 0)
         val pastDate2 = LocalDateTime(2024, 2, 1, 19, 0)
-        val futureDate1 = LocalDateTime(2026, 3, 1, 19, 0)
-        val futureDate2 = LocalDateTime(2026, 4, 1, 19, 0)
+        val futureDate1 = LocalDateTime(2099, 3, 1, 19, 0)
+        val futureDate2 = LocalDateTime(2099, 4, 1, 19, 0)
 
         val discussions = listOf(
             Discussion(id = "d1", sessionId = "s1", title = "Past 1", date = pastDate1, location = null),
@@ -187,7 +184,6 @@ class GetCurrentlyReadingBooksUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = listOf(club)
         )
@@ -229,7 +225,6 @@ class GetCurrentlyReadingBooksUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = listOf(club1, club2)
         )
@@ -273,7 +268,6 @@ class GetCurrentlyReadingBooksUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = listOf(club)
         )

@@ -37,7 +37,6 @@ class GetUserStatisticsUseCaseTest {
             id = "member-456",
             name = "John Doe",
             userId = userId,
-            role = null,
             booksRead = 20,
             clubs = clubs
         )
@@ -62,7 +61,6 @@ class GetUserStatisticsUseCaseTest {
             id = "member-456",
             name = "Jane Doe",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = null
         )
@@ -87,7 +85,6 @@ class GetUserStatisticsUseCaseTest {
             id = "member-456",
             name = "New User",
             userId = userId,
-            role = null,
             booksRead = 0,
             clubs = emptyList()
         )

@@ -25,6 +25,7 @@ import com.ivangarzab.kluvs.app.NavigationState
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.auth.LoginScreen
 import com.ivangarzab.kluvs.ui.auth.SignupScreen
+import com.ivangarzab.kluvs.ui.settings.SettingsScreen
 import org.koin.compose.viewmodel.koinViewModel
 
 class MainActivity : ComponentActivity() {
@@ -129,8 +130,20 @@ fun MainNavHost(
         composable(NavDestinations.MAIN) {
             val userId = (navState as? NavigationState.Authenticated)?.userId
             if (userId != null) {
-                MainScreen(userId = userId)
+                MainScreen(
+                    userId = userId,
+                    onNavigateToSettings = {
+                        navController.navigate("${NavDestinations.SETTINGS}/$userId")
+                    }
+                )
             }
+        }
+        composable("${NavDestinations.SETTINGS}/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            SettingsScreen(
+                userId = userId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
@@ -140,4 +153,5 @@ object NavDestinations {
     const val SIGNUP = "signup"
     const val FORGOT_PASSWORD = "forgot_password"
     const val MAIN = "main"
+    const val SETTINGS = "settings"
 }

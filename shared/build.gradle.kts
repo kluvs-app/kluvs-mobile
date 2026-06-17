@@ -7,7 +7,7 @@ plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("com.android.library")
     id("org.jetbrains.kotlinx.kover")
-    id("com.codingfeline.buildkonfig") version "+"
+    alias(libs.plugins.buildKonfig)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.sentry)
@@ -36,6 +36,7 @@ kotlin {
             export(project(":feature:auth"))
             export(project(":feature:clubs"))
             export(project(":feature:member"))
+            export(project(":feature:settings"))
             export(libs.bark)
         }
     }
@@ -51,6 +52,7 @@ kotlin {
             api(project(":feature:auth"))
             api(project(":feature:clubs"))
             api(project(":feature:member"))
+            api(project(":feature:settings"))
 
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization)

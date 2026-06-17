@@ -3,7 +3,7 @@ import utils.getPropertyOrEnvVar
 plugins {
     id("kluvs.kmp.library")
     alias(libs.plugins.kotlinSerialization)
-    id("com.codingfeline.buildkonfig") version "+"
+    alias(libs.plugins.buildKonfig)
 }
 
 kotlin {

@@ -25,8 +25,6 @@ data class Member(
     /** The User ID related to Auth. */
     val userId: String? = null,
 
-    val role: String? = null,
-
     /** Timestamp when this member account was created. */
     val createdAt: LocalDateTime? = null,
 

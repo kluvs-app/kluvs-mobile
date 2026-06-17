@@ -30,7 +30,6 @@ class MemberMappersTest {
         assertEquals("Jane Doe", domain.name)
         assertEquals(10, domain.booksRead)
         assertEquals("user-123", domain.userId)
-        assertEquals("member", domain.role)
         assertNull(domain.clubs) // Not available in MemberDto
         assertNull(domain.shameClubs) // Not available in MemberDto
     }
@@ -57,7 +56,6 @@ class MemberMappersTest {
             name = "John Smith",
             books_read = 15,
             user_id = "user-456",
-            role = "admin",
             clubs = listOf(clubDto1, clubDto2),
             shame_clubs = listOf(clubDto1)
         )
@@ -70,7 +68,6 @@ class MemberMappersTest {
         assertEquals("John Smith", domain.name)
         assertEquals(15, domain.booksRead)
         assertEquals("user-456", domain.userId)
-        assertEquals("admin", domain.role)
 
         assertNotNull(domain.clubs)
         assertEquals(2, domain.clubs?.size)
@@ -89,7 +86,6 @@ class MemberMappersTest {
             name = "New Member",
             books_read = 0,
             user_id = null,
-            role = null,
             clubs = emptyList(),
             shame_clubs = emptyList()
         )
@@ -124,7 +120,6 @@ class MemberMappersTest {
         assertEquals("4", domain.id)
         assertEquals("Anonymous", domain.name)
         assertNull(domain.userId)
-        assertNull(domain.role)
     }
 
     @Test
@@ -181,7 +176,6 @@ class MemberMappersTest {
             avatar_path = "member-2/avatar.png",
             books_read = 15,
             user_id = "user-456",
-            role = "admin",
             created_at = "2023-06-10T14:22:33Z",
             clubs = emptyList(),
             shame_clubs = emptyList()
@@ -204,7 +198,6 @@ class MemberMappersTest {
             avatar_path = null,
             books_read = 15,
             user_id = "user-456",
-            role = "admin",
             created_at = "2023-06-10T14:22:33Z",
             clubs = emptyList(),
             shame_clubs = emptyList()
@@ -315,7 +308,6 @@ class MemberMappersTest {
             handle = "johnsmith",
             books_read = 15,
             user_id = "user-456",
-            role = "admin",
             created_at = "2023-06-10T14:22:33Z",
             clubs = emptyList(),
             shame_clubs = emptyList()

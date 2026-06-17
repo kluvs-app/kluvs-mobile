@@ -40,10 +40,12 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     modifier: Modifier = Modifier,
     userId: String,
+    onNavigateToSettings: () -> Unit = {},
 ) {
     MainScreenContent(
         modifier = modifier,
         userId = userId,
+        onNavigateToSettings = onNavigateToSettings,
     )
 }
 
@@ -52,6 +54,7 @@ fun MainScreen(
 fun MainScreenContent(
     modifier: Modifier = Modifier,
     userId: String,
+    onNavigateToSettings: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
 
@@ -169,6 +172,7 @@ fun MainScreenContent(
                 2 ->*/ MeScreen(
                     modifier = contentModifier,
                     userId = userId,
+                    onNavigateToSettings = onNavigateToSettings,
                 )
             }
         }

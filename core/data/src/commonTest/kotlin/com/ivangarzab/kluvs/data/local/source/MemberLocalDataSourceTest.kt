@@ -28,13 +28,16 @@ class MemberLocalDataSourceTest {
     fun `getMember returns member with clubs`() = runTest {
         setup()
         val memberId = "member-1"
-        val memberEntity = MemberEntity(memberId, "user-1", "Alice", "alice", null, 5, null, null, 0)
+        val memberEntity = MemberEntity(memberId, "user-1", "Alice", "alice", null, 5, null, 0)
         val clubEntities = listOf(
             ClubEntity("club-1", null, "Fantasy Club", null, null, 0)
         )
 
         everySuspend { fixture.memberDao.getMember(memberId) } returns memberEntity
         everySuspend { fixture.memberDao.getClubsForMember(memberId) } returns clubEntities
+        everySuspend { fixture.memberDao.getClubMemberCrossRefsForMember(memberId) } returns listOf(
+            ClubMemberCrossRef("club-1", memberId, "member")
+        )
 
         val result = dataSource.getMember(memberId)
 
@@ -55,13 +58,16 @@ class MemberLocalDataSourceTest {
         setup()
         val userId = "user-1"
         val memberId = "member-1"
-        val memberEntity = MemberEntity(memberId, userId, "Bob", "bob", null, 2, null, null, 0)
+        val memberEntity = MemberEntity(memberId, userId, "Bob", "bob", null, 2, null, 0)
         val clubEntities = listOf(
             ClubEntity("club-1", null, "Book Club", null, null, 0)
         )
 
         everySuspend { fixture.memberDao.getMemberByUserId(userId) } returns memberEntity
         everySuspend { fixture.memberDao.getClubsForMember(memberId) } returns clubEntities
+        everySuspend { fixture.memberDao.getClubMemberCrossRefsForMember(memberId) } returns listOf(
+            ClubMemberCrossRef("club-1", memberId, "owner")
+        )
 
         val result = dataSource.getMemberByUserId(userId)
 
@@ -82,8 +88,8 @@ class MemberLocalDataSourceTest {
         setup()
         val clubId = "club-1"
         val members = listOf(
-            MemberEntity("member-1", "user-1", "Alice", "alice", null, 5, null, null, 0),
-            MemberEntity("member-2", "user-2", "Bob", "bob", null, 2, null, null, 0)
+            MemberEntity("member-1", "user-1", "Alice", "alice", null, 5, null, 0),
+            MemberEntity("member-2", "user-2", "Bob", "bob", null, 2, null, 0)
         )
 
         everySuspend { fixture.memberDao.getMembersForClub(clubId) } returns members
@@ -104,13 +110,13 @@ class MemberLocalDataSourceTest {
             handle = "Alice",
             avatarPath = "path",
             booksRead = 5,
-            clubs = listOf(Club("club-1", "Fantasy Club", null, null, null, emptyList(), null, null, emptyList()))
+            clubs = listOf(Club("club-1", "Fantasy Club", null, null, null, emptyList(), null, null, null, emptyList()))
         )
 
         everySuspend { fixture.memberDao.insertMember(member.toEntity()) } returns Unit
         everySuspend {
             fixture.memberDao.insertClubMemberCrossRef(
-                ClubMemberCrossRef("club-1", "member-1")
+                ClubMemberCrossRef("club-1", "member-1", "admin")
             )
         } returns Unit
 
@@ -137,11 +143,11 @@ class MemberLocalDataSourceTest {
         setup()
         everySuspend {
             fixture.memberDao.insertClubMemberCrossRef(
-                ClubMemberCrossRef("club-1", "member-1")
+                ClubMemberCrossRef("club-1", "member-1", "member")
             )
         } returns Unit
 
-        dataSource.insertClubMemberRelationship("club-1", "member-1")
+        dataSource.insertClubMemberRelationship("club-1", "member-1", "member")
     }
 
     @Test
@@ -157,7 +163,7 @@ class MemberLocalDataSourceTest {
     @Test
     fun `deleteMember deletes existing member`() = runTest {
         setup()
-        val entity = MemberEntity("member-1", "user-1", "Alice", "alice", null, 5, null, null, 0)
+        val entity = MemberEntity("member-1", "user-1", "Alice", "alice", null, 5, null, 0)
         everySuspend { fixture.memberDao.getMember("member-1") } returns entity
         everySuspend { fixture.memberDao.deleteMember(entity) } returns Unit
 
@@ -178,7 +184,6 @@ class MemberLocalDataSourceTest {
         handle = null,
         avatarPath = avatarPath,
         booksRead = booksRead,
-        role = null,
         createdAt = null,
         lastFetchedAt = 0
     )

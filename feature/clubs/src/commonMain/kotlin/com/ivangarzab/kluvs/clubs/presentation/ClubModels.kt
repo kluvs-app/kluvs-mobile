@@ -1,14 +1,19 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.model.Role
+import kotlinx.datetime.LocalDateTime
+
 /**
  * Lightweight UI model for club selection/listing.
  *
  * Contains minimal data needed to display and select clubs.
  * Used for multi-club support where user can switch between clubs.
+ * [role] is the current user's role in this club, populated from the member's clubs list.
  */
 data class ClubListItem(
     val id: String,
-    val name: String
+    val name: String,
+    val role: Role? = null
 )
 
 /**
@@ -34,6 +39,7 @@ data class ActiveSessionDetails(
     val sessionId: String,
     val book: BookInfo,
     val dueDate: String,
+    val rawDueDate: LocalDateTime?,
     val discussions: List<DiscussionTimelineItemInfo>
 )
 
@@ -47,6 +53,7 @@ data class DiscussionTimelineItemInfo(
     val title: String,
     val location: String,
     val date: String,
+    val rawDate: LocalDateTime,
     val isPast: Boolean,
     val isNext: Boolean
 )
@@ -76,10 +83,24 @@ data class DiscussionInfo(
 
 /**
  * UI model for member displayed in MembersTab list.
+ *
+ * [userId] mirrors [com.ivangarzab.kluvs.model.Member.userId] and is used by the UI to
+ * identify the currently signed-in user's own row so self-action controls can be hidden.
  */
 data class MemberListItemInfo(
     val memberId: String,
     val name: String,
     val handle: String,
-    val avatarUrl: String?
+    val avatarUrl: String?,
+    val role: Role,
+    val userId: String? = null
 )
+
+/**
+ * Represents the outcome of a mutation operation (create/update/delete).
+ * The ViewModel maps UseCase Result<T> into this for the UI layer.
+ */
+sealed interface OperationResult {
+    data class Success(val message: String) : OperationResult
+    data class Error(val message: String) : OperationResult
+}

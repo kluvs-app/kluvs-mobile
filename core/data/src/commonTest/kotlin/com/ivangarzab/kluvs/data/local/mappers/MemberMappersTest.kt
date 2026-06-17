@@ -20,7 +20,6 @@ class MemberMappersTest {
             handle = "@johndoe",
             avatarPath = "/avatars/johndoe.png",
             booksRead = 5,
-            role = "admin",
             createdAt = "2024-01-01T12:00:00",
             lastFetchedAt = 1234567890L
         )
@@ -35,7 +34,6 @@ class MemberMappersTest {
         assertEquals("/avatars/johndoe.png", domain.avatarPath)
         assertEquals(5, domain.booksRead)
         assertEquals("user-1", domain.userId)
-        assertEquals("admin", domain.role)
         assertEquals(LocalDateTime.parse("2024-01-01T12:00:00"), domain.createdAt)
         assertNull(domain.clubs) // Relationship not loaded
         assertNull(domain.shameClubs) // Relationship not loaded
@@ -51,7 +49,6 @@ class MemberMappersTest {
             handle = null,
             avatarPath = null,
             booksRead = 0,
-            role = null,
             createdAt = null,
             lastFetchedAt = 1234567890L
         )
@@ -74,7 +71,6 @@ class MemberMappersTest {
             avatarPath = "/avatars/johndoe.png",
             booksRead = 5,
             userId = "user-1",
-            role = "admin",
             createdAt = LocalDateTime.parse("2024-01-01T12:00:00")
         )
 
@@ -88,7 +84,6 @@ class MemberMappersTest {
         assertEquals("@johndoe", entity.handle)
         assertEquals("/avatars/johndoe.png", entity.avatarPath)
         assertEquals(5, entity.booksRead)
-        assertEquals("admin", entity.role)
         assertEquals("2024-01-01T12:00", entity.createdAt)
         assertNotNull(entity.lastFetchedAt)
     }

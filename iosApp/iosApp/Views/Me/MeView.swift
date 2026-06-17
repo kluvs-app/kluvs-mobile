@@ -5,6 +5,7 @@ import PhotosUI
 struct MeView: View {
     let userId: String
     @StateObject private var viewModel = MeViewModelWrapper()
+    @State private var showSettings = false
 
     var body: some View {
         ZStack {
@@ -41,9 +42,10 @@ struct MeView: View {
 
                         CurrentlyReadingSection(currentReadings: viewModel.currentlyReading)
 
-                        FooterSection(onSignOut: {
-                            viewModel.onSignOutClicked()
-                        })
+                        FooterSection(
+                            onSignOut: { viewModel.onSignOutClicked() },
+                            onNavigateToSettings: { showSettings = true }
+                        )
                     }
                     .padding(16)
                 }
@@ -76,6 +78,11 @@ struct MeView: View {
                     viewModel.onSignOutDialogDismissed()
                 }
             )
+        }
+        .sheet(isPresented: $showSettings) {
+            NavigationStack {
+                SettingsView(userId: userId)
+            }
         }
     }
 }
@@ -146,15 +153,14 @@ struct ProfileSection: View {
 // MARK: - Footer Section
 struct FooterSection: View {
     let onSignOut: () -> Void
+    let onNavigateToSettings: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             Divider()
                 .padding(.vertical, 12)
-            
-            FooterItem(label: String(localized: "button_settings"), icon: .settings, action: {
-                // TODO: Navigate to settings
-            })
+
+            FooterItem(label: String(localized: "button_settings"), icon: .settings, action: onNavigateToSettings)
 
             Divider()
                 .padding(.vertical, 12)
@@ -167,19 +173,6 @@ struct FooterSection: View {
                 .padding(.vertical, 12)
 
             FooterItem(label: String(localized: "sign_out"), icon: .logout, labelColor: .red, iconColor: .red, action: onSignOut)
-
-            Divider()
-                .padding(.vertical, 12)
-
-            HStack {
-                Spacer()
-                Text(String(format: NSLocalizedString("app_version", comment: ""), "0.0.1")) //TODO: Get actual version from KMP
-                    .font(.caption)
-                    .italic()
-                    .foregroundColor(.secondary)
-                    .padding(.top, 8)
-            }
-            .padding(.horizontal, 16)
         }
     }
 }

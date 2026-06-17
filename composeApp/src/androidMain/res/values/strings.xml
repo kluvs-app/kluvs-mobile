@@ -3,7 +3,7 @@
     <string name="na">N/A</string>
     <string name="tbd">TBD</string>
     <string name="home">Home</string>
-    <string name="clubs">Clubs</string>
+    <string name="clubs">Kluvs</string>
     <string name="me">Me</string>
     <string name="general">General</string>
     <string name="settings">Settings</string>
@@ -74,6 +74,20 @@
     <string name="logout_confirmation_message">Are you sure you want to sign out?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="label_name">Name</string>
+    <string name="label_handle">Handle</string>
+    <string name="button_save">Save</string>
+    <string name="save_success">Profile updated</string>
+    <string name="legal_title">Legal</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_use">Terms of Use</string>
+    <string name="about_title">About</string>
+
+    <string name="navigate_back">Navigate back</string>
 
     <!-- Avatar -->
     <string name="profile_picture">Profile picture</string>

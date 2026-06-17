@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
@@ -63,6 +62,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun MeScreen(
     modifier: Modifier = Modifier,
     userId: String,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: MeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -105,7 +105,7 @@ fun MeScreen(
             modifier = Modifier,
             state = state,
             onRetry = viewModel::refresh,
-            onSettingsClick = { /* TODO() */ },
+            onSettingsClick = onNavigateToSettings,
             onHelpClick = { /* TODO() */ },
             onSignOutClick = viewModel::onSignOutClicked,
             onAvatarClick = {
@@ -330,22 +330,6 @@ private fun FooterSection(
             onClick = onSignOutClick
         )
 
-        Divider(
-            modifier = Modifier.padding(vertical = 12.dp),
-            color = MaterialTheme.colorScheme.inverseOnSurface
-        )
-
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            Text(
-                text = stringResource(R.string.version_x, "0.0.1"),
-                color = MaterialTheme.colorScheme.inverseOnSurface,
-                style = MaterialTheme.typography.bodySmall,
-                fontStyle = FontStyle.Italic
-            )
-        }
     }
 }
 

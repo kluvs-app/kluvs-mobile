@@ -21,7 +21,6 @@ data class MemberEntity(
     val handle: String?,
     val avatarPath: String?,
     val booksRead: Int,
-    val role: String?,
     val createdAt: String?, // ISO-8601 datetime string
     val lastFetchedAt: Long // Timestamp in milliseconds for TTL check
 )

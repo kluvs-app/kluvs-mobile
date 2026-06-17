@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for MemberService using local Supabase instance with seed data.
  *
- * Test data from /kluvs-api/supabase/seed.sql:
+ * Test data from /kluvs-backend/supabase/seed.sql:
  * - 1: Ivan Garza (clubs: club-1, club-2)
  * - 2: Monica Morales (clubs: club-1, club-2)
  * - 3: Marco Rivera (clubs: club-3)
@@ -119,8 +119,7 @@ class MemberServiceIntegrationTest {
         // Given: a new member request
         val request = CreateMemberRequestDto(
             name = "Test Member Create",
-            books_read = 0,
-            role = "member"
+            books_read = 0
         )
 
         var memberId: String? = null
@@ -203,6 +202,38 @@ class MemberServiceIntegrationTest {
         // Verify it no longer exists
         assertFailsWith<Exception> {
             memberService.get(memberId)
+        }
+    }
+
+    @Test
+    fun testUpdateMemberHandle() = runTest {
+        // Given: a test member exists
+        val createRequest = CreateMemberRequestDto(
+            name = "Handle Test Member",
+            books_read = 0
+        )
+        val created = memberService.create(createRequest)
+        val memberId = created.member.id
+
+        try {
+            // When: updating the member's handle
+            val updateRequest = UpdateMemberRequestDto(
+                id = memberId,
+                handle = "handle_test_user"
+            )
+            val response = memberService.update(updateRequest)
+
+            // Then: update should succeed
+            assertTrue(response.success, "Member update should succeed")
+
+            // Verify handle persisted on re-fetch
+            val retrieved = memberService.get(memberId)
+            assertEquals("handle_test_user", retrieved.handle, "Handle should be persisted")
+        } finally {
+            // Cleanup
+            try {
+                memberService.delete(memberId)
+            } catch (_: Exception) { }
         }
     }
 

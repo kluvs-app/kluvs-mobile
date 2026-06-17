@@ -31,11 +31,11 @@ jobs:
         with:
           path: kluvs-mobile
 
-      - name: Checkout kluvs-api
+      - name: Checkout kluvs-backend
         uses: actions/checkout@v5
         with:
-          repository: ivangarzab/kluvs-api
-          path: kluvs-api
+          repository: ivangarzab/kluvs-backend
+          path: kluvs-backend
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Java
@@ -50,7 +50,7 @@ jobs:
           version: latest
 
       - name: Start Supabase Local Instance
-        working-directory: kluvs-api
+        working-directory: kluvs-backend
         run: |
           echo "Starting Supabase local instance..."
           supabase init || true
@@ -61,11 +61,11 @@ jobs:
         run: sleep 10
 
       - name: Verify Supabase is running
-        working-directory: kluvs-api
+        working-directory: kluvs-backend
         run: supabase status
 
       - name: Apply Database Migrations and Seed
-        working-directory: kluvs-api
+        working-directory: kluvs-backend
         run: |
           echo "Applying database migrations and seed data..."
           supabase db reset --local
@@ -108,7 +108,7 @@ jobs:
 
       - name: Stop Supabase
         if: always()
-        working-directory: kluvs-api
+        working-directory: kluvs-backend
         run: supabase stop
 
       - name: Upload Test Results

@@ -4,6 +4,8 @@ import com.ivangarzab.kluvs.data.local.mappers.toDomain
 import com.ivangarzab.kluvs.data.local.mappers.toEntity
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.model.Club
+import com.ivangarzab.kluvs.model.ClubMember
+import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.bark.Bark
 
 /**
@@ -37,9 +39,18 @@ class ClubLocalDataSourceImpl(
         val clubEntity = clubDao.getClub(clubId) ?: return null
 
         return try {
-            // Load members for this club
+            // Load members for this club with their roles
             val memberEntities = memberDao.getMembersForClub(clubId)
-            val members = if (memberEntities.isNotEmpty()) memberEntities.map { it.toDomain() } else null
+            val members = if (memberEntities.isNotEmpty()) {
+                val crossRefs = memberDao.getClubMemberCrossRefsForClub(clubId)
+                val roleMap = crossRefs.associate { it.memberId to it.role }
+                memberEntities.map { memberEntity ->
+                    ClubMember(
+                        role = Role.fromString(roleMap[memberEntity.id] ?: "member"),
+                        member = memberEntity.toDomain()
+                    )
+                }
+            } else null
 
             // Load active session for this club (get the most recent session)
             val sessionEntities = sessionDao.getSessionsForClub(clubId)
@@ -76,14 +87,15 @@ class ClubLocalDataSourceImpl(
             // Note: Members from Club API response are basic objects without their own relationships.
             // We cache them here so the club can show its member list, but MemberRepository
             // is responsible for caching complete member data.
-            club.members?.let { members ->
-                Bark.v("Caching ${members.size} members for club (ID: ${club.id})")
-                memberDao.insertMembers(members.map { it.toEntity() })
-                members.forEach { member ->
+            club.members?.let { clubMembers ->
+                Bark.v("Caching ${clubMembers.size} members for club (ID: ${club.id})")
+                memberDao.insertMembers(clubMembers.map { it.member.toEntity() })
+                clubMembers.forEach { clubMember ->
                     memberDao.insertClubMemberCrossRef(
                         com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef(
                             clubId = club.id,
-                            memberId = member.id
+                            memberId = clubMember.member.id,
+                            role = clubMember.role.name
                         )
                     )
                 }

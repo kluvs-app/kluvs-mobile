@@ -19,7 +19,6 @@ fun MemberDto.toDomain(): Member {
         avatarPath = avatar_path,
         booksRead = books_read,
         userId = user_id,
-        role = role,
         createdAt = parseDateTimeString(created_at),
         clubs = null,
         shameClubs = null
@@ -41,7 +40,6 @@ fun MemberResponseDto.toDomain(): Member {
         avatarPath = avatar_path,
         booksRead = books_read,
         userId = user_id,
-        role = role,
         createdAt = parseDateTimeString(created_at),
         // Map nested ClubDto objects to domain models
         clubs = clubs.map { it.toDomain() },

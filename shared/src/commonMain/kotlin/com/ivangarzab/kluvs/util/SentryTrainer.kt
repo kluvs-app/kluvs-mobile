@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  */
 class SentryTrainer : Trainer {
 
-    override val volume = Level.INFO
+    override val minLevel = Level.INFO
 
     override val pack = Pack.CUSTOM
 

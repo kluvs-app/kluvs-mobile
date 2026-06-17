@@ -28,10 +28,18 @@ data class Club(
     val shameList: List<String> = emptyList(),
 
     /**
-     * List of [Member]s in this club.
-     * Null when not loaded; empty list when loaded but no members exist.
+     * Optional role of the current user in this club.
+     * Only populated when this club is returned as part of a member's clubs list.
+     * Null in other contexts (e.g., server club list, standalone club fetch).
      */
-    val members: List<Member>? = null,
+    val role: Role? = null,
+
+    /**
+     * List of [ClubMember]s in this club.
+     * Null when not loaded; empty list when loaded but no members exist.
+     * Each ClubMember includes the member entity and their role in this club.
+     */
+    val members: List<ClubMember>? = null,
 
     /**
      * Active [Session] for this club (if any).
