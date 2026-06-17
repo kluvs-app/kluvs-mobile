@@ -36,6 +36,7 @@ coil = "3.2.0"
 room = "2.8.4"
 sqlite = "2.6.2"
 sentry = "0.23.0"
+openapiGenerator = "7.16.0"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "kotlin-coroutines" }
@@ -111,3 +112,4 @@ googleServices = { id = "com.google.gms.google-services", version.ref = "google-
 firebaseAppDistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebase-appdistribution" }
 androidxRoom = { id = "androidx.room", version.ref = "room" }
 sentry = { id = "io.sentry.kotlin.multiplatform.gradle", version.ref = "sentry" }
+openapiGenerator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }

@@ -32,6 +32,7 @@ include(":composeApp")
 include(":shared")
 // core
 include(":core:model")
+include(":core:api")
 include(":core:network")
 include(":core:database")
 include(":core:auth")
