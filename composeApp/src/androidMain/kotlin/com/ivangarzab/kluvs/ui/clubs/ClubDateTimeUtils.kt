@@ -30,7 +30,7 @@ internal fun buildLocalDateTime(epochMillis: Long, hour: Int, minute: Int): Loca
 @OptIn(ExperimentalTime::class)
 internal fun formatDateMillis(epochMillis: Long): String {
     val dt = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.UTC)
-    return "${dt.year}-${dt.month.value.toString().padStart(2, '0')}-${dt.day.toString().padStart(2, '0')}"
+    return "${dt.year}-${dt.month.toString().padStart(2, '0')}-${dt.day.toString().padStart(2, '0')}"
 }
 
 /**
