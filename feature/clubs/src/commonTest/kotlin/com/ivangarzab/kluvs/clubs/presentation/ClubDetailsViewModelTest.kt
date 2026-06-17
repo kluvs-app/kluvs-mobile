@@ -444,6 +444,7 @@ class ClubDetailsViewModelTest {
             members = emptyList(), activeSession = null, pastSessions = emptyList(), shameList = emptyList()
         )
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(updatedClub)
+        everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(updatedClub)
         everySuspend { clubRepository.updateClub(clubId = clubId, name = "New Name") } returns Result.success(updatedClub)
 
         // Load club first so currentClubId and userRole are set
@@ -494,6 +495,7 @@ class ClubDetailsViewModelTest {
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
         everySuspend { memberRepository.getMemberByUserId("u1") } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(updatedClub)
+        everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(updatedClub)
         everySuspend { clubRepository.updateClub(clubId = clubId, name = "New Name") } returns Result.success(updatedClub)
         viewModel.loadUserClubs("u1")
 

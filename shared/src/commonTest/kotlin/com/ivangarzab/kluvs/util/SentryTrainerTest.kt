@@ -21,7 +21,7 @@ class SentryTrainerTest {
         val trainer = SentryTrainer()
 
         // Then: should have correct configuration
-        assertEquals(Level.INFO, trainer.volume, "Volume should be INFO")
+        assertEquals(Level.INFO, trainer.minLevel, "Volume should be INFO")
         assertEquals(Pack.CUSTOM, trainer.pack, "Pack should be CUSTOM")
     }
 

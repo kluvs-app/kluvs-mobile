@@ -1,12 +1,23 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
+import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
+import com.ivangarzab.kluvs.data.repositories.SessionRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
 import dev.mokkery.answering.returns
@@ -37,6 +48,7 @@ class ClubDetailsViewModelHelperTest {
 
     private lateinit var clubRepository: ClubRepository
     private lateinit var memberRepository: MemberRepository
+    private lateinit var sessionRepository: SessionRepository
     private lateinit var avatarRepository: AvatarRepository
     private lateinit var viewModel: ClubDetailsViewModel
     private lateinit var testScope: CoroutineScope
@@ -50,6 +62,7 @@ class ClubDetailsViewModelHelperTest {
         // Create mocked repositories
         clubRepository = mock<ClubRepository>()
         memberRepository = mock<MemberRepository>()
+        sessionRepository = mock<SessionRepository>()
         avatarRepository = mock<AvatarRepository>()
 
         // Create test scope
@@ -63,7 +76,19 @@ class ClubDetailsViewModelHelperTest {
         val getMemberClubs = GetMemberClubsUseCase(memberRepository)
 
         // Create real ViewModel with real use cases
-        viewModel = ClubDetailsViewModel(getClubDetails, getActiveSession, getClubMembers, getMemberClubs)
+        viewModel = ClubDetailsViewModel(
+            getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
+            updateClubUseCase = UpdateClubUseCase(clubRepository),
+            deleteClubUseCase = DeleteClubUseCase(clubRepository),
+            createSessionUseCase = CreateSessionUseCase(sessionRepository),
+            updateSessionUseCase = UpdateSessionUseCase(sessionRepository),
+            deleteSessionUseCase = DeleteSessionUseCase(sessionRepository),
+            createDiscussionUseCase = CreateDiscussionUseCase(sessionRepository),
+            updateDiscussionUseCase = UpdateDiscussionUseCase(sessionRepository),
+            deleteDiscussionUseCase = DeleteDiscussionUseCase(sessionRepository),
+            updateMemberRoleUseCase = UpdateMemberRoleUseCase(memberRepository),
+            removeMemberUseCase = RemoveMemberUseCase(memberRepository)
+        )
 
         // Start Koin with test module
         startKoin {
