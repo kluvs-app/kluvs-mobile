@@ -1,21 +1,21 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.api.models.BookDto
+import com.ivangarzab.kluvs.data.remote.dtos.BookDto
 import com.ivangarzab.kluvs.model.Book
 
 /**
- * Maps a generated [com.ivangarzab.kluvs.api.models.Book] wire DTO to a [Book] domain model.
+ * Maps a [com.ivangarzab.kluvs.data.remote.dtos.BookDto] from the API to a [Book] domain model.
  */
 fun BookDto.toDomain(): Book {
     return Book(
-        id = id.toString(),
+        id = id,
         title = title,
         author = author,
         edition = edition,
         year = year,
         isbn = isbn,
-        pageCount = pageCount,
-        imageUrl = imageUrl,
-        externalGoogleId = externalGoogleId
+        pageCount = page_count,
+        imageUrl = image_url,
+        externalGoogleId = external_google_id
     )
 }
