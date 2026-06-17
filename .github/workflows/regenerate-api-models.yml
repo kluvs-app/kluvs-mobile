@@ -42,6 +42,14 @@ jobs:
   regenerate:
     name: Regenerate :core:api models
     runs-on: ubuntu-latest
+    # Gradle evaluates every module's build.gradle.kts during configuration,
+    # even when only :core:api:openApiGenerate is requested — :core:network's
+    # BuildKonfig block requires SUPABASE_URL/SUPABASE_KEY, and Sentry setup
+    # needs SENTRY_DNS. Same three vars every other workflow in this repo sets.
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SENTRY_DNS: ${{ secrets.SENTRY_DNS }}
 
     steps:
       - name: Checkout kluvs-mobile
