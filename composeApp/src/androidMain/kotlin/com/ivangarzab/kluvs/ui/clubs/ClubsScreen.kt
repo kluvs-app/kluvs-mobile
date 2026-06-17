@@ -13,8 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -26,19 +29,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
+import com.ivangarzab.kluvs.clubs.presentation.OperationResult
+import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
+import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -48,6 +55,7 @@ fun ClubsScreen(
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val screenState = when {
         state.availableClubs.isNotEmpty() -> ScreenState.Content
@@ -60,13 +68,47 @@ fun ClubsScreen(
         viewModel.loadUserClubs(userId)
     }
 
-    ClubsScreenContent(
-        modifier = modifier,
-        state = state,
-        screenState = screenState,
-        onRetry = viewModel::refresh,
-        onClubSelected = viewModel::selectClub
-    )
+    // Show snackbar whenever operationResult is set, then consume it
+    LaunchedEffect(state.operationResult) {
+        state.operationResult?.let { result ->
+            val message = when (result) {
+                is OperationResult.Success -> result.message
+                is OperationResult.Error -> result.message
+            }
+            snackbarHostState.showSnackbar(message)
+            viewModel.onConsumeOperationResult()
+        }
+    }
+
+    Box(modifier = modifier) {
+        ClubsScreenContent(
+            modifier = Modifier.fillMaxSize(),
+            state = state,
+            screenState = screenState,
+            userId = userId,
+            onRetry = viewModel::refresh,
+            onClubSelected = viewModel::selectClub,
+            onUpdateClubName = viewModel::onUpdateClubName,
+            onDeleteClub = viewModel::onDeleteClub,
+            onCreateSession = viewModel::onCreateSession,
+            onUpdateSession = viewModel::onUpdateSession,
+            onCreateDiscussion = viewModel::onCreateDiscussion,
+            onUpdateDiscussion = viewModel::onUpdateDiscussion,
+            onDeleteDiscussion = viewModel::onDeleteDiscussion,
+            onUpdateMemberRole = { memberId, newRole ->
+                val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
+                viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)
+            },
+            onRemoveMember = { memberId ->
+                val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
+                viewModel.onRemoveMember(memberId, currentMemberId)
+            }
+        )
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
 }
 
 @Composable
@@ -74,10 +116,33 @@ fun ClubsScreenContent(
     modifier: Modifier = Modifier,
     state: ClubDetailsState,
     screenState: ScreenState,
+    userId: String = "",
     onRetry: () -> Unit,
     onClubSelected: (String) -> Unit = {},
+    onUpdateClubName: (String) -> Unit = {},
+    onDeleteClub: () -> Unit = {},
+    onCreateSession: (Book, LocalDateTime?) -> Unit = { _, _ -> },
+    onUpdateSession: (Book?, LocalDateTime?) -> Unit = { _, _ -> },
+    onCreateDiscussion: (String, String, LocalDateTime) -> Unit = { _, _, _ -> },
+    onUpdateDiscussion: (String, String?, String?, LocalDateTime?) -> Unit = { _, _, _, _ -> },
+    onDeleteDiscussion: (String) -> Unit = {},
+    onUpdateMemberRole: (memberId: String, newRole: Role) -> Unit = { _, _ -> },
+    onRemoveMember: (memberId: String) -> Unit = {},
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    // Sheet / dialog visibility state
+    var showEditClubSheet by remember { mutableStateOf(false) }
+    var showDeleteClubDialog by remember { mutableStateOf(false) }
+    var showCreateSessionSheet by remember { mutableStateOf(false) }
+    var showEditSessionSheet by remember { mutableStateOf(false) }
+    var showCreateDiscussionSheet by remember { mutableStateOf(false) }
+    var editingDiscussionId by remember { mutableStateOf<String?>(null) }
+    var deletingDiscussionId by remember { mutableStateOf<String?>(null) }
+    var changingRoleMemberId by remember { mutableStateOf<String?>(null) }
+    var removingMemberId by remember { mutableStateOf<String?>(null) }
+
+    val currentUserId = userId
 
     AnimatedContent(
         targetState = screenState,
@@ -127,6 +192,11 @@ fun ClubsScreenContent(
                 )
 
                 Column(modifier = modifier) {
+                    // Operation in-progress indicator
+                    if (state.isOperationInProgress) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+
                     ClubSelectorRow(
                         clubName = state.currentClubDetails?.clubName ?: "",
                         hasMultipleClubs = state.availableClubs.size > 1,
@@ -169,14 +239,37 @@ fun ClubsScreenContent(
                             modifier = Modifier.fillMaxSize()
                         ) { page ->
                             when (page) {
-                                0 -> GeneralTab(tabModifier, state.currentClubDetails)
-                                1 -> ActiveSessionTab(tabModifier, state.activeSession)
-                                2 -> MembersTab(tabModifier, state.members)
+                                0 -> GeneralTab(
+                                    modifier = tabModifier,
+                                    clubDetails = state.currentClubDetails,
+                                    userRole = state.userRole,
+                                    onEditClub = { showEditClubSheet = true },
+                                    onDeleteClub = { showDeleteClubDialog = true }
+                                )
+                                1 -> ActiveSessionTab(
+                                    modifier = tabModifier,
+                                    sessionDetails = state.activeSession,
+                                    userRole = state.userRole,
+                                    onCreateSession = { showCreateSessionSheet = true },
+                                    onEditSession = { showEditSessionSheet = true },
+                                    onCreateDiscussion = { showCreateDiscussionSheet = true },
+                                    onEditDiscussion = { id -> editingDiscussionId = id },
+                                    onDeleteDiscussion = { id -> deletingDiscussionId = id }
+                                )
+                                2 -> MembersTab(
+                                    modifier = tabModifier,
+                                    members = state.members,
+                                    currentUserId = currentUserId,
+                                    userRole = state.userRole,
+                                    onChangeRole = { memberId -> changingRoleMemberId = memberId },
+                                    onRemoveMember = { memberId -> removingMemberId = memberId }
+                                )
                             }
                         }
                     }
                 }
 
+                // Club selector sheet
                 if (showBottomSheet) {
                     ClubSelectorBottomSheet(
                         clubs = state.availableClubs,
@@ -186,6 +279,126 @@ fun ClubsScreenContent(
                             showBottomSheet = false
                         },
                         onDismiss = { showBottomSheet = false }
+                    )
+                }
+
+                // TODO: Everything underneath there is screaming for a ViewModel, with side effect handling
+                //  and at least one new extra enum--we'll need that soon
+                // ---- General tab sheets / dialogs ----
+
+                if (showEditClubSheet) {
+                    EditClubBottomSheet(
+                        currentName = state.currentClubDetails?.clubName ?: "",
+                        onSave = { newName ->
+                            onUpdateClubName(newName)
+                            showEditClubSheet = false
+                        },
+                        onDismiss = { showEditClubSheet = false }
+                    )
+                }
+
+                if (showDeleteClubDialog) {
+                    ConfirmationDialog(
+                        title = "Delete Club",
+                        message = "Are you sure you want to delete \"${state.currentClubDetails?.clubName}\"? This action cannot be undone.",
+                        confirmLabel = "Delete",
+                        onConfirm = {
+                            onDeleteClub()
+                            showDeleteClubDialog = false
+                        },
+                        onDismiss = { showDeleteClubDialog = false }
+                    )
+                }
+
+                // ---- Session tab sheets ----
+
+                if (showCreateSessionSheet) {
+                    CreateSessionBottomSheet(
+                        onSave = { book, dueDate ->
+                            onCreateSession(book, dueDate)
+                            showCreateSessionSheet = false
+                        },
+                        onDismiss = { showCreateSessionSheet = false }
+                    )
+                }
+
+                if (showEditSessionSheet) {
+                    EditSessionBottomSheet(
+                        currentBook = state.activeSession?.book,
+                        initialDueDate = state.activeSession?.rawDueDate,
+                        onSave = { book, dueDate ->
+                            onUpdateSession(book, dueDate)
+                            showEditSessionSheet = false
+                        },
+                        onDismiss = { showEditSessionSheet = false }
+                    )
+                }
+
+                // ---- Discussion sheets / dialogs ----
+
+                if (showCreateDiscussionSheet) {
+                    DiscussionBottomSheet(
+                        onSave = { title, location, date ->
+                            onCreateDiscussion(title, location, date)
+                            showCreateDiscussionSheet = false
+                        },
+                        onDismiss = { showCreateDiscussionSheet = false }
+                    )
+                }
+
+                editingDiscussionId?.let { discussionId ->
+                    val discussion = state.activeSession?.discussions?.find { it.id == discussionId }
+                    DiscussionBottomSheet(
+                        initialTitle = discussion?.title ?: "",
+                        initialLocation = discussion?.location ?: "",
+                        initialDate = discussion?.rawDate,
+                        onSave = { title, location, date ->
+                            onUpdateDiscussion(discussionId, title, location, date)
+                            editingDiscussionId = null
+                        },
+                        onDismiss = { editingDiscussionId = null }
+                    )
+                }
+
+                deletingDiscussionId?.let { discussionId ->
+                    ConfirmationDialog(
+                        title = "Delete Discussion",
+                        message = "Are you sure you want to delete this discussion?",
+                        confirmLabel = "Delete",
+                        onConfirm = {
+                            onDeleteDiscussion(discussionId)
+                            deletingDiscussionId = null
+                        },
+                        onDismiss = { deletingDiscussionId = null }
+                    )
+                }
+
+                // ---- Member sheets / dialogs ----
+
+                changingRoleMemberId?.let { memberId ->
+                    val member = state.members.find { it.memberId == memberId }
+                    ChangeRoleBottomSheet(
+                        memberName = member?.name ?: "",
+                        currentRole = member?.role ?: Role.MEMBER,
+                        onSave = { newRole ->
+                            onUpdateMemberRole(memberId, newRole)
+                            changingRoleMemberId = null
+                        },
+                        onDismiss = { changingRoleMemberId = null }
+                    )
+                }
+
+                removingMemberId?.let { memberId ->
+                    val member = state.members.find { it.memberId == memberId }
+                    ConfirmationDialog(
+                        title = "Remove Member",
+                        message = "Are you sure you want to remove ${member?.name ?: "this member"} from the club?",
+                        confirmLabel = "Remove",
+                        onConfirm = {
+                            onRemoveMember(memberId)
+                            removingMemberId = null
+                        },
+                        onDismiss = { removingMemberId = null }
                     )
                 }
             }

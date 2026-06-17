@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.ui.clubs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +47,11 @@ import com.ivangarzab.kluvs.ui.components.NoTabData
 @Composable
 fun MembersTab(
     modifier: Modifier = Modifier,
-    members: List<MemberListItemInfo>
+    members: List<MemberListItemInfo>,
+    currentUserId: String? = null,
+    userRole: Role? = null,
+    onChangeRole: (memberId: String) -> Unit = {},
+    onRemoveMember: (memberId: String) -> Unit = {},
 ) {
     if (members.isEmpty()) {
         NoTabData(
@@ -53,6 +62,9 @@ fun MembersTab(
     }
 
     var showRoleInfoDialog by remember { mutableStateOf(false) }
+
+    val isAdminOrAbove = userRole == Role.OWNER || userRole == Role.ADMIN
+    val isOwner = userRole == Role.OWNER
 
     Card(
         modifier = modifier,
@@ -88,11 +100,17 @@ fun MembersTab(
 
             LazyColumn {
                 itemsIndexed(members) { index, member ->
+                    //TODO: Consider creating an ext function: Member.isMe(Member or Member.id)
+                    val isSelf = member.userId != null && member.userId == currentUserId
                     MemberListItem(
                         name = member.name,
                         handle = member.handle,
                         avatarUrl = member.avatarUrl,
-                        role = member.role
+                        role = member.role,
+                        showAdminActions = isAdminOrAbove && !isSelf,
+                        showRemove = isOwner && !isSelf && member.role != Role.OWNER,
+                        onChangeRole = { onChangeRole(member.memberId) },
+                        onRemove = { onRemoveMember(member.memberId) }
                     )
                     if (index < members.size - 1) {
                         MemberDivider()
@@ -176,15 +194,21 @@ private fun MemberListItem(
     name: String,
     handle: String,
     avatarUrl: String? = null,
-    role: Role
+    role: Role,
+    showAdminActions: Boolean = false,
+    showRemove: Boolean = false,
+    onChangeRole: () -> Unit = {},
+    onRemove: () -> Unit = {},
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
+            modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -207,6 +231,63 @@ private fun MemberListItem(
                 )
             }
         }
+
+        if (showAdminActions || showRemove) {
+            MemberOverflowMenu(
+                showChangeRole = showAdminActions,
+                showRemove = showRemove,
+                onChangeRole = onChangeRole,
+                onRemove = onRemove
+            )
+        }
+    }
+}
+
+@Composable
+private fun MemberOverflowMenu(
+    showChangeRole: Boolean,
+    showRemove: Boolean,
+    onChangeRole: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Member options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            if (showChangeRole) {
+                DropdownMenuItem(
+                    text = { Text("Change Role") },
+                    onClick = {
+                        expanded = false
+                        onChangeRole()
+                    }
+                )
+            }
+            if (showRemove) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Remove",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onRemove()
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -223,12 +304,14 @@ fun Preview_MembersTab() = KluvsTheme {
             .background(color = MaterialTheme.colorScheme.surface)
             .fillMaxSize(),
         members = listOf(
-            MemberListItemInfo("0", "Iván Garza Bermea", "@ivangarzab", "", role = Role.OWNER),
-            MemberListItemInfo("1", "Monica Michelle Morales", "@monica", "", role = Role.ADMIN),
-            MemberListItemInfo("2", "Marco \"Chitho\" Rivera", "@chitho23", "", role = Role.MEMBER),
-            MemberListItemInfo("3", "Anacleto \"Keto\" Longoria", "@keto92", "", role = Role.MEMBER),
-            MemberListItemInfo("4", "Joel Oscar Julian Salinas", "@josalinas", "", role = Role.MEMBER),
-            MemberListItemInfo("5", "Ginseng Joaquin Guzman", "gino1", "", role = Role.MEMBER),
-        )
+            MemberListItemInfo("0", "Iván Garza Bermea", "@ivangarzab", "", role = Role.OWNER, userId = "u0"),
+            MemberListItemInfo("1", "Monica Michelle Morales", "@monica", "", role = Role.ADMIN, userId = "u1"),
+            MemberListItemInfo("2", "Marco \"Chitho\" Rivera", "@chitho23", "", role = Role.MEMBER, userId = "u2"),
+            MemberListItemInfo("3", "Anacleto \"Keto\" Longoria", "@keto92", "", role = Role.MEMBER, userId = "u3"),
+            MemberListItemInfo("4", "Joel Oscar Julian Salinas", "@josalinas", "", role = Role.MEMBER, userId = "u4"),
+            MemberListItemInfo("5", "Ginseng Joaquin Guzman", "gino1", "", role = Role.MEMBER, userId = "u5"),
+        ),
+        currentUserId = "u0",
+        userRole = Role.OWNER
     )
 }

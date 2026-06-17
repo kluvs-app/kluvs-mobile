@@ -26,7 +26,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for ClubDataSource using local Supabase instance with seed data.
  *
- * Test data is defined in /kluvs-api/supabase/seed.sql:
+ * Test data is defined in /kluvs-backend/supabase/seed.sql:
  *
  * Servers:
  * - 1039326367428395038: Production Server

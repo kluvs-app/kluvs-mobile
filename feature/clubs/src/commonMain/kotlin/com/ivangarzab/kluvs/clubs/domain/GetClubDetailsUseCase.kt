@@ -35,9 +35,9 @@ class GetClubDetailsUseCase(
      * @param clubId The ID of the club to retrieve
      * @return Result containing [ClubDetails] if successful, or error if failed
      */
-    suspend operator fun invoke(clubId: String): Result<ClubDetails> {
+    suspend operator fun invoke(clubId: String, forceRefresh: Boolean = false): Result<ClubDetails> {
         Bark.d("Fetching club details (Club ID: $clubId)")
-        return clubRepository.getClub(clubId).map { club: Club ->
+        return clubRepository.getClub(clubId, forceRefresh = forceRefresh).map { club: Club ->
             val now = now().toLocalDateTime(TimeZone.currentSystemDefault())
             val memberCount = club.members?.size ?: 0
             val hasActiveSession = club.activeSession != null

@@ -141,6 +141,7 @@ class GetClubMembersUseCaseTest {
         assertEquals("Alice", memberList[0].name)
         assertEquals(null, memberList[0].avatarUrl)
         assertEquals(Role.ADMIN, memberList[0].role)
+        assertEquals("u1", memberList[0].userId)
         verifySuspend { clubRepository.getClub(clubId) }
     }
 

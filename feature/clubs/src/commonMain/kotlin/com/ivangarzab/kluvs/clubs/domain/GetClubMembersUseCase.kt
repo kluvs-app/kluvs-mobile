@@ -32,9 +32,9 @@ class GetClubMembersUseCase(
      * @param clubId The ID of the club to retrieve members for
      * @return Result containing list of [MemberListItemInfo] if successful, or error if failed
      */
-    suspend operator fun invoke(clubId: String): Result<List<MemberListItemInfo>> {
+    suspend operator fun invoke(clubId: String, forceRefresh: Boolean = false): Result<List<MemberListItemInfo>> {
         Bark.d("Fetching club members (Club ID: $clubId)")
-        return clubRepository.getClub(clubId).map { club: Club ->
+        return clubRepository.getClub(clubId, forceRefresh = forceRefresh).map { club: Club ->
             val memberItems = club.members
                 ?.sortedBy { it.role.ordinal }  // Sort by role: OWNER (0), ADMIN (1), MEMBER (2)
                 ?.map { clubMember: ClubMember ->
@@ -44,7 +44,8 @@ class GetClubMembersUseCase(
                         name = member.name,
                         handle = member.handle ?: "@",
                         avatarUrl = avatarRepository.getAvatarUrl(member.avatarPath),
-                        role = clubMember.role
+                        role = clubMember.role,
+                        userId = member.userId
                     )
                 } ?: emptyList()
             Bark.i("Loaded club members (Count: ${memberItems.size})")

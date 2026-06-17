@@ -78,7 +78,8 @@ interface MemberRepository {
         role: String? = null,
         booksRead: Int? = null,
         avatarPath: String? = null,
-        clubIds: List<String>? = null
+        clubIds: List<String>? = null,
+        clubRoles: Map<String, String>? = null
     ): Result<Member>
 
     /**
@@ -213,7 +214,8 @@ internal class MemberRepositoryImpl(
         role: String?,
         booksRead: Int?,
         avatarPath: String?,
-        clubIds: List<String>?
+        clubIds: List<String>?,
+        clubRoles: Map<String, String>?
     ): Result<Member> {
         Bark.d("Updating member (ID: $memberId)")
         val result = memberRemoteDataSource.updateMember(
@@ -225,21 +227,18 @@ internal class MemberRepositoryImpl(
                 role = role,
                 books_read = booksRead,
                 avatar_path = avatarPath,
-                clubs = clubIds
+                clubs = clubIds,
+                club_roles = clubRoles
             )
         )
 
-        result.onSuccess { member ->
-            Bark.v("Persisting updated member to cache (ID: ${member.id})")
-            try {
-                memberLocalDataSource.insertMember(member)
-                Bark.i("Member updated and cached (ID: ${member.id})")
-            } catch (e: Exception) {
-                Bark.e("Member cache failed. Will fetch updated data from remote.", e)
-            }
-        }.onFailure { error ->
-            Bark.e("Member update failed. Verify input and retry.", error)
-        }
+        // Note: intentionally NOT caching the update result. The API returns a partial
+        // MemberDto (basic info only, fields like name/handle may be null), which would
+        // corrupt the shared memberDao used by ClubLocalDataSource to load club members.
+        // Fresh data is fetched via a force-refresh of club data after the mutation completes.
+        result
+            .onSuccess { member -> Bark.i("Member updated (ID: ${member.id})") }
+            .onFailure { error -> Bark.e("Member update failed. Verify input and retry.", error) }
 
         return result
     }

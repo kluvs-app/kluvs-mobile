@@ -7,7 +7,7 @@ plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("com.android.library")
     id("org.jetbrains.kotlinx.kover")
-    id("com.codingfeline.buildkonfig") version "+"
+    alias(libs.plugins.buildKonfig)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.sentry)

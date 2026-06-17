@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -332,6 +333,23 @@ class MemberRepositoryTest {
         assertTrue(result.isSuccess)
         assertEquals(newHandle, result.getOrNull()?.handle)
         verifySuspend { remoteDataSource.updateMember(any()) }
+    }
+
+    @Test
+    fun `updateMember with clubRoles passes club_roles to remote data source`() = runTest {
+        val memberId = "member-123"
+        val clubRoles = mapOf("club-1" to "admin")
+        val expectedMember = Member(id = memberId, name = "Alice", booksRead = 5)
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(expectedMember)
+
+        val result = repository.updateMember(memberId = memberId, clubRoles = clubRoles)
+
+        assertTrue(result.isSuccess)
+        verifySuspend {
+            remoteDataSource.updateMember(
+                UpdateMemberRequestDto(id = memberId, club_roles = clubRoles)
+            )
+        }
     }
 
     @Test

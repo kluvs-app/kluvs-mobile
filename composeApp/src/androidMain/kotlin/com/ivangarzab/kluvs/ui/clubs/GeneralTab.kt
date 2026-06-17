@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.ui.clubs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,12 +10,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -23,6 +35,7 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.BookInfo
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetails
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionInfo
+import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.NextDiscussionCard
 import com.ivangarzab.kluvs.ui.components.NoSectionData
@@ -32,6 +45,9 @@ import com.ivangarzab.kluvs.ui.components.NoTabData
 fun GeneralTab(
     modifier: Modifier = Modifier,
     clubDetails: ClubDetails? = null,
+    userRole: Role? = null,
+    onEditClub: () -> Unit = {},
+    onDeleteClub: () -> Unit = {},
 ) {
     if (clubDetails == null) {
         NoTabData(
@@ -53,22 +69,35 @@ fun GeneralTab(
             )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = stringResource(
-                        R.string.founded_in_x,
-                        clubDetails.foundedYear ?: stringResource(R.string.na)
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(
+                                R.string.founded_in_x,
+                                clubDetails.foundedYear ?: stringResource(R.string.na)
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.x_members, clubDetails.memberCount),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
 
-                Spacer(Modifier.height(4.dp))
-
-                Text(
-                    text = stringResource(R.string.x_members, clubDetails.memberCount),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                    if (userRole == Role.OWNER) {
+                        ClubOverflowMenu(
+                            onEdit = onEditClub,
+                            onDelete = onDeleteClub
+                        )
+                    }
+                }
             }
         }
 
@@ -155,6 +184,48 @@ fun GeneralTab(
     }
 }
 
+@Composable
+private fun ClubOverflowMenu(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Club options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                onClick = {
+                    expanded = false
+                    onEdit()
+                }
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                }
+            )
+        }
+    }
+}
+
 @PreviewLightDark
 @Composable
 fun Preview_GeneralTab() = KluvsTheme {
@@ -179,6 +250,7 @@ fun Preview_GeneralTab() = KluvsTheme {
                 location = "Discord",
                 formattedDate = "Tomorrow at 7:00 PM"
             )
-        )
+        ),
+        userRole = Role.OWNER
     )
 }

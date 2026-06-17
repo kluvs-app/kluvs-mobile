@@ -40,9 +40,9 @@ class GetActiveSessionUseCase(
      * @param clubId The ID of the club to retrieve the active session for
      * @return Result containing [ActiveSessionDetails] if successful, null if no active session, or error if failed
      */
-    suspend operator fun invoke(clubId: String): Result<ActiveSessionDetails?> {
+    suspend operator fun invoke(clubId: String, forceRefresh: Boolean = false): Result<ActiveSessionDetails?> {
         Bark.d("Fetching active session (Club ID: $clubId)")
-        return clubRepository.getClub(clubId).map { club: Club ->
+        return clubRepository.getClub(clubId, forceRefresh = forceRefresh).map { club: Club ->
             club.activeSession?.let { session ->
                 Bark.d("Found active session (Session ID: ${session.id})")
                 val now = now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -61,12 +61,14 @@ class GetActiveSessionUseCase(
                         pageCount = session.book.pageCount
                     ),
                     dueDate = session.dueDate?.let { formatDateTime(it, DateTimeFormat.DATE_ONLY) } ?: "No due date",
+                    rawDueDate = session.dueDate,
                     discussions = sortedDiscussions.mapIndexed { index, discussion ->
                         DiscussionTimelineItemInfo(
                             id = discussion.id,
                             title = discussion.title,
                             location = discussion.location ?: "TBD...",
                             date = formatDateTime(discussion.date, DateTimeFormat.FULL),
+                            rawDate = discussion.date,
                             // If no upcoming discussions (nextDiscussionIndex == -1), all are past
                             // Otherwise, discussions before the next one are past
                             isPast = nextDiscussionIndex == -1 || index < nextDiscussionIndex,
@@ -109,7 +111,8 @@ class GetMemberClubsUseCase(
             val clubItems = member.clubs?.map { club ->
                 ClubListItem(
                     id = club.id,
-                    name = club.name
+                    name = club.name,
+                    role = club.role
                 )
             } ?: emptyList()
             Bark.i("Loaded member clubs (Count: ${clubItems.size})")

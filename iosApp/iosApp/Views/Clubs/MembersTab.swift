@@ -3,7 +3,15 @@ import Shared
 
 struct MembersTab: View {
     let members: [Shared.MemberListItemInfo]
+    var currentUserId: String = ""
+    var userRole: Shared.Role? = nil
+    var onChangeRole: (String) -> Void = { _ in }
+    var onRemoveMember: (String) -> Void = { _ in }
+
     @State private var showRoleInfo = false
+
+    private var isAdminOrAbove: Bool { userRole == .owner || userRole == .admin }
+    private var isOwner: Bool { userRole == .owner }
 
     var body: some View {
         ScrollView {
@@ -29,7 +37,13 @@ struct MembersTab: View {
                     .padding(8)
 
                     ForEach(Array(members.enumerated()), id: \.offset) { index, member in
-                        MemberListItem(member: member)
+                        MemberListItem(
+                            member: member,
+                            showChangeRole: isAdminOrAbove && member.userId != currentUserId,
+                            showRemoveMember: isOwner && member.userId != currentUserId && member.role != .owner,
+                            onChangeRole: { onChangeRole(member.memberId) },
+                            onRemoveMember: { onRemoveMember(member.memberId) }
+                        )
 
                         if index < members.count - 1 {
                             Divider()
@@ -106,10 +120,13 @@ struct RoleInfoItem: View {
 // MARK: - Member List Item
 struct MemberListItem: View {
     let member: Shared.MemberListItemInfo
+    var showChangeRole: Bool = false
+    var showRemoveMember: Bool = false
+    var onChangeRole: () -> Void = {}
+    var onRemoveMember: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Member avatar
             MemberAvatar(
                 avatarUrl: member.avatarUrl,
                 size: 40,
@@ -127,6 +144,20 @@ struct MemberListItem: View {
             }
 
             Spacer()
+
+            if showChangeRole || showRemoveMember {
+                Menu {
+                    if showChangeRole {
+                        Button("Change Role") { onChangeRole() }
+                    }
+                    if showRemoveMember {
+                        Button("Remove from Club", role: .destructive) { onRemoveMember() }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(.secondary)
+                }
+            }
         }
         .padding(.vertical, 12)
     }

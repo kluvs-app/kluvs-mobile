@@ -76,17 +76,17 @@ Integration tests require a local Supabase instance. They live in the `:shared` 
 
 #### Setting Up Local Supabase for Integration Tests
 
-Integration tests rely on a **local Supabase instance** running from the `kluvs-api` project. This ensures tests run against a consistent, isolated environment with seed data.
+Integration tests rely on a **local Supabase instance** running from the `kluvs-backend` project. This ensures tests run against a consistent, isolated environment with seed data.
 
 **Prerequisites:**
-1. The `kluvs-api` project must be cloned at `/Users/ivangarzab/Git/kluvs-api`
+1. The `kluvs-backend` project must be cloned at `/Users/ivangarzab/Git/KLUVS/kluvs-backend`
 2. Supabase CLI must be installed (`brew install supabase/tap/supabase`)
 
 **Setup Workflow:**
 
 ```bash
 # Navigate to the API project
-cd /Users/ivangarzab/Git/kluvs-api
+cd /Users/ivangarzab/Git/KLUVS/kluvs-backend
 
 # Start local Supabase (if not already running)
 npx supabase start
@@ -108,11 +108,11 @@ TEST_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 
 **⚠️ Important: Applying Backend Changes**
 
-When the backend API (`kluvs-api`) has new database migrations:
+When the backend API (`kluvs-backend`) has new database migrations:
 
 ```bash
 # Navigate to API project
-cd /Users/ivangarzab/Git/kluvs-api
+cd /Users/ivangarzab/Git/KLUVS/kluvs-backend
 
 # Reset local database to apply new migrations and reseed
 npx supabase db reset
@@ -140,7 +140,7 @@ This command:
 
 **Test Data:**
 
-Integration tests use seed data defined in `/Users/ivangarzab/Git/kluvs-api/supabase/seed.sql`. See test file headers (e.g., `ClubServiceIntegrationTest.kt:28-50`) for documentation of available test data.
+Integration tests use seed data defined in `/Users/ivangarzab/Git/KLUVS/kluvs-backend/supabase/seed.sql`. See test file headers (e.g., `ClubServiceIntegrationTest.kt:28-50`) for documentation of available test data.
 
 ### Run Specific Test
 
@@ -272,7 +272,7 @@ The project uses GitHub Actions:
 
 - **Unit Tests** (`.github/workflows/unit-tests.yml`) - Fast feedback on PRs, excludes integration tests
 - **Full Tests** (`.github/workflows/full-tests.yml`) - Runs on `main` branch with local Supabase instance
-  - Checks out both `kluvs-mobile` and `kluvs-api` repos
+  - Checks out both `kluvs-mobile` and `kluvs-backend` repos
   - Starts local Supabase instance
   - Applies migrations and seed data
   - Runs complete test suite

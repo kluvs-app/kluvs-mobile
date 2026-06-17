@@ -193,7 +193,8 @@ data class UpdateMemberRequestDto(
     val books_read: Int? = null,
     val user_id: String? = null,
     val role: String? = null,
-    val clubs: List<String>? = null
+    val clubs: List<String>? = null,
+    val club_roles: Map<String, String>? = null
 )
 
 @Serializable

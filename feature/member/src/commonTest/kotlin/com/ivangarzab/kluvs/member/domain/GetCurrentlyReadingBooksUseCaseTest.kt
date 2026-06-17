@@ -136,8 +136,8 @@ class GetCurrentlyReadingBooksUseCaseTest {
 
         val pastDate1 = LocalDateTime(2024, 1, 1, 19, 0)
         val pastDate2 = LocalDateTime(2024, 2, 1, 19, 0)
-        val futureDate1 = LocalDateTime(2026, 3, 1, 19, 0)
-        val futureDate2 = LocalDateTime(2026, 4, 1, 19, 0)
+        val futureDate1 = LocalDateTime(2099, 3, 1, 19, 0)
+        val futureDate2 = LocalDateTime(2099, 4, 1, 19, 0)
 
         val discussions = listOf(
             Discussion(id = "d1", sessionId = "s1", title = "Past 1", date = pastDate1, location = null),

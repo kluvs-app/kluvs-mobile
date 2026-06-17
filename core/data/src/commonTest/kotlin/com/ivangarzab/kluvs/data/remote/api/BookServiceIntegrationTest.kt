@@ -19,11 +19,11 @@ import kotlin.time.ExperimentalTime
 /**
  * Integration tests for [BookService] using local Supabase instance with seed data.
  *
- * Requires local Supabase running from kluvs-api with TEST_SUPABASE_URL / TEST_SUPABASE_KEY
+ * Requires local Supabase running from kluvs-backend with TEST_SUPABASE_URL / TEST_SUPABASE_KEY
  * set in ~/.gradle/gradle.properties. Run via:
  *   ./gradlew :core:data:testDebugUnitTest
  *
- * Test data is defined in /kluvs-api/supabase/seed.sql:
+ * Test data is defined in /kluvs-backend/supabase/seed.sql:
  *
  * Books (seeded):
  * - 1: "The Republic" by Plato (ISBN: 978-0872207363, year: -380, pages: 416)
