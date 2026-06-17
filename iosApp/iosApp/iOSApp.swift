@@ -27,8 +27,9 @@ struct iOSApp: App {
         let volume = Level.debug
         #endif
         
-        BarkConfig().autoTagDisabled = false
-        Bark().train(trainer: NSLogTrainer(volume: volume))
-        Bark().train(trainer: SentryTrainer())
+        Bark.autoTagDisabled = false
+        Bark.train(trainer: NSLogTrainer(volume: Level.verbose))
+        Bark.train(trainer: SentryTrainer())
+        Bark.v("Bark has been initilized for iOS successfully!")
     }
 }

@@ -1,6 +1,7 @@
 import XCTest
 import AuthenticationServices
 import Combine
+import Shared
 @testable import Kluvs
 
 /**
@@ -17,6 +18,12 @@ class AppleSignInHandlerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+
+        Bark.releaseAllTrainers()
+        Bark.train(trainer: ColoredUnitTestTrainer(volume: Level.debug, showTimestamp: false))
+
+        Bark.i("=== Setting up AppleSignInHandlerTests ===")
+
         handler = AppleSignInHandler.shared
         cancellables = Set<AnyCancellable>()
 
@@ -24,9 +31,13 @@ class AppleSignInHandlerTests: XCTestCase {
         handler.idToken = nil
         handler.error = nil
         handler.isProcessing = false
+
+        Bark.d("AppleSignInHandler state reset for testing")
     }
 
     override func tearDown() {
+        Bark.i("=== Tearing down AppleSignInHandlerTests ===")
+
         handler.idToken = nil
         handler.error = nil
         handler.isProcessing = false
@@ -37,57 +48,75 @@ class AppleSignInHandlerTests: XCTestCase {
     // MARK: - Singleton Tests
 
     func testSharedInstance_IsSingleton() {
+        Bark.i("Testing AppleSignInHandler singleton pattern")
+
         let instance1 = AppleSignInHandler.shared
         let instance2 = AppleSignInHandler.shared
 
         XCTAssertTrue(instance1 === instance2, "Should return same singleton instance")
+        Bark.d("✅ Singleton verified: both references point to same instance")
     }
 
     func testSharedInstance_MaintainsState() {
+        Bark.i("Testing AppleSignInHandler state persistence across references")
+
         // Given
         let handler1 = AppleSignInHandler.shared
         handler1.idToken = "test.token.123"
+        Bark.d("Set idToken on handler1: \(handler1.idToken ?? "nil")")
 
         // When - accessing through different reference
         let handler2 = AppleSignInHandler.shared
 
         // Then - should have same state
         XCTAssertEqual(handler2.idToken, "test.token.123")
+        Bark.d("✅ State maintained: handler2.idToken = \(handler2.idToken ?? "nil")")
     }
 
     // MARK: - Initial State Tests
 
     func testInitialState_AllPropertiesNil() {
+        Bark.i("Testing initial state after reset")
+
         // Given - fresh handler after reset
 
         // Then
         XCTAssertNil(handler.idToken, "Initial idToken should be nil")
         XCTAssertNil(handler.error, "Initial error should be nil")
         XCTAssertFalse(handler.isProcessing, "Initial isProcessing should be false")
+        Bark.d("✅ All initial properties are nil/false as expected")
     }
 
     // MARK: - State Management Tests
 
     func testIdToken_CanBeSetAndCleared() {
+        Bark.i("Testing idToken set and clear lifecycle")
+
         // When
         handler.idToken = "test.jwt.token"
+        Bark.d("Set idToken: \(handler.idToken ?? "nil")")
 
         // Then
         XCTAssertEqual(handler.idToken, "test.jwt.token")
 
         // When - clear
         handler.idToken = nil
+        Bark.d("Cleared idToken")
 
         // Then
         XCTAssertNil(handler.idToken)
+        Bark.d("✅ idToken set/clear verified")
     }
 
     func testError_CanBeSetAndCleared() {
+        Bark.i("Testing error set and clear lifecycle")
+
         // Given
         let testError = NSError(domain: "Test", code: 123, userInfo: [NSLocalizedDescriptionKey: "Test error"])
 
         // When
         handler.error = testError
+        Bark.d("Set error with code: \((handler.error as NSError?)?.code ?? -1)")
 
         // Then
         XCTAssertNotNil(handler.error)
@@ -95,26 +124,34 @@ class AppleSignInHandlerTests: XCTestCase {
 
         // When - clear
         handler.error = nil
+        Bark.d("Cleared error")
 
         // Then
         XCTAssertNil(handler.error)
+        Bark.d("✅ Error set/clear verified")
     }
 
     func testIsProcessing_CanBeToggled() {
+        Bark.i("Testing isProcessing toggle")
+
         // Initially false
         XCTAssertFalse(handler.isProcessing)
+        Bark.d("Confirmed initial isProcessing: false")
 
         // When - set to true
         handler.isProcessing = true
+        Bark.d("Set isProcessing: true")
 
         // Then
         XCTAssertTrue(handler.isProcessing)
 
         // When - set back to false
         handler.isProcessing = false
+        Bark.d("Set isProcessing: false")
 
         // Then
         XCTAssertFalse(handler.isProcessing)
+        Bark.d("✅ isProcessing toggle verified")
     }
 
     // MARK: - Error Handling Tests
@@ -126,6 +163,8 @@ class AppleSignInHandlerTests: XCTestCase {
     // MARK: - Publisher Tests
 
     func testIsProcessingPublisher_EmitsChanges() {
+        Bark.i("Testing isProcessing Combine publisher emissions")
+
         // Given
         let expectation = XCTestExpectation(description: "isProcessing publishes changes")
         var receivedValues: [Bool] = []
@@ -139,10 +178,12 @@ class AppleSignInHandlerTests: XCTestCase {
         // When
         handler.isProcessing = true
         handler.isProcessing = false
+        Bark.d("Emitted isProcessing: true → false")
 
         // Then
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertEqual(receivedValues, [false, true, false])
+            Bark.d("✅ Publisher emitted \(receivedValues.count) values: \(receivedValues)")
             expectation.fulfill()
         }
 
@@ -150,6 +191,8 @@ class AppleSignInHandlerTests: XCTestCase {
     }
 
     func testErrorPublisher_MultipleChanges() {
+        Bark.i("Testing error Combine publisher with multiple emissions")
+
         // Given
         let expectation = XCTestExpectation(description: "error publishes multiple changes")
         var receivedErrorCount = 0
@@ -170,29 +213,36 @@ class AppleSignInHandlerTests: XCTestCase {
         handler.error = error1
         handler.error = nil
         handler.error = error2
+        Bark.d("Emitted error sequence: error1 → nil → error2")
 
         wait(for: [expectation], timeout: 1.0)
 
         // Then
         XCTAssertEqual(receivedErrorCount, 3)
+        Bark.d("✅ Publisher received \(receivedErrorCount) emissions as expected")
     }
 
     // MARK: - State Reset Tests
 
     func testStateReset_ClearsAllProperties() {
+        Bark.i("Testing full state reset clears all properties")
+
         // Given - set all properties
         handler.idToken = "test.token"
         handler.error = NSError(domain: "Test", code: 1)
         handler.isProcessing = true
+        Bark.d("State set: idToken=\(handler.idToken ?? "nil"), error=\(String(describing: handler.error)), isProcessing=\(handler.isProcessing)")
 
         // When - reset
         handler.idToken = nil
         handler.error = nil
         handler.isProcessing = false
+        Bark.d("State reset performed")
 
         // Then
         XCTAssertNil(handler.idToken)
         XCTAssertNil(handler.error)
         XCTAssertFalse(handler.isProcessing)
+        Bark.d("✅ All properties cleared successfully after reset")
     }
 }

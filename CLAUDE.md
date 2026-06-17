@@ -79,14 +79,14 @@ Integration tests require a local Supabase instance. They live in the `:shared` 
 Integration tests rely on a **local Supabase instance** running from the `kluvs-backend` project. This ensures tests run against a consistent, isolated environment with seed data.
 
 **Prerequisites:**
-1. The `kluvs-backend` project must be cloned at `/Users/ivangarzab/Git/kluvs-backend`
+1. The `kluvs-backend` project must be cloned at `/Users/ivangarzab/Git/KLUVS/kluvs-backend`
 2. Supabase CLI must be installed (`brew install supabase/tap/supabase`)
 
 **Setup Workflow:**
 
 ```bash
 # Navigate to the API project
-cd /Users/ivangarzab/Git/kluvs-backend
+cd /Users/ivangarzab/Git/KLUVS/kluvs-backend
 
 # Start local Supabase (if not already running)
 npx supabase start
@@ -112,7 +112,7 @@ When the backend API (`kluvs-backend`) has new database migrations:
 
 ```bash
 # Navigate to API project
-cd /Users/ivangarzab/Git/kluvs-backend
+cd /Users/ivangarzab/Git/KLUVS/kluvs-backend
 
 # Reset local database to apply new migrations and reseed
 npx supabase db reset
@@ -140,7 +140,7 @@ This command:
 
 **Test Data:**
 
-Integration tests use seed data defined in `/Users/ivangarzab/Git/kluvs-backend/supabase/seed.sql`. See test file headers (e.g., `ClubServiceIntegrationTest.kt:28-50`) for documentation of available test data.
+Integration tests use seed data defined in `/Users/ivangarzab/Git/KLUVS/kluvs-backend/supabase/seed.sql`. See test file headers (e.g., `ClubServiceIntegrationTest.kt:28-50`) for documentation of available test data.
 
 ### Run Specific Test
 
