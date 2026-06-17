@@ -80,8 +80,18 @@ openApiGenerate {
     library.set("multiplatform")
     inputSpec.set(schemaOnlySpec.map { it.asFile.path })
     outputDir.set(layout.buildDirectory.dir("generated/openapi").get().asFile.path)
+    // Safe to wipe wholesale on every run now that outputDir is a throwaway
+    // build/ directory, not the module root — otherwise stale files from a
+    // previous config (e.g. before modelNameSuffix was added) just pile up
+    // alongside new output instead of being replaced.
+    cleanupOutput.set(true)
     packageName.set("com.ivangarzab.kluvs.api")
     modelPackage.set("com.ivangarzab.kluvs.api.models")
+    // Suffixes every generated class with "Dto" (Book -> BookDto, Club -> ClubDto, ...),
+    // matching the existing hand-written wire-DTO naming convention. This also means
+    // generated types never collide with same-named domain models in :core:model, so
+    // mapper files can import both without aliasing.
+    modelNameSuffix.set("Dto")
     globalProperties.set(
         mapOf(
             // "" means "generate every model the generator can see" — safe now
