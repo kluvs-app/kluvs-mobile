@@ -21,24 +21,18 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 
 /**
- * 
+ * A finished session as embedded within a club response.
  *
  * @param id 
- * @param title 
- * @param pageCount 
- * @param imageUrl 
+ * @param dueDate 
  */
 @Serializable@Serializable
 
-data class ReadingProgressBookDto (
+data class PastSessionDto (
 
-    @SerialName(value = "id") val id: kotlin.Int? = null,
+    @SerialName(value = "id") val id: kotlin.String? = null,
 
-    @SerialName(value = "title") val title: kotlin.String? = null,
-
-    @SerialName(value = "page_count") val pageCount: kotlin.Int? = null,
-
-    @SerialName(value = "image_url") val imageUrl: kotlin.String? = null
+    @SerialName(value = "due_date") val dueDate: kotlin.String? = null
 
 ) {
 

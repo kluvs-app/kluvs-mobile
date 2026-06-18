@@ -21,18 +21,24 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 
 /**
- * 
+ * A lightweight book reference as embedded within a reading progress entry.
  *
  * @param id 
- * @param dueDate 
+ * @param title 
+ * @param pageCount 
+ * @param imageUrl 
  */
 @Serializable@Serializable
 
-data class ClubPastSessionsInnerDto (
+data class BookSummaryDto (
 
-    @SerialName(value = "id") val id: kotlin.String? = null,
+    @SerialName(value = "id") val id: kotlin.Int? = null,
 
-    @SerialName(value = "due_date") val dueDate: kotlin.String? = null
+    @SerialName(value = "title") val title: kotlin.String? = null,
+
+    @SerialName(value = "page_count") val pageCount: kotlin.Int? = null,
+
+    @SerialName(value = "image_url") val imageUrl: kotlin.String? = null
 
 ) {
 

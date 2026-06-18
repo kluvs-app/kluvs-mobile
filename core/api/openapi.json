@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Kluvs API",
-    "version": "0.1.0",
+    "version": "0.21.1",
     "description": "Supabase Edge Functions API for managing book clubs."
   },
   "servers": [
@@ -2767,25 +2767,7 @@
             "type": "array",
             "description": "Club members with their per-club role.",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Member"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "owner",
-                        "admin",
-                        "member"
-                      ],
-                      "description": "Member's role in this specific club"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/ClubMember"
             }
           },
           "active_session": {
@@ -2794,16 +2776,7 @@
           "past_sessions": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "due_date": {
-                  "type": "string",
-                  "format": "date"
-                }
-              }
+              "$ref": "#/components/schemas/PastSession"
             }
           },
           "shame_list": {
@@ -2865,25 +2838,7 @@
             "type": "array",
             "description": "Clubs this member belongs to, each with their per-club role.",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Club"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "owner",
-                        "admin",
-                        "member"
-                      ],
-                      "description": "Member's role in this specific club"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/ClubSummary"
             }
           }
         }
@@ -3066,23 +3021,7 @@
             "nullable": true
           },
           "book": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer"
-              },
-              "title": {
-                "type": "string"
-              },
-              "page_count": {
-                "type": "integer",
-                "nullable": true
-              },
-              "image_url": {
-                "type": "string",
-                "nullable": true
-              }
-            }
+            "$ref": "#/components/schemas/BookSummary"
           }
         }
       },
@@ -3254,6 +3193,108 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "ClubMember": {
+        "type": "object",
+        "description": "A member as embedded within a club response, including their per-club role.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "description": "Member's role in this club"
+          },
+          "books_read": {
+            "type": "integer",
+            "default": 0
+          },
+          "handle": {
+            "type": "string"
+          },
+          "avatar_path": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clubs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of all clubs this member belongs to"
+          }
+        }
+      },
+      "ClubSummary": {
+        "type": "object",
+        "description": "A lightweight club reference as embedded within a member response, including the member's role.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "discord_channel": {
+            "type": "string"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "description": "Member's role in this club"
+          }
+        }
+      },
+      "PastSession": {
+        "type": "object",
+        "description": "A finished session as embedded within a club response.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "BookSummary": {
+        "type": "object",
+        "description": "A lightweight book reference as embedded within a reading progress entry.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "page_count": {
+            "type": "integer",
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

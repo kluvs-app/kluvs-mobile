@@ -15,7 +15,7 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.ReadingProgressBookDto
+import com.ivangarzab.kluvs.api.models.BookSummaryDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -63,7 +63,7 @@ data class ReadingProgressDto (
 
     @SerialName(value = "completed_at") val completedAt: kotlin.String? = null,
 
-    @SerialName(value = "book") val book: ReadingProgressBookDto? = null
+    @SerialName(value = "book") val book: BookSummaryDto? = null
 
 ) {
 
