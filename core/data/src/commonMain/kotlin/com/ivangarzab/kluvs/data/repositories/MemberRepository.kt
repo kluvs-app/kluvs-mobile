@@ -1,10 +1,11 @@
 package com.ivangarzab.kluvs.data.repositories
 
+import com.ivangarzab.kluvs.api.models.MemberAssignableRoleDto
+import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
-import com.ivangarzab.kluvs.data.remote.dtos.CreateMemberRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.bark.Bark
@@ -41,15 +42,11 @@ interface MemberRepository {
      * Creates a new member.
      *
      * @param name The name of the member
-     * @param userId Optional Discord user ID to associate with this member
-     * @param role Optional role for the member
      * @param clubIds Optional list of club IDs to add this member to
      * @return Result containing the created Member if successful, or an error if the operation failed
      */
     suspend fun createMember(
         name: String,
-        userId: String?,
-        role: String?,
         clubIds: List<String>? = null
     ): Result<Member>
 
@@ -62,8 +59,6 @@ interface MemberRepository {
      * @param memberId The ID of the member to update
      * @param name Optional new name for the member (null to keep current value)
      * @param handle Optional new handle (null to keep current value)
-     * @param userId Optional new Discord user ID (null to keep current value)
-     * @param role Optional new role (null to keep current value)
      * @param booksRead Optional new books read count (null to keep current value)
      * @param avatarPath Optional new avatar path (null to keep current value)
      * @param clubIds Optional list of club IDs to set as the member's clubs (null to keep current clubs).
@@ -74,8 +69,6 @@ interface MemberRepository {
         memberId: String,
         name: String? = null,
         handle: String? = null,
-        userId: String? = null,
-        role: String? = null,
         booksRead: Int? = null,
         avatarPath: String? = null,
         clubIds: List<String>? = null,
@@ -177,16 +170,12 @@ internal class MemberRepositoryImpl(
 
     override suspend fun createMember(
         name: String,
-        userId: String?,
-        role: String?,
         clubIds: List<String>?
     ): Result<Member> {
         Bark.d("Creating member: $name")
         val result = memberRemoteDataSource.createMember(
-            CreateMemberRequestDto(
+            MemberCreateRequestDto(
                 name = name,
-                user_id = userId,
-                role = role,
                 clubs = clubIds
             )
         )
@@ -210,8 +199,6 @@ internal class MemberRepositoryImpl(
         memberId: String,
         name: String?,
         handle: String?,
-        userId: String?,
-        role: String?,
         booksRead: Int?,
         avatarPath: String?,
         clubIds: List<String>?,
@@ -219,16 +206,14 @@ internal class MemberRepositoryImpl(
     ): Result<Member> {
         Bark.d("Updating member (ID: $memberId)")
         val result = memberRemoteDataSource.updateMember(
-            UpdateMemberRequestDto(
-                id = memberId,
+            MemberUpdateRequestDto(
+                id = memberId.toInt(),
                 name = name,
                 handle = handle,
-                user_id = userId,
-                role = role,
-                books_read = booksRead,
-                avatar_path = avatarPath,
+                avatarPath = avatarPath,
+                booksRead = booksRead,
                 clubs = clubIds,
-                club_roles = clubRoles
+                clubRoles = clubRoles?.mapValues { (_, role) -> MemberAssignableRoleDto.valueOf(role) }
             )
         )
 

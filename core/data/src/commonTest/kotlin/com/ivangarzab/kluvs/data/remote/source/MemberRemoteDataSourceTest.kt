@@ -1,19 +1,21 @@
 package com.ivangarzab.kluvs.data.remote.source
 
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
+import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
+import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
+import com.ivangarzab.kluvs.api.models.MemberCreateResponseDto
+import com.ivangarzab.kluvs.api.models.MemberDto
+import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateResponseDto
 import com.ivangarzab.kluvs.data.remote.api.MemberService
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.CreateMemberRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
 import dev.mokkery.mock
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,16 +34,22 @@ class MemberRemoteDataSourceTest {
 
     @Test
     fun `getMember success returns mapped Member domain model`() = runTest {
-        // Given: Service returns MemberResponseDto
-        val dto = MemberResponseDto(
-            id = "1",
+        // Given: Service returns MemberGetResponseDto
+        val dto = MemberGetResponseDto(
+            id = 1,
             name = "Alice",
-            books_read = 12,
-            user_id = "user-123",
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 12,
+            userId = "user-123",
             clubs = listOf(
-                ClubDto("club-1", "Fiction Club", "123456789", "server-1")
+                MemberClubEntryDto(
+                    id = "club-1",
+                    name = "Fiction Club",
+                    discordChannel = "123456789",
+                    serverId = "server-1"
+                )
             ),
-            shame_clubs = emptyList()
+            shameClubs = emptyList()
         )
 
         everySuspend { memberService.get("1") } returns dto
@@ -80,13 +88,14 @@ class MemberRemoteDataSourceTest {
     @Test
     fun `getMemberByUserId success returns mapped Member`() = runTest {
         // Given: Service returns member by user ID
-        val dto = MemberResponseDto(
-            id = "2",
+        val dto = MemberGetResponseDto(
+            id = 2,
             name = "Bob",
-            books_read = 5,
-            user_id = "user-456",
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 5,
+            userId = "user-456",
             clubs = emptyList(),
-            shame_clubs = emptyList()
+            shameClubs = emptyList()
         )
 
         everySuspend { memberService.getByUserId("user-456") } returns dto
@@ -105,21 +114,19 @@ class MemberRemoteDataSourceTest {
     @Test
     fun `createMember success returns created Member`() = runTest {
         // Given: Service returns success response
-        val request = CreateMemberRequestDto(
+        val request = MemberCreateRequestDto(
             name = "Charlie",
-            books_read = 0,
-            user_id = "user-789"
+            booksRead = 0
         )
 
-        val responseDto = MemberSuccessResponseDto(
+        val responseDto = MemberCreateResponseDto(
             success = true,
             message = "Created",
             member = MemberDto(
-                id = "3",
+                id = 3,
                 name = "Charlie",
-                books_read = 0,
-                user_id = "user-789",
-                clubs = emptyList()
+                platformMetadata = JsonObject(emptyMap()),
+                booksRead = 0
             )
         )
 
@@ -138,22 +145,37 @@ class MemberRemoteDataSourceTest {
     }
 
     @Test
+    fun `createMember with null member in response returns failure`() = runTest {
+        // Given: Service returns response without member data
+        val request = MemberCreateRequestDto(name = "Charlie")
+        val responseDto = MemberCreateResponseDto(success = true, message = "Created", member = null)
+
+        everySuspend { memberService.create(request) } returns responseDto
+
+        // When: Creating member
+        val result = dataSource.createMember(request)
+
+        // Then: Result is failure
+        assertTrue(result.isFailure)
+    }
+
+    @Test
     fun `updateMember success returns updated Member`() = runTest {
         // Given: Service returns success response
-        val request = UpdateMemberRequestDto(
-            id = "1",
+        val request = MemberUpdateRequestDto(
+            id = 1,
             name = "Alice Updated"
         )
 
-        val responseDto = MemberSuccessResponseDto(
+        val responseDto = MemberUpdateResponseDto(
             success = true,
             message = "Updated",
             member = MemberDto(
-                id = "1",
+                id = 1,
                 name = "Alice Updated",
-                books_read = 12,
-                user_id = "user-123",
-                clubs = emptyList()
+                platformMetadata = JsonObject(emptyMap()),
+                booksRead = 12,
+                userId = "user-123"
             )
         )
 
@@ -172,22 +194,22 @@ class MemberRemoteDataSourceTest {
     @Test
     fun `updateMember with handle passes handle in DTO`() = runTest {
         // Given: Request includes a handle
-        val request = UpdateMemberRequestDto(
-            id = "1",
+        val request = MemberUpdateRequestDto(
+            id = 1,
             name = "Alice",
             handle = "alice_reads"
         )
 
-        val responseDto = MemberSuccessResponseDto(
+        val responseDto = MemberUpdateResponseDto(
             success = true,
             message = "Updated",
             member = MemberDto(
-                id = "1",
+                id = 1,
                 name = "Alice",
+                platformMetadata = JsonObject(emptyMap()),
                 handle = "alice_reads",
-                books_read = 12,
-                user_id = "user-123",
-                clubs = emptyList()
+                booksRead = 12,
+                userId = "user-123"
             )
         )
 

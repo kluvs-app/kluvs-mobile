@@ -28,14 +28,14 @@ class UpdateUserProfileUseCaseTest {
     fun `successful update returns success`() = runTest {
         // Given
         val updatedMember = Member(id = "member-1", name = "Alice", handle = "alice_reads", booksRead = 5)
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(updatedMember)
+        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(updatedMember)
 
         // When
         val result = useCase("member-1", "Alice", "alice_reads")
 
         // Then
         assertTrue(result.isSuccess)
-        verifySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) }
+        verifySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -94,7 +94,7 @@ class UpdateUserProfileUseCaseTest {
     fun `handle with underscores is valid`() = runTest {
         // Given
         val updatedMember = Member(id = "member-1", name = "Alice", handle = "alice_reads_2025", booksRead = 5)
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(updatedMember)
+        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(updatedMember)
 
         // When
         val result = useCase("member-1", "Alice", "alice_reads_2025")
@@ -107,7 +107,7 @@ class UpdateUserProfileUseCaseTest {
     fun `propagates repository failure`() = runTest {
         // Given
         val exception = Exception("Network error")
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.failure(exception)
+        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.failure(exception)
 
         // When
         val result = useCase("member-1", "Alice", "alice_reads")

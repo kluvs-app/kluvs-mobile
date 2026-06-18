@@ -1,8 +1,8 @@
 package com.ivangarzab.kluvs.data.remote.source
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.BookRegistrationRequestDto
 import com.ivangarzab.kluvs.data.remote.api.BookService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateBookRequestDto
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
 import com.ivangarzab.kluvs.model.Book
 
@@ -39,9 +39,10 @@ class BookRemoteDataSourceImpl(
 
     override suspend fun searchBooks(query: String): Result<List<Book>> {
         return try {
-            val dtos = bookService.search(query)
-            Bark.i("Book search returned ${dtos.size} results (query: \"$query\")")
-            Result.success(dtos.map { it.toDomain() })
+            val response = bookService.search(query)
+            val books = response.books ?: emptyList()
+            Bark.i("Book search returned ${books.size} results (query: \"$query\")")
+            Result.success(books.map { it.toDomain() })
         } catch (e: Exception) {
             Bark.e("Failed to search books (query: \"$query\").", e)
             Result.failure(e)
@@ -51,18 +52,19 @@ class BookRemoteDataSourceImpl(
     override suspend fun registerBook(book: Book): Result<Book> {
         return try {
             val response = bookService.register(
-                CreateBookRequestDto(
+                BookRegistrationRequestDto(
                     title = book.title,
                     author = book.author,
                     year = book.year,
                     isbn = book.isbn,
-                    page_count = book.pageCount,
-                    image_url = book.imageUrl,
-                    external_google_id = book.externalGoogleId
+                    pageCount = book.pageCount,
+                    imageUrl = book.imageUrl,
+                    externalGoogleId = book.externalGoogleId
                 )
             )
+            val registeredBook = response.book ?: error("Book registration response missing book data")
             Bark.i("Book registered (created=${response.created}): ${book.title}")
-            Result.success(response.book.toDomain())
+            Result.success(registeredBook.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to register book (${book.title}).", e)
             Result.failure(e)

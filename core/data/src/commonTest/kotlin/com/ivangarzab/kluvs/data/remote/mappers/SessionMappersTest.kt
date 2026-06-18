@@ -1,10 +1,8 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.DiscussionDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionResponseDto
+import com.ivangarzab.kluvs.api.models.BookDto
+import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.SessionDto
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,9 +13,10 @@ class SessionMappersTest {
 
     @Test
     fun `SessionDto toDomain maps all fields correctly`() {
-        // Given: A SessionDto with full data
+        // Given: A SessionDto with full data (used both for GET /session?id= and
+        // for sessions embedded within Club/Member responses as active_session)
         val bookDto = BookDto(
-            id = "book-1",
+            id = 1,
             title = "Test Book",
             author = "Test Author",
             edition = "1st",
@@ -27,17 +26,18 @@ class SessionMappersTest {
 
         val discussionDto = DiscussionDto(
             id = "disc-1",
-            session_id = "session-1",
+            sessionId = "session-1",
             title = "Chapter 1",
-            date = "2024-06-15T18:00:00",
+            scheduledAt = "2024-06-15T18:00:00",
             location = "Discord"
         )
 
         val dto = SessionDto(
             id = "session-1",
-            club_id = "club-1",
+            clubId = "club-1",
+            status = SessionDto.Status.active,
             book = bookDto,
-            due_date = "2024-12-31T23:59:59",
+            dueDate = "2024-12-31T23:59:59",
             discussions = listOf(discussionDto)
         )
 
@@ -54,114 +54,35 @@ class SessionMappersTest {
     }
 
     @Test
-    fun `SessionDto toDomain handles nullable club_id`() {
-        // Given: A SessionDto with null club_id
-        val bookDto = BookDto(
-            id = "book-1",
-            title = "Book",
-            author = "Author"
-        )
-
+    fun `SessionDto toDomain handles null discussions and dueDate`() {
+        // Given: A SessionDto without discussions/dueDate
         val dto = SessionDto(
             id = "session-2",
-            club_id = null,
-            book = bookDto,
-            due_date = null,
-            discussions = emptyList()
+            clubId = "club-2",
+            status = SessionDto.Status.active,
+            book = BookDto(id = 2, title = "Book", author = "Author"),
+            dueDate = null,
+            discussions = null
         )
 
         // When: Mapping to domain
         val domain = dto.toDomain()
 
-        // Then: club_id defaults to empty string
+        // Then: dueDate is null and discussions is empty
         assertEquals("session-2", domain.id)
-        assertEquals("", domain.clubId)
         assertNull(domain.dueDate)
         assertTrue(domain.discussions.isEmpty())
     }
 
     @Test
-    fun `SessionResponseDto toDomain maps nested club correctly`() {
-        // Given: A SessionResponseDto with nested ClubDto
-        val clubDto = ClubDto(
-            id = "club-1",
-            name = "My Club",
-            discord_channel = "123456789",
-            server_id = "987654321"
-        )
-
-        val bookDto = BookDto(
-            id = "book-1",
-            title = "Response Book",
-            author = "Response Author"
-        )
-
-        val dto = SessionResponseDto(
-            id = "session-3",
-            club = clubDto,
-            book = bookDto,
-            due_date = "2024-06-30T00:00:00",
-            shame_list = emptyList(),
-            discussions = emptyList()
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: ClubId is extracted from nested club
-        assertEquals("session-3", domain.id)
-        assertEquals("club-1", domain.clubId)
-        assertEquals("Response Book", domain.book.title)
-        assertEquals(LocalDateTime(2024, 6, 30, 0, 0, 0), domain.dueDate)
-    }
-
-    @Test
-    fun `SessionResponseDto toDomain handles null due_date`() {
-        // Given: A SessionResponseDto with no due date
-        val clubDto = ClubDto(
-            id = "club-2",
-            name = "No Deadline Club",
-            discord_channel = null,
-            server_id = null
-        )
-
-        val bookDto = BookDto(
-            id = "book-2",
-            title = "Timeless",
-            author = "Forever"
-        )
-
-        val dto = SessionResponseDto(
-            id = "session-4",
-            club = clubDto,
-            book = bookDto,
-            due_date = null,
-            shame_list = emptyList(),
-            discussions = emptyList()
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: dueDate is null
-        assertEquals("session-4", domain.id)
-        assertNull(domain.dueDate)
-    }
-
-    @Test
     fun `SessionDto toDomain handles empty discussions list`() {
-        // Given: A SessionDto with no discussions
-        val bookDto = BookDto(
-            id = "book-3",
-            title = "Solo Book",
-            author = "Lonely Author"
-        )
-
+        // Given: A SessionDto with an empty discussions list
         val dto = SessionDto(
-            id = "session-5",
-            club_id = "club-3",
-            book = bookDto,
-            due_date = null,
+            id = "session-3",
+            clubId = "club-3",
+            status = SessionDto.Status.active,
+            book = BookDto(id = 3, title = "Solo Book", author = "Lonely Author"),
+            dueDate = null,
             discussions = emptyList()
         )
 
@@ -175,7 +96,7 @@ class SessionMappersTest {
     @Test
     fun `SessionDto toDomain maps multiple discussions`() {
         // Given: A SessionDto with multiple discussions
-        val bookDto = BookDto(id = "book-4", title = "Multi", author = "Discuss")
+        val bookDto = BookDto(id = 4, title = "Multi", author = "Discuss")
 
         val discussions = listOf(
             DiscussionDto("disc-1", "session-6", "Part 1", "2024-01-15T10:00:00", "Online"),
@@ -185,9 +106,10 @@ class SessionMappersTest {
 
         val dto = SessionDto(
             id = "session-6",
-            club_id = "club-4",
+            clubId = "club-4",
+            status = SessionDto.Status.active,
             book = bookDto,
-            due_date = "2024-02-01T00:00:00",
+            dueDate = "2024-02-01T00:00:00",
             discussions = discussions
         )
 
@@ -199,5 +121,24 @@ class SessionMappersTest {
         assertEquals("Part 1", domain.discussions[0].title)
         assertEquals("Part 2", domain.discussions[1].title)
         assertEquals("Finale", domain.discussions[2].title)
+    }
+
+    @Test
+    fun `SessionDto toDomain maps finished status session`() {
+        // Given: A finished SessionDto
+        val dto = SessionDto(
+            id = "session-7",
+            clubId = "club-5",
+            status = SessionDto.Status.finished,
+            book = BookDto(id = 5, title = "Finished Book", author = "Author"),
+            dueDate = "2024-01-01T00:00:00"
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Maps correctly regardless of status (not modeled in domain Session)
+        assertEquals("session-7", domain.id)
+        assertEquals("Finished Book", domain.book.title)
     }
 }

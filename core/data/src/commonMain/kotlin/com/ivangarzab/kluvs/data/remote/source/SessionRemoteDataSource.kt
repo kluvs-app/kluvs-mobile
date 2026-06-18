@@ -1,9 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.source
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
+import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.data.remote.api.SessionService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateSessionRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateSessionRequestDto
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
 import com.ivangarzab.kluvs.model.Session
 
@@ -32,14 +32,17 @@ interface SessionRemoteDataSource {
      *
      * Returns the created [Session] with nested relations if available.
      */
-    suspend fun createSession(request: CreateSessionRequestDto): Result<Session>
+    suspend fun createSession(request: SessionCreateRequestDto): Result<Session>
 
     /**
      * Updates an existing session.
      *
-     * Returns the updated [Session] with nested relations if available.
+     * Note: PUT /session's response never includes the updated session data
+     * (confirmed via the generated response — every branch is just
+     * success/message plus operation-specific metadata). Callers that need the
+     * fresh [Session] must follow up with [getSession].
      */
-    suspend fun updateSession(request: UpdateSessionRequestDto): Result<Session>
+    suspend fun updateSession(request: SessionUpdateRequestDto): Result<Unit>
 
     /**
      * Deletes a session by ID.
@@ -64,13 +67,12 @@ class SessionRemoteDataSourceImpl(
         }
     }
 
-    override suspend fun createSession(request: CreateSessionRequestDto): Result<Session> {
+    override suspend fun createSession(request: SessionCreateRequestDto): Result<Session> {
         return try {
             val response = sessionService.create(request)
-            // Response contains SessionDto which may have partial data
             val session = response.session
                 ?: throw Exception("Session creation succeeded but no session returned")
-            Bark.i("Session created for club (ID: ${request.club_id})")
+            Bark.i("Session created for club (ID: ${request.clubId})")
             Result.success(session.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to create session. Please retry.", e)
@@ -78,13 +80,14 @@ class SessionRemoteDataSourceImpl(
         }
     }
 
-    override suspend fun updateSession(request: UpdateSessionRequestDto): Result<Session> {
+    override suspend fun updateSession(request: SessionUpdateRequestDto): Result<Unit> {
         return try {
             val response = sessionService.update(request)
-            val session = response.session
-                ?: throw Exception("Session update succeeded but no session returned")
+            if (response.success == false) {
+                throw Exception("Update failed: ${response.message}")
+            }
             Bark.i("Session updated (ID: ${request.id})")
-            Result.success(session.toDomain())
+            Result.success(Unit)
         } catch (e: Exception) {
             Bark.e("Failed to update session (ID: ${request.id}). Please retry.", e)
             Result.failure(e)

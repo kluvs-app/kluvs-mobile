@@ -1,6 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.DiscussionDto
+import com.ivangarzab.kluvs.api.models.DiscussionDto
 import com.ivangarzab.kluvs.model.Discussion
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
@@ -18,9 +18,9 @@ class DiscussionMappersTest {
         // Given: A DiscussionDto with all fields
         val dto = DiscussionDto(
             id = "disc-1",
-            session_id = "session-123",
+            sessionId = "session-123",
             title = "Chapter 1 Discussion",
-            date = "2024-06-15T18:00:00",
+            scheduledAt = "2024-06-15T18:00:00",
             location = "Discord Voice Channel"
         )
 
@@ -36,13 +36,13 @@ class DiscussionMappersTest {
     }
 
     @Test
-    fun `toDomain handles nullable fields correctly`() {
-        // Given: A DiscussionDto with nullable fields null
+    fun `toDomain handles nullable location correctly`() {
+        // Given: A DiscussionDto with nullable location null
         val dto = DiscussionDto(
             id = "disc-2",
-            session_id = null,
+            sessionId = "session-456",
             title = "Final Discussion",
-            date = "2024-12-31T20:00:00",
+            scheduledAt = "2024-12-31T20:00:00",
             location = null
         )
 
@@ -51,7 +51,7 @@ class DiscussionMappersTest {
 
         // Then: Nullable fields are null
         assertEquals("disc-2", domain.id)
-        assertNull(domain.sessionId)
+        assertEquals("session-456", domain.sessionId)
         assertEquals("Final Discussion", domain.title)
         assertEquals(LocalDateTime(2024, 12, 31, 20, 0, 0), domain.date)
         assertNull(domain.location)
@@ -62,9 +62,9 @@ class DiscussionMappersTest {
         // Given: A DiscussionDto with various date formats
         val dto1 = DiscussionDto(
             id = "disc-3",
-            session_id = null,
+            sessionId = "session-789",
             title = "Test",
-            date = "2024-01-01T00:00:00",
+            scheduledAt = "2024-01-01T00:00:00",
             location = null
         )
 
@@ -90,20 +90,18 @@ class DiscussionMappersTest {
             location = "Discord Voice Channel"
         )
 
-        // When: Mapping to DTO
+        // When: Mapping to the request DTO
         val dto = discussion.toDto()
 
-        // Then: All fields are mapped correctly
-        assertEquals("disc-1", dto.id)
-        assertEquals("session-123", dto.session_id)
+        // Then: Title/date/location are mapped correctly (id/sessionId are server-assigned)
         assertEquals("Chapter 1 Discussion", dto.title)
-        assertEquals("2024-06-15T18:00", dto.date)
+        assertEquals("2024-06-15T18:00", dto.scheduledAt)
         assertEquals("Discord Voice Channel", dto.location)
     }
 
     @Test
-    fun `toDto handles nullable fields correctly`() {
-        // Given: A Discussion domain model with nullable fields null
+    fun `toDto handles nullable location correctly`() {
+        // Given: A Discussion domain model with nullable location null
         val discussion = Discussion(
             id = "disc-2",
             sessionId = null,
@@ -112,14 +110,12 @@ class DiscussionMappersTest {
             location = null
         )
 
-        // When: Mapping to DTO
+        // When: Mapping to the request DTO
         val dto = discussion.toDto()
 
         // Then: Nullable fields are null
-        assertEquals("disc-2", dto.id)
-        assertNull(dto.session_id)
         assertEquals("Final Discussion", dto.title)
-        assertEquals("2024-12-31T20:00", dto.date)
+        assertEquals("2024-12-31T20:00", dto.scheduledAt)
         assertNull(dto.location)
     }
 
@@ -134,11 +130,11 @@ class DiscussionMappersTest {
             location = "Library"
         )
 
-        // When: Mapping to DTO
+        // When: Mapping to the request DTO
         val dto = discussion.toDto()
 
         // Then: Date is converted to ISO 8601 string format
-        assertEquals("2024-01-01T00:00", dto.date)
+        assertEquals("2024-01-01T00:00", dto.scheduledAt)
     }
 
     @Test
@@ -160,58 +156,12 @@ class DiscussionMappersTest {
             location = "Online"
         )
 
-        // When: Mapping to DTO
+        // When: Mapping to the request DTO
         val dto1 = discussion1.toDto()
         val dto2 = discussion2.toDto()
 
         // Then: Dates are converted correctly
-        assertEquals("2024-03-15T09:30:45", dto1.date)
-        assertEquals("2024-11-25T23:59:59", dto2.date)
-    }
-
-    @Test
-    fun `toDto roundtrip preserves all data`() {
-        // Given: A Discussion domain model
-        val originalDiscussion = Discussion(
-            id = "disc-roundtrip",
-            sessionId = "session-999",
-            title = "Roundtrip Test",
-            date = LocalDateTime(2024, 7, 4, 14, 30, 0),
-            location = "Community Center"
-        )
-
-        // When: Converting to DTO and back to domain
-        val dto = originalDiscussion.toDto()
-        val reconvertedDiscussion = dto.toDomain()
-
-        // Then: All fields are preserved
-        assertEquals(originalDiscussion.id, reconvertedDiscussion.id)
-        assertEquals(originalDiscussion.sessionId, reconvertedDiscussion.sessionId)
-        assertEquals(originalDiscussion.title, reconvertedDiscussion.title)
-        assertEquals(originalDiscussion.date, reconvertedDiscussion.date)
-        assertEquals(originalDiscussion.location, reconvertedDiscussion.location)
-    }
-
-    @Test
-    fun `toDto roundtrip with null fields preserves null values`() {
-        // Given: A Discussion domain model with null optional fields
-        val originalDiscussion = Discussion(
-            id = "disc-null-roundtrip",
-            sessionId = null,
-            title = "Null Fields Test",
-            date = LocalDateTime(2024, 8, 20, 16, 0, 0),
-            location = null
-        )
-
-        // When: Converting to DTO and back to domain
-        val dto = originalDiscussion.toDto()
-        val reconvertedDiscussion = dto.toDomain()
-
-        // Then: All fields including nulls are preserved
-        assertEquals(originalDiscussion.id, reconvertedDiscussion.id)
-        assertNull(reconvertedDiscussion.sessionId)
-        assertEquals(originalDiscussion.title, reconvertedDiscussion.title)
-        assertEquals(originalDiscussion.date, reconvertedDiscussion.date)
-        assertNull(reconvertedDiscussion.location)
+        assertEquals("2024-03-15T09:30:45", dto1.scheduledAt)
+        assertEquals("2024-11-25T23:59:59", dto2.scheduledAt)
     }
 }

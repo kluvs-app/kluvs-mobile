@@ -1,14 +1,13 @@
 package com.ivangarzab.kluvs.data.remote.source
 
+import com.ivangarzab.kluvs.api.models.ClubDto
+import com.ivangarzab.kluvs.api.models.ClubMemberDto
+import com.ivangarzab.kluvs.api.models.ClubCreateResponseDto
+import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ClubUpdateResponseDto
+import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.remote.api.ClubService
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubMemberDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.CreateClubRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateClubRequestDto
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
@@ -33,25 +32,23 @@ class ClubRemoteDataSourceTest {
 
     @Test
     fun `getClub success returns mapped Club domain model`() = runTest {
-        // Given: Service returns ClubResponseDto
-        val dto = ClubResponseDto(
+        // Given: Service returns ClubDto
+        val dto = ClubDto(
             id = "club-1",
             name = "Test Club",
-            discord_channel = "123456789",
-            server_id = "987654321",
+            discordChannel = "123456789",
+            serverId = "987654321",
             members = listOf(
                 ClubMemberDto(
-                    id = "1",
+                    id = 1,
                     name = "John",
-                    books_read = 5,
-                    user_id = null,
-                    role = "owner",
-                    clubs = emptyList()
+                    booksRead = 5,
+                    role = ClubMemberDto.Role.owner
                 )
             ),
-            active_session = null,
-            past_sessions = emptyList(),
-            shame_list = listOf("2")
+            activeSession = null,
+            pastSessions = emptyList(),
+            shameList = listOf(2)
         )
 
         everySuspend { clubService.get("club-1", "987654321") } returns dto
@@ -90,15 +87,15 @@ class ClubRemoteDataSourceTest {
     @Test
     fun `getClubByChannel success returns mapped Club`() = runTest {
         // Given: Service returns club by channel
-        val dto = ClubResponseDto(
+        val dto = ClubDto(
             id = "club-2",
             name = "Channel Club",
-            discord_channel = "555666777",
-            server_id = "987654321",
+            discordChannel = "555666777",
+            serverId = "987654321",
             members = emptyList(),
-            active_session = null,
-            past_sessions = emptyList(),
-            shame_list = emptyList()
+            activeSession = null,
+            pastSessions = emptyList(),
+            shameList = emptyList()
         )
 
         everySuspend { clubService.getByChannel("555666777", "987654321") } returns dto
@@ -116,21 +113,20 @@ class ClubRemoteDataSourceTest {
     @Test
     fun `createClub success returns created Club`() = runTest {
         // Given: Service returns success response
-        val request = CreateClubRequestDto(
-            id = "new-club",
+        val request = ClubCreateRequestDto(
             name = "New Club",
-            discord_channel = "111222333",
-            server_id = "987654321"
+            discordChannel = "111222333",
+            serverId = "987654321"
         )
 
-        val responseDto = ClubSuccessResponseDto(
+        val responseDto = ClubCreateResponseDto(
             success = true,
             message = "Created",
             club = ClubDto(
                 id = "new-club",
                 name = "New Club",
-                discord_channel = "111222333",
-                server_id = "987654321"
+                discordChannel = "111222333",
+                serverId = "987654321"
             )
         )
 
@@ -151,22 +147,22 @@ class ClubRemoteDataSourceTest {
     @Test
     fun `updateClub success returns updated Club`() = runTest {
         // Given: Service returns success response
-        val request = UpdateClubRequestDto(
+        val request = ClubUpdateRequestDto(
             id = "club-1",
-            server_id = "987654321",
+            serverId = "987654321",
             name = "Updated Name"
         )
 
-        val responseDto = ClubSuccessResponseDto(
+        val responseDto = ClubUpdateResponseDto(
             success = true,
             message = "Updated",
             club = ClubDto(
                 id = "club-1",
                 name = "Updated Name",
-                discord_channel = "123456789",
-                server_id = "987654321"
+                discordChannel = "123456789",
+                serverId = "987654321"
             ),
-            club_updated = true
+            clubUpdated = true
         )
 
         everySuspend { clubService.update(request) } returns responseDto

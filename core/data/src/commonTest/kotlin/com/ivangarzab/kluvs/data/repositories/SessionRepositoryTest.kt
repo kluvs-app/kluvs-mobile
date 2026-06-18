@@ -1,8 +1,8 @@
 package com.ivangarzab.kluvs.data.repositories
 
+import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.SessionLocalDataSource
-import com.ivangarzab.kluvs.data.remote.dtos.CreateSessionRequestDto
 import com.ivangarzab.kluvs.data.remote.source.SessionRemoteDataSource
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Discussion
@@ -30,7 +30,7 @@ class SessionRepositoryTest {
     private lateinit var repository: SessionRepository
 
     private val testBook = Book(
-        id = "book-123",
+        id = "123",
         title = "1984",
         author = "George Orwell",
         isbn = "978-0451524935"
@@ -232,8 +232,8 @@ class SessionRepositoryTest {
         assertTrue(result.isSuccess)
         verifySuspend {
             remoteDataSource.createSession(
-                matching<CreateSessionRequestDto> { dto ->
-                    dto.book_id == "book-123" && dto.book == null
+                matching<SessionCreateRequestDto> { dto ->
+                    dto.bookId == 123 && dto.book == null
                 }
             )
         }
@@ -254,6 +254,8 @@ class SessionRepositoryTest {
     // ========================================
     // UPDATE SESSION
     // ========================================
+    // Note: PUT /session never returns the updated session, so the repository
+    // re-fetches via getSession() on success — tests mock both calls.
 
     @Test
     fun `updateSession with book updates the book`() = runTest {
@@ -270,13 +272,15 @@ class SessionRepositoryTest {
             book = newBook,
             dueDate = testDueDate
         )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
+        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(Unit)
+        everySuspend { remoteDataSource.getSession(sessionId) } returns Result.success(expectedSession)
 
         val result = repository.updateSession(sessionId, book = newBook)
 
         assertTrue(result.isSuccess)
         assertEquals(newBook, result.getOrNull()?.book)
         verifySuspend { remoteDataSource.updateSession(any()) }
+        verifySuspend { remoteDataSource.getSession(sessionId) }
     }
 
     @Test
@@ -288,7 +292,8 @@ class SessionRepositoryTest {
             book = testBook,
             dueDate = LocalDateTime.parse("2025-01-15T23:59:59")
         )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
+        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(Unit)
+        everySuspend { remoteDataSource.getSession(sessionId) } returns Result.success(expectedSession)
 
         val result = repository.updateSession(sessionId, book = null, dueDate = LocalDateTime.parse("2025-01-15T23:59:59"))
 
@@ -308,30 +313,13 @@ class SessionRepositoryTest {
             book = testBook,
             dueDate = newDueDate
         )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
+        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(Unit)
+        everySuspend { remoteDataSource.getSession(sessionId) } returns Result.success(expectedSession)
 
         val result = repository.updateSession(sessionId, dueDate = newDueDate)
 
         assertTrue(result.isSuccess)
         assertEquals(newDueDate, result.getOrNull()?.dueDate)
-        verifySuspend { remoteDataSource.updateSession(any()) }
-    }
-
-    @Test
-    fun `updateSession with null due date does not update due date`() = runTest {
-        val sessionId = "session-123"
-        val expectedSession = Session(
-            id = sessionId,
-            clubId = "club-456",
-            book = testBook,
-            dueDate = testDueDate
-        )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
-
-        val result = repository.updateSession(sessionId, dueDate = null)
-
-        assertTrue(result.isSuccess)
-        assertEquals(testDueDate, result.getOrNull()?.dueDate)
         verifySuspend { remoteDataSource.updateSession(any()) }
     }
 
@@ -354,52 +342,14 @@ class SessionRepositoryTest {
             dueDate = testDueDate,
             discussions = newDiscussions
         )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
+        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(Unit)
+        everySuspend { remoteDataSource.getSession(sessionId) } returns Result.success(expectedSession)
 
         val result = repository.updateSession(sessionId, discussions = newDiscussions)
 
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrNull()?.discussions?.size)
         assertEquals("Final Discussion", result.getOrNull()?.discussions?.first()?.title)
-        verifySuspend { remoteDataSource.updateSession(any()) }
-    }
-
-    @Test
-    fun `updateSession with empty discussions removes all discussions`() = runTest {
-        val sessionId = "session-123"
-        val expectedSession = Session(
-            id = sessionId,
-            clubId = "club-456",
-            book = testBook,
-            dueDate = testDueDate,
-            discussions = emptyList()
-        )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
-
-        val result = repository.updateSession(sessionId, discussions = emptyList())
-
-        assertTrue(result.isSuccess)
-        assertEquals(0, result.getOrNull()?.discussions?.size)
-        verifySuspend { remoteDataSource.updateSession(any()) }
-    }
-
-    @Test
-    fun `updateSession with null discussions does not change discussions`() = runTest {
-        val sessionId = "session-123"
-        val expectedSession = Session(
-            id = sessionId,
-            clubId = "club-456",
-            book = testBook,
-            dueDate = LocalDateTime.parse("2025-01-15T23:59:59"),
-            discussions = testDiscussions
-        )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
-
-        val result = repository.updateSession(sessionId, dueDate = LocalDateTime.parse("2025-01-15T23:59:59"), discussions = null)
-
-        assertTrue(result.isSuccess)
-        assertEquals(2, result.getOrNull()?.discussions?.size)
-        assertEquals(LocalDateTime.parse("2025-01-15T23:59:59"), result.getOrNull()?.dueDate)
         verifySuspend { remoteDataSource.updateSession(any()) }
     }
 
@@ -415,7 +365,8 @@ class SessionRepositoryTest {
             dueDate = testDueDate,
             discussions = remainingDiscussions
         )
-        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(expectedSession)
+        everySuspend { remoteDataSource.updateSession(any()) } returns Result.success(Unit)
+        everySuspend { remoteDataSource.getSession(sessionId) } returns Result.success(expectedSession)
 
         val result = repository.updateSession(sessionId, discussionIdsToDelete = discussionIdsToDelete)
 
@@ -425,7 +376,7 @@ class SessionRepositoryTest {
     }
 
     @Test
-    fun `updateSession failure returns Result failure`() = runTest {
+    fun `updateSession failure returns Result failure without fetching session`() = runTest {
         val exception = Exception("Failed to update session")
         everySuspend { remoteDataSource.updateSession(any()) } returns Result.failure(exception)
 

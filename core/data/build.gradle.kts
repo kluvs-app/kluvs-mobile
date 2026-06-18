@@ -11,6 +11,7 @@ kotlin {
             implementation(project(":core:network"))
             implementation(project(":core:database"))
             implementation(project(":core:auth"))
+            implementation(project(":core:api"))
 
             implementation(libs.ktor.client.core)
             implementation(libs.supabase.functions)

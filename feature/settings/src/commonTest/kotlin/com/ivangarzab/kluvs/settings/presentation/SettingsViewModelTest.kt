@@ -185,7 +185,7 @@ class SettingsViewModelTest {
     fun `onSaveProfile with valid data succeeds and sets saveSuccess`() = runTest {
         // Given: profile loaded and user makes a change
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
+        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
         viewModel.onNameChanged("Alice Updated")
 
@@ -226,7 +226,7 @@ class SettingsViewModelTest {
         // Manually put the ViewModel into saving state by calling onSaveProfile once
         // with a slow mock — but since UnconfinedTestDispatcher is synchronous, we test
         // by checking the guard on repeated calls
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
+        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
         viewModel.onSaveProfile()
 
         // After the first call resolves, saveSuccess should be true
@@ -250,7 +250,7 @@ class SettingsViewModelTest {
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
+        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
         viewModel.onSaveProfile()
         assertTrue(viewModel.state.value.saveSuccess)
 

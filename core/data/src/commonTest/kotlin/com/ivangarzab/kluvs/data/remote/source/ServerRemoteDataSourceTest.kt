@@ -1,16 +1,16 @@
 package com.ivangarzab.kluvs.data.remote.source
 
+import com.ivangarzab.kluvs.api.models.ServerDto
+import com.ivangarzab.kluvs.api.models.ServerGetListResponseDto
+import com.ivangarzab.kluvs.api.models.ServerClubLatestSessionDto
+import com.ivangarzab.kluvs.api.models.ServerClubSummaryDto
+import com.ivangarzab.kluvs.api.models.ServerGetSingleResponseDto
+import com.ivangarzab.kluvs.api.models.ServerCreateResponseDto
+import com.ivangarzab.kluvs.api.models.ServerCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ServerUpdateRequestDto
 import com.ivangarzab.kluvs.data.remote.api.ServerService
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.CreateServerRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServersResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateServerRequestDto
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
+import com.ivangarzab.kluvs.api.models.ServerUpdateResponseDto
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
@@ -35,24 +35,21 @@ class ServerRemoteDataSourceTest {
 
     @Test
     fun `getAllServers success returns list of mapped Servers`() = runTest {
-        // Given: Service returns ServersResponseDto
-        val dto = ServersResponseDto(
+        // Given: Service returns the list-branch response
+        val dto = ServerGetListResponseDto(
             servers = listOf(
-                ServerResponseDto(
+                ServerDto(
                     id = "server-1",
                     name = "Production",
                     clubs = listOf(
-                        ServerClubDto(
+                        com.ivangarzab.kluvs.api.models.ClubDto(
                             id = "club-1",
                             name = "Fiction",
-                            discord_channel = "123456789",
-                            founded_date = null,
-                            member_count = 10,
-                            latest_session = null
+                            discordChannel = "123456789"
                         )
                     )
                 ),
-                ServerResponseDto(
+                ServerDto(
                     id = "server-2",
                     name = "Test",
                     clubs = emptyList()
@@ -95,22 +92,19 @@ class ServerRemoteDataSourceTest {
 
     @Test
     fun `getServer success returns mapped Server with clubs`() = runTest {
-        // Given: Service returns ServerResponseDto
-        val dto = ServerResponseDto(
+        // Given: Service returns the single-server branch response
+        val dto = ServerGetSingleResponseDto(
             id = "server-1",
             name = "Main Server",
             clubs = listOf(
-                ServerClubDto(
+                ServerClubSummaryDto(
                     id = "club-1",
                     name = "Book Club",
-                    discord_channel = "123456789",
-                    member_count = 15,
-                    latest_session = SessionDto(
+                    discordChannel = "123456789",
+                    memberCount = 15,
+                    latestSession = ServerClubLatestSessionDto(
                         id = "session-1",
-                        club_id = "club-1",
-                        book = BookDto("book-1", "Great Book", "Author"),
-                        due_date = null,
-                        discussions = emptyList()
+                        dueDate = null
                     )
                 )
             )
@@ -130,7 +124,6 @@ class ServerRemoteDataSourceTest {
 
         val club = server.clubs?.first()
         assertEquals("Book Club", club?.name)
-        assertEquals("session-1", club?.activeSession?.id)
 
         verifySuspend { serverService.get("server-1") }
     }
@@ -154,15 +147,14 @@ class ServerRemoteDataSourceTest {
     @Test
     fun `createServer success returns created Server`() = runTest {
         // Given: Service returns success response
-        val request = CreateServerRequestDto(
-            id = "server-3",
+        val request = ServerCreateRequestDto(
             name = "New Server"
         )
 
-        val responseDto = ServerSuccessResponseDto(
+        val responseDto = ServerCreateResponseDto(
             success = true,
             message = "Created",
-            server = ServerDto("server-3", "New Server")
+            server = ServerDto(id = "server-3", name = "New Server")
         )
 
         everySuspend { serverService.create(request) } returns responseDto
@@ -182,15 +174,15 @@ class ServerRemoteDataSourceTest {
     @Test
     fun `updateServer success returns updated Server`() = runTest {
         // Given: Service returns success response
-        val request = UpdateServerRequestDto(
+        val request = ServerUpdateRequestDto(
             id = "server-1",
             name = "Updated Name"
         )
 
-        val responseDto = ServerSuccessResponseDto(
+        val responseDto = ServerUpdateResponseDto(
             success = true,
             message = "Updated",
-            server = ServerDto("server-1", "Updated Name")
+            server = ServerDto(id = "server-1", name = "Updated Name")
         )
 
         everySuspend { serverService.update(request) } returns responseDto
@@ -248,7 +240,7 @@ class ServerRemoteDataSourceTest {
     @Test
     fun `getAllServers with empty list returns empty list`() = runTest {
         // Given: Service returns empty servers list
-        val dto = ServersResponseDto(servers = emptyList())
+        val dto = ServerGetListResponseDto(servers = emptyList())
 
         everySuspend { serverService.getAll() } returns dto
 
