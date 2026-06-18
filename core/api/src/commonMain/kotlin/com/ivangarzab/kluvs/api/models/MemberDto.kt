@@ -15,7 +15,7 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.MemberClubsInnerDto
+import com.ivangarzab.kluvs.api.models.ClubSummaryDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -63,7 +63,7 @@ data class MemberDto (
     @SerialName(value = "created_at") val createdAt: kotlin.String? = null,
 
     /* Clubs this member belongs to, each with their per-club role. */
-    @SerialName(value = "clubs") val clubs: kotlin.collections.List<MemberClubsInnerDto>? = null
+    @SerialName(value = "clubs") val clubs: kotlin.collections.List<ClubSummaryDto>? = null
 
 ) {
 
