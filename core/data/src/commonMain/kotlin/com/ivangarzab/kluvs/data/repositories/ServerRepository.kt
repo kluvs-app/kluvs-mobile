@@ -1,10 +1,10 @@
 package com.ivangarzab.kluvs.data.repositories
 
+import com.ivangarzab.kluvs.api.models.ServerCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ServerUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ServerLocalDataSource
-import com.ivangarzab.kluvs.data.remote.dtos.CreateServerRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateServerRequestDto
 import com.ivangarzab.kluvs.data.remote.source.ServerRemoteDataSource
 import com.ivangarzab.kluvs.model.Server
 import com.ivangarzab.bark.Bark
@@ -116,10 +116,10 @@ internal class ServerRepositoryImpl(
     }
 
     override suspend fun createServer(name: String): Result<Server> =
-        serverRemoteDataSource.createServer(CreateServerRequestDto(name = name))
+        serverRemoteDataSource.createServer(ServerCreateRequestDto(name = name))
 
     override suspend fun updateServer(serverId: String, name: String?): Result<Server> =
-        serverRemoteDataSource.updateServer(UpdateServerRequestDto(id = serverId, name = name))
+        serverRemoteDataSource.updateServer(ServerUpdateRequestDto(id = serverId, name = name))
 
     override suspend fun deleteServer(serverId: String): Result<String> =
         serverRemoteDataSource.deleteServer(serverId)

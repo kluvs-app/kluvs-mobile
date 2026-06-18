@@ -1,10 +1,11 @@
 package com.ivangarzab.kluvs.data.repositories
 
+import com.ivangarzab.kluvs.api.models.MemberAssignableRoleDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.model.Member
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -132,18 +133,15 @@ class MemberRepositoryTest {
     @Test
     fun `createMember success creates member with all fields`() = runTest {
         val memberName = "Jane Doe"
-        val userId = "user-456"
-        val role = "Admin"
         val clubIds = listOf("club-1", "club-2")
         val expectedMember = Member(
             id = "member-new",
             name = memberName,
-            userId = userId,
             booksRead = 0
         )
         everySuspend { remoteDataSource.createMember(any()) } returns Result.success(expectedMember)
 
-        val result = repository.createMember(memberName, userId, role, clubIds)
+        val result = repository.createMember(memberName, clubIds)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedMember, result.getOrNull())
@@ -161,7 +159,7 @@ class MemberRepositoryTest {
         )
         everySuspend { remoteDataSource.createMember(any()) } returns Result.success(expectedMember)
 
-        val result = repository.createMember(memberName, null, null, null)
+        val result = repository.createMember(memberName, null)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedMember, result.getOrNull())
@@ -179,7 +177,7 @@ class MemberRepositoryTest {
         )
         everySuspend { remoteDataSource.createMember(any()) } returns Result.success(expectedMember)
 
-        val result = repository.createMember(memberName, "user-123", "Reader")
+        val result = repository.createMember(memberName)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedMember, result.getOrNull())
@@ -197,7 +195,7 @@ class MemberRepositoryTest {
         )
         everySuspend { remoteDataSource.createMember(any()) } returns Result.success(expectedMember)
 
-        val result = repository.createMember(memberName, null, null, clubIds)
+        val result = repository.createMember(memberName, clubIds)
 
         assertTrue(result.isSuccess)
         verifySuspend { remoteDataSource.createMember(any()) }
@@ -208,7 +206,7 @@ class MemberRepositoryTest {
         val exception = Exception("Failed to create member")
         everySuspend { remoteDataSource.createMember(any()) } returns Result.failure(exception)
 
-        val result = repository.createMember("Jane", null, null, null)
+        val result = repository.createMember("Jane", null)
 
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())
@@ -221,15 +219,12 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with all fields updates all values`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val newName = "Updated Name"
-        val newUserId = "user-new"
-        val newRole = "Moderator"
         val newBooksRead = 15
         val expectedMember = Member(
             id = memberId,
             name = newName,
-            userId = newUserId,
             booksRead = newBooksRead
         )
         everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(expectedMember)
@@ -237,8 +232,6 @@ class MemberRepositoryTest {
         val result = repository.updateMember(
             memberId = memberId,
             name = newName,
-            userId = newUserId,
-            role = newRole,
             booksRead = newBooksRead
         )
 
@@ -250,7 +243,7 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with null name does not update name`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val expectedMember = Member(
             id = memberId,
             name = "Unchanged",
@@ -267,7 +260,7 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with clubIds replaces all club memberships`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val newClubIds = listOf("club-5", "club-6")
         val expectedMember = Member(
             id = memberId,
@@ -284,7 +277,7 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with empty clubIds removes member from all clubs`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val emptyClubIds = emptyList<String>()
         val expectedMember = Member(
             id = memberId,
@@ -301,7 +294,7 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with null clubIds does not change club memberships`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val expectedMember = Member(
             id = memberId,
             name = "Updated Name",
@@ -318,7 +311,7 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with handle updates handle`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val newHandle = "alice_reads"
         val expectedMember = Member(
             id = memberId,
@@ -337,7 +330,7 @@ class MemberRepositoryTest {
 
     @Test
     fun `updateMember with clubRoles passes club_roles to remote data source`() = runTest {
-        val memberId = "member-123"
+        val memberId = "123"
         val clubRoles = mapOf("club-1" to "admin")
         val expectedMember = Member(id = memberId, name = "Alice", booksRead = 5)
         everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(expectedMember)
@@ -347,7 +340,10 @@ class MemberRepositoryTest {
         assertTrue(result.isSuccess)
         verifySuspend {
             remoteDataSource.updateMember(
-                UpdateMemberRequestDto(id = memberId, club_roles = clubRoles)
+                MemberUpdateRequestDto(
+                    id = memberId.toInt(),
+                    clubRoles = mapOf("club-1" to MemberAssignableRoleDto.admin)
+                )
             )
         }
     }
@@ -357,7 +353,7 @@ class MemberRepositoryTest {
         val exception = Exception("Failed to update member")
         everySuspend { remoteDataSource.updateMember(any()) } returns Result.failure(exception)
 
-        val result = repository.updateMember("member-123", name = "Updated")
+        val result = repository.updateMember("123", name = "Updated")
 
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())

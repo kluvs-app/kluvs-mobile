@@ -1,11 +1,11 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubMemberDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionDto
+import com.ivangarzab.kluvs.api.models.BookDto
+import com.ivangarzab.kluvs.api.models.ClubDto
+import com.ivangarzab.kluvs.api.models.ClubMemberDto
+import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
+import com.ivangarzab.kluvs.api.models.ServerClubSummaryDto
+import com.ivangarzab.kluvs.api.models.SessionDto
 import com.ivangarzab.kluvs.model.Role
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,12 +17,12 @@ class ClubMappersTest {
 
     @Test
     fun `ClubDto toDomain maps basic fields only`() {
-        // Given: A ClubDto with basic info
+        // Given: A ClubDto with basic info, no relations
         val dto = ClubDto(
             id = "club-1",
             name = "Book Club",
-            discord_channel = "123456789",
-            server_id = "987654321"
+            discordChannel = "123456789",
+            serverId = "987654321"
         )
 
         // When: Mapping to domain
@@ -41,104 +41,112 @@ class ClubMappersTest {
     }
 
     @Test
-    fun `ClubResponseDto toDomain maps all nested relations`() {
-        // Given: A ClubResponseDto with nested data
+    fun `ClubDto toDomain maps nested relations`() {
+        // Given: A ClubDto with nested data
         val clubMemberDto = ClubMemberDto(
-            id = "1",
+            id = 1,
             name = "John Doe",
-            books_read = 5,
-            user_id = "user-1",
-            role = "admin",
-            clubs = emptyList()
+            booksRead = 5,
+            role = ClubMemberDto.Role.admin
         )
 
         val bookDto = BookDto(
-            id = "book-1",
+            id = 1,
             title = "Test Book",
             author = "Test Author"
         )
 
         val sessionDto = SessionDto(
             id = "session-1",
-            club_id = "club-1",
+            clubId = "club-1",
+            status = SessionDto.Status.active,
             book = bookDto,
-            due_date = "2024-12-31T00:00:00",
+            dueDate = "2024-12-31T00:00:00",
             discussions = emptyList()
         )
 
-        val dto = ClubResponseDto(
+        val dto = ClubDto(
             id = "club-1",
             name = "Full Club",
-            discord_channel = "123456789",
-            server_id = "987654321",
+            discordChannel = "123456789",
+            serverId = "987654321",
             members = listOf(clubMemberDto),
-            active_session = sessionDto,
-            past_sessions = listOf(sessionDto),
-            shame_list = listOf("1", "2")
+            activeSession = sessionDto,
+            shameList = listOf(1, 2)
         )
 
         // When: Mapping to domain
         val domain = dto.toDomain()
 
-        // Then: All nested relations are mapped
+        // Then: Nested relations are mapped (role is always null at this level)
         assertEquals("club-1", domain.id)
         assertEquals("Full Club", domain.name)
+        assertNull(domain.role)
         assertNotNull(domain.members)
         assertEquals(1, domain.members?.size)
         assertEquals(Role.ADMIN, domain.members?.first()?.role)
         assertEquals("John Doe", domain.members?.first()?.member?.name)
         assertNotNull(domain.activeSession)
         assertEquals("session-1", domain.activeSession?.id)
-        assertNotNull(domain.pastSessions)
-        assertEquals(1, domain.pastSessions?.size)
         assertEquals(2, domain.shameList.size)
         assertTrue(domain.shameList.contains("1"))
         assertTrue(domain.shameList.contains("2"))
     }
 
     @Test
-    fun `ServerClubDto toDomain maps with latest session`() {
-        // Given: A ServerClubDto
-        val sessionDto = SessionDto(
-            id = "session-1",
-            club_id = "club-1",
-            book = BookDto(id = "book-1", title = "Book", author = "Author"),
-            due_date = null,
-            discussions = emptyList()
-        )
-
-        val dto = ServerClubDto(
+    fun `MemberClubEntryDto toDomain populates role`() {
+        // Given: A club embedded within a member's clubs list, with a role
+        val dto = MemberClubEntryDto(
             id = "club-1",
-            name = "Server Club",
-            discord_channel = "123456789",
-            member_count = 10,
-            latest_session = sessionDto
+            name = "Full Club",
+            discordChannel = "123456789",
+            serverId = "987654321",
+            role = MemberClubEntryDto.Role.owner
         )
 
         // When: Mapping to domain
         val domain = dto.toDomain()
 
-        // Then: Basic fields and latest session are mapped
+        // Then: Role is populated from the wrapper
+        assertEquals("club-1", domain.id)
+        assertEquals(Role.OWNER, domain.role)
+    }
+
+    @Test
+    fun `ServerClubSummaryDto toDomain maps basic fields`() {
+        // Given: A club embedded in a single-server response, with member_count/latest_session
+        val dto = ServerClubSummaryDto(
+            id = "club-1",
+            name = "Server Club",
+            discordChannel = "123456789",
+            memberCount = 10,
+            latestSession = com.ivangarzab.kluvs.api.models.ServerClubLatestSessionDto(
+                id = "session-1",
+                dueDate = "2024-12-31"
+            )
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Basic fields are mapped; activeSession is null (latest_session has no book id)
         assertEquals("club-1", domain.id)
         assertEquals("Server Club", domain.name)
         assertEquals("123456789", domain.discordChannel)
-        assertNull(domain.serverId) // Not available in ServerClubDto
-        assertNotNull(domain.activeSession)
-        assertEquals("session-1", domain.activeSession?.id)
+        assertNull(domain.activeSession)
         assertNull(domain.members)
         assertNull(domain.pastSessions)
         assertTrue(domain.shameList.isEmpty())
     }
 
     @Test
-    fun `ServerClubDto toDomain handles null latest session`() {
-        // Given: A ServerClubDto without latest session
-        val dto = ServerClubDto(
+    fun `ServerClubSummaryDto toDomain handles null latest session`() {
+        // Given: A club without a latest session
+        val dto = ServerClubSummaryDto(
             id = "club-2",
             name = "Empty Club",
-            discord_channel = null,
-            member_count = 0,
-            latest_session = null
+            memberCount = 0,
+            latestSession = null
         )
 
         // When: Mapping to domain
@@ -155,9 +163,9 @@ class ClubMappersTest {
         val dto = ClubDto(
             id = "club-1",
             name = "Test Club",
-            discord_channel = null,
-            server_id = null,
-            founded_date = "2024-01-15"
+            discordChannel = null,
+            serverId = null,
+            foundedDate = "2024-01-15"
         )
 
         // When: Mapping to domain
@@ -176,9 +184,9 @@ class ClubMappersTest {
         val dto = ClubDto(
             id = "club-1",
             name = "Test Club",
-            discord_channel = null,
-            server_id = null,
-            founded_date = null
+            discordChannel = null,
+            serverId = null,
+            foundedDate = null
         )
 
         // When: Mapping to domain
@@ -189,40 +197,14 @@ class ClubMappersTest {
     }
 
     @Test
-    fun `ClubResponseDto with foundedDate maps to LocalDate`() {
-        // Given: A ClubResponseDto with foundedDate
-        val dto = ClubResponseDto(
-            id = "club-1",
-            name = "Test Club",
-            discord_channel = null,
-            server_id = null,
-            founded_date = "2024-06-01",
-            members = emptyList(),
-            active_session = null,
-            past_sessions = emptyList(),
-            shame_list = emptyList()
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: foundedDate is parsed correctly
-        assertNotNull(domain.foundedDate)
-        assertEquals(2024, domain.foundedDate?.year)
-        assertEquals(6, domain.foundedDate?.monthNumber)
-        assertEquals(1, domain.foundedDate?.dayOfMonth)
-    }
-
-    @Test
-    fun `ServerClubDto with foundedDate maps to LocalDate`() {
-        // Given: A ServerClubDto with foundedDate
-        val dto = ServerClubDto(
+    fun `ServerClubSummaryDto with foundedDate maps to LocalDate`() {
+        // Given: A club embedded in a single-server response, with foundedDate
+        val dto = ServerClubSummaryDto(
             id = "club-1",
             name = "Server Club",
-            discord_channel = null,
-            founded_date = "2023-12-25",
-            member_count = 5,
-            latest_session = null
+            foundedDate = "2023-12-25",
+            memberCount = 5,
+            latestSession = null
         )
 
         // When: Mapping to domain

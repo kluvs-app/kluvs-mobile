@@ -1,11 +1,11 @@
 package com.ivangarzab.kluvs.data.repositories
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
-import com.ivangarzab.kluvs.data.remote.dtos.CreateClubRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateClubRequestDto
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
 
@@ -137,10 +137,10 @@ internal class ClubRepositoryImpl(
         discordChannel: String?
     ): Result<Club> =
         clubRemoteDataSource.createClub(
-            CreateClubRequestDto(
+            ClubCreateRequestDto(
                 name = name,
-                server_id = serverId,
-                discord_channel = discordChannel
+                serverId = serverId,
+                discordChannel = discordChannel
             )
         )
 
@@ -151,11 +151,11 @@ internal class ClubRepositoryImpl(
         discordChannel: String?
     ): Result<Club> =
         clubRemoteDataSource.updateClub(
-            UpdateClubRequestDto(
+            ClubUpdateRequestDto(
                 id = clubId,
-                server_id = serverId,
+                serverId = serverId,
                 name = name,
-                discord_channel = discordChannel
+                discordChannel = discordChannel
             )
         )
 
