@@ -25,7 +25,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param token The invite token
  */
-@Serializable@Serializable
+@Serializable
 
 data class JoinRequestDto (
 

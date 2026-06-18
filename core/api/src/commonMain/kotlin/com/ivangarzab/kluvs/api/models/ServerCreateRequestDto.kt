@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param name 
  * @param id Optional Discord Snowflake ID. If omitted, a random ID is generated.
  */
-@Serializable@Serializable
+@Serializable
 
 data class ServerCreateRequestDto (
 

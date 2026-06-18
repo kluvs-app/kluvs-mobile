@@ -23,7 +23,7 @@ import kotlinx.serialization.*
  *
  * Values: admin,member
  */
-@Serializable@Serializable
+@Serializable
 enum class MemberAssignableRoleDto(val value: kotlin.String) {
 
     @SerialName(value = "admin")
@@ -58,5 +58,4 @@ enum class MemberAssignableRoleDto(val value: kotlin.String) {
         }
     }
 }
-
 

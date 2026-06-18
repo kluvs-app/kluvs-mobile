@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param dueDate 
  * @param books 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ServerClubLatestSessionDto (
 

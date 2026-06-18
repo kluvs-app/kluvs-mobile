@@ -30,7 +30,7 @@ import kotlinx.serialization.encoding.*
  * @param clubUpdated Whether the clubs table row was updated.
  * @param shameListUpdated Whether the shame list membership changed.
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubUpdateResponseDto (
 

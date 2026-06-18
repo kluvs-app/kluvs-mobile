@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param success 
  * @param liked 
  */
-@Serializable@Serializable
+@Serializable
 
 data class LikeStatusResponseDto (
 

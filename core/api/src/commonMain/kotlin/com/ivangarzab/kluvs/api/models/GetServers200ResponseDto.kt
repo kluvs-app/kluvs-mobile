@@ -32,7 +32,7 @@ import kotlinx.serialization.encoding.*
  * @param clubs 
  * @param servers 
  */
-@Serializable@Serializable
+@Serializable
 
 data class GetServers200ResponseDto (
 

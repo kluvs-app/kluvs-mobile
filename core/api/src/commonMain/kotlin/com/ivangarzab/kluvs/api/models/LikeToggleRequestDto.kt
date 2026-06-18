@@ -25,7 +25,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param bookId Local DB book ID
  */
-@Serializable@Serializable
+@Serializable
 
 data class LikeToggleRequestDto (
 

@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param id 
  * @param dueDate 
  */
-@Serializable@Serializable
+@Serializable
 
 data class PastSessionDto (
 

@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param discussionId 
  * @param status 
  */
-@Serializable@Serializable
+@Serializable
 
 data class DiscussionAttendanceUpsertRequestDto (
 

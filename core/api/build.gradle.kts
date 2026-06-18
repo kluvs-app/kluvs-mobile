@@ -61,11 +61,42 @@ openApiGenerate {
     )
     configOptions.set(
         mapOf(
-            "serializationLibrary" to "kotlinx_serialization",
+            // Don't set "serializationLibrary" to "kotlinx_serialization" here:
+            // library = "multiplatform" already implies kotlinx serialization in the
+            // generator's own template, so setting it explicitly on top causes the
+            // template to emit @Serializable twice on every generated class.
+            //
             // Only "string" or "kotlinx-datetime" are valid for the multiplatform
             // library. We want raw strings — date parsing already lives in the
             // :core:data mapper layer (DateParsingUtils) and stays there.
             "dateLibrary" to "string"
+        )
+    )
+    // Free-form objects (schemas with `additionalProperties: true`, e.g. Member's
+    // platform_metadata) default to `kotlin.collections.Map<String, kotlin.Any>`, but
+    // kotlinx.serialization has no serializer for bare `Any` — that fails to compile.
+    //
+    // `typeMappings` can't fix this: the Kotlin generator's getPrimitiveType()
+    // hardcodes a literal "object" return for free-form schemas, bypassing the
+    // typeMapping table entirely (confirmed by decompiling openapi-generator's
+    // DefaultCodegen — there's no map lookup on that code path, just a hardcoded
+    // string literal). The only lever that's checked *before* that hardcoded
+    // branch is schemaMapping, but only for $ref'd schemas — which is why
+    // platform_metadata's properties were changed to `$ref: '#/components/schemas/JsonObject'`
+    // in the spec (a placeholder schema that only exists as a schemaMapping target)
+    // instead of leaving them as inline `additionalProperties: true`.
+    //
+    // Mapped to JsonObject (not Map<String, String>) to preserve the real,
+    // arbitrary-JSON contract — collapsing values to String would misrepresent
+    // the API and break parsing the moment a non-string value shows up.
+    schemaMappings.set(
+        mapOf(
+            "JsonObject" to "kotlinx.serialization.json.JsonObject"
+        )
+    )
+    importMappings.set(
+        mapOf(
+            "JsonObject" to "kotlinx.serialization.json.JsonObject"
         )
     )
 }

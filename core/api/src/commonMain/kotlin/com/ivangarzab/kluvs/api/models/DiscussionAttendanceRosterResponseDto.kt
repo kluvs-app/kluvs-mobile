@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param myStatus 
  * @param memberCount Total member count of the discussion's club
  */
-@Serializable@Serializable
+@Serializable
 
 data class DiscussionAttendanceRosterResponseDto (
 

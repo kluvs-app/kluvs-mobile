@@ -30,12 +30,12 @@ import kotlinx.serialization.encoding.*
  * @param handle 
  * @param avatarPath Storage path of the member's avatar. Must start with `{id}/` (e.g. `42/avatar.png`). Pass null to clear the avatar. 
  * @param discordId Discord user snowflake ID. Pass null to clear it.
- * @param platformMetadata Flexible JSON object for platform-specific data. Replaces the entire field — callers must Read-Modify-Write.
+ * @param platformMetadata 
  * @param clubs Full list of Club IDs this member should belong to. Diffed against existing to add/remove.
  * @param clubRoles Map of club_id → role to update per-club roles.
  * @param addToClub Club ID to add the target member (`id`) to. When present, all other update fields are ignored. The calling user's JWT must belong to a member who is an admin or owner of the target club. The target member is added with the `member` role. 
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberUpdateRequestDto (
 
@@ -54,8 +54,7 @@ data class MemberUpdateRequestDto (
     /* Discord user snowflake ID. Pass null to clear it. */
     @SerialName(value = "discord_id") val discordId: kotlin.String? = null,
 
-    /* Flexible JSON object for platform-specific data. Replaces the entire field — callers must Read-Modify-Write. */
-    @SerialName(value = "platform_metadata") val platformMetadata: kotlin.collections.Map<kotlin.String, kotlin.Any>? = null,
+    @SerialName(value = "platform_metadata") val platformMetadata: kotlinx.serialization.json.JsonObject? = null,
 
     /* Full list of Club IDs this member should belong to. Diffed against existing to add/remove. */
     @SerialName(value = "clubs") val clubs: kotlin.collections.List<kotlin.String>? = null,

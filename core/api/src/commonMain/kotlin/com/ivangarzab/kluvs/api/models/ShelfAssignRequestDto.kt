@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param bookId Local DB book ID
  * @param shelf 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ShelfAssignRequestDto (
 

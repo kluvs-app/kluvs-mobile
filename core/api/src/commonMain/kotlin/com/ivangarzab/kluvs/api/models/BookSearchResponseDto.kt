@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param books 
  * @param total Google Books' estimated corpus count (not the number of items returned on this page — use books.length for that). Approximate; Google caps actual delivery at ~1,000 items regardless of the reported total.
  */
-@Serializable@Serializable
+@Serializable
 
 data class BookSearchResponseDto (
 

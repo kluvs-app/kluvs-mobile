@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param currentPage Required if progress_type is 'page'
  * @param percentComplete Required if progress_type is 'percent', 0-100
  */
-@Serializable@Serializable
+@Serializable
 
 data class ProgressCreateRequestDto (
 

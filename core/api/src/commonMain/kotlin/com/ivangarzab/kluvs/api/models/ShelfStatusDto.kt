@@ -23,7 +23,7 @@ import kotlinx.serialization.*
  *
  * Values: want_to_read,read,not_finished,currently_reading
  */
-@Serializable@Serializable
+@Serializable
 enum class ShelfStatusDto(val value: kotlin.String) {
 
     @SerialName(value = "want_to_read")
@@ -64,5 +64,4 @@ enum class ShelfStatusDto(val value: kotlin.String) {
         }
     }
 }
-
 

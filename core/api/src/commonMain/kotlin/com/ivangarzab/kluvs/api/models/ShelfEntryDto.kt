@@ -30,7 +30,7 @@ import kotlinx.serialization.encoding.*
  * @param source 
  * @param book 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ShelfEntryDto (
 

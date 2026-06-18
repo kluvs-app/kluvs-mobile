@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param valid 
  * @param club 
  */
-@Serializable@Serializable
+@Serializable
 
 data class JoinPreviewResponseDto (
 

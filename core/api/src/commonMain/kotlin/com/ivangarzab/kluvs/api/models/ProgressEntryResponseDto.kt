@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param success 
  * @param progress 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ProgressEntryResponseDto (
 

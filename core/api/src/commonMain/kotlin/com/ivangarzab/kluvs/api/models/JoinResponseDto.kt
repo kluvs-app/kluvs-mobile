@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param success 
  * @param clubId 
  */
-@Serializable@Serializable
+@Serializable
 
 data class JoinResponseDto (
 

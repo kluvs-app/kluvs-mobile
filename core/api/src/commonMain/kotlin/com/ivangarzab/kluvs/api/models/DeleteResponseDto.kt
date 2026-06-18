@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param message 
  * @param warning Present if the deletion had a non-fatal side effect.
  */
-@Serializable@Serializable
+@Serializable
 
 data class DeleteResponseDto (
 

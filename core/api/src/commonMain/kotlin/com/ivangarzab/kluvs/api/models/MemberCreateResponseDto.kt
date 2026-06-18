@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param message 
  * @param member 
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberCreateResponseDto (
 

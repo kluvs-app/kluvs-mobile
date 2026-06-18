@@ -33,7 +33,7 @@ import kotlinx.serialization.encoding.*
  * @param expiresAt NULL = never expires
  * @param maxUses NULL = unlimited
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubInviteDto (
 

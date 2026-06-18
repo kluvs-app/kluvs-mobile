@@ -30,7 +30,7 @@ import kotlinx.serialization.encoding.*
  * @param clubsUpdated 
  * @param rolesUpdated 
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberUpdateResponseDto (
 

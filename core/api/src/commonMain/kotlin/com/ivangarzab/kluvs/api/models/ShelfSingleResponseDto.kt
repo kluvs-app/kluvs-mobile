@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param success 
  * @param shelf 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ShelfSingleResponseDto (
 

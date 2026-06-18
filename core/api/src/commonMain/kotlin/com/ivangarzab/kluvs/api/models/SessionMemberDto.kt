@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param memberId 
  * @param isReading Whether the member is actively reading (vs. opted out)
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionMemberDto (
 

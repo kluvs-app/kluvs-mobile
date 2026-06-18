@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param serverId 
  * @param role Member's role in this club
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubSummaryDto (
 

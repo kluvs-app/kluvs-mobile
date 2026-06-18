@@ -30,7 +30,7 @@ import kotlinx.serialization.encoding.*
  * @param book 
  * @param discussions 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubActiveSessionInputDto (
 

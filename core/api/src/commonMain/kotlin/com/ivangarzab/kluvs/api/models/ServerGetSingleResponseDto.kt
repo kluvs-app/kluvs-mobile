@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param name 
  * @param clubs 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ServerGetSingleResponseDto (
 

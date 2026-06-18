@@ -39,7 +39,7 @@ import kotlinx.serialization.encoding.*
  * @param shameList Array of member IDs on shame list
  * @param role Member's role in this specific club
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberClubEntryDto (
 

@@ -31,7 +31,7 @@ import kotlinx.serialization.encoding.*
  * @param shelves 
  * @param shelf 
  */
-@Serializable@Serializable
+@Serializable
 
 data class GetShelf200ResponseDto (
 

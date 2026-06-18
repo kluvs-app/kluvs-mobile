@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param session Whether session fields (club_id, due_date) were updated
  * @param sessionMembers Whether session_members rows were upserted
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionUpdateFlagsDto (
 

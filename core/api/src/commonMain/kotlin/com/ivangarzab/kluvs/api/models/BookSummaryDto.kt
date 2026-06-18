@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param pageCount 
  * @param imageUrl 
  */
-@Serializable@Serializable
+@Serializable
 
 data class BookSummaryDto (
 

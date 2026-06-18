@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param scheduledAt 
  * @param location 
  */
-@Serializable@Serializable
+@Serializable
 
 data class DiscussionUpdateRequestDto (
 

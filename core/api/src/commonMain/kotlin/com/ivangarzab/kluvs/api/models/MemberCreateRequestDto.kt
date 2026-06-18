@@ -29,10 +29,10 @@ import kotlinx.serialization.encoding.*
  * @param handle Optional Discord handle or username.
  * @param avatarPath Path to the avatar image in storage.
  * @param discordId Discord user snowflake ID. Stored as text to preserve precision.
- * @param platformMetadata Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). Defaults to {}.
+ * @param platformMetadata 
  * @param id Optional explicit ID. Omit to let the DB sequence assign one.
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberCreateRequestDto (
 
@@ -52,8 +52,7 @@ data class MemberCreateRequestDto (
     /* Discord user snowflake ID. Stored as text to preserve precision. */
     @SerialName(value = "discord_id") val discordId: kotlin.String? = null,
 
-    /* Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). Defaults to {}. */
-    @SerialName(value = "platform_metadata") val platformMetadata: kotlin.collections.Map<kotlin.String, kotlin.Any>? = null,
+    @SerialName(value = "platform_metadata") val platformMetadata: kotlinx.serialization.json.JsonObject? = null,
 
     /* Optional explicit ID. Omit to let the DB sequence assign one. */
     @SerialName(value = "id") val id: kotlin.Int? = null

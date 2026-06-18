@@ -32,7 +32,7 @@ import kotlinx.serialization.encoding.*
  * @param membersCredited Number of is_reading session_members whose books_read count was incremented
  * @param updates 
  */
-@Serializable@Serializable
+@Serializable
 
 data class UpdateSession200ResponseDto (
 

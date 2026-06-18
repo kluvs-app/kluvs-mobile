@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param memberId 
  * @param isReading 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionMemberFlagInputDto (
 

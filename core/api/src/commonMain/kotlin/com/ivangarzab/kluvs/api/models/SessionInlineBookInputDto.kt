@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param isbn 
  * @param pageCount 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionInlineBookInputDto (
 

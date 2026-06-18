@@ -1888,10 +1888,7 @@
             "description": "Discord user snowflake ID. Stored as TEXT to preserve JSON precision."
           },
           "platform_metadata": {
-            "type": "object",
-            "description": "Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes).",
-            "additionalProperties": true,
-            "default": {}
+            "$ref": "#/components/schemas/JsonObject"
           },
           "created_at": {
             "type": "string",
@@ -2593,9 +2590,7 @@
             "description": "Discord user snowflake ID. Stored as text to preserve precision."
           },
           "platform_metadata": {
-            "type": "object",
-            "description": "Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). Defaults to {}.",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/JsonObject"
           },
           "id": {
             "type": "integer",
@@ -2662,9 +2657,7 @@
             "description": "Discord user snowflake ID. Pass null to clear it."
           },
           "platform_metadata": {
-            "type": "object",
-            "description": "Flexible JSON object for platform-specific data. Replaces the entire field — callers must Read-Modify-Write.",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/JsonObject"
           },
           "clubs": {
             "type": "array",
@@ -3736,6 +3729,11 @@
             }
           }
         ]
+      },
+      "JsonObject": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Arbitrary JSON object. Generated as kotlinx.serialization.json.JsonObject (see schemaMappings in core/api/build.gradle.kts) instead of Map<String, Any>, which kotlinx.serialization cannot serialize."
       }
     }
   },
