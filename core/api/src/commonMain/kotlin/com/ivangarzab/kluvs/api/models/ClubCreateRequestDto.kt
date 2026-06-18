@@ -33,7 +33,7 @@ import kotlinx.serialization.encoding.*
  * @param activeSession 
  * @param shameList List of Member IDs to immediately add to the shame list.
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubCreateRequestDto (
 

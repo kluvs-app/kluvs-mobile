@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param created False if an existing book (matched by external_google_id) was returned instead of created.
  * @param message 
  */
-@Serializable@Serializable
+@Serializable
 
 data class BookRegistrationResponseDto (
 

@@ -40,7 +40,7 @@ import kotlinx.serialization.encoding.*
  * @param discussions 
  * @param shameList 
  */
-@Serializable@Serializable
+@Serializable
 
 data class GetSessions200ResponseDto (
 

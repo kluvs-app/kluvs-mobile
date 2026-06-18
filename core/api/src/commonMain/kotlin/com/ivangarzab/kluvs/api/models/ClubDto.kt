@@ -38,7 +38,7 @@ import kotlinx.serialization.encoding.*
  * @param pastSessions 
  * @param shameList Array of member IDs on shame list
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubDto (
 

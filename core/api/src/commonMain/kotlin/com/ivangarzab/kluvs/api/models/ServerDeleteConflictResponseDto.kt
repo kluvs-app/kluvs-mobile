@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param error 
  * @param clubsCount Number of clubs still associated with this server
  */
-@Serializable@Serializable
+@Serializable
 
 data class ServerDeleteConflictResponseDto (
 

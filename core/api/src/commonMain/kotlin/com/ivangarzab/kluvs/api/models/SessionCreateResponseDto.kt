@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param message 
  * @param session 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionCreateResponseDto (
 

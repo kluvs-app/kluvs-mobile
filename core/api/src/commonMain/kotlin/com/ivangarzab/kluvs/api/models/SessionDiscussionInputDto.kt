@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param scheduledAt ISO 8601 timestamp (with timezone offset) for the discussion
  * @param location 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionDiscussionInputDto (
 

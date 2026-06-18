@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param id Internal member ID
  * @param name 
- * @param platformMetadata Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes).
+ * @param platformMetadata 
  * @param booksRead 
  * @param handle Discord handle or username
  * @param avatarPath 
@@ -37,7 +37,7 @@ import kotlinx.serialization.encoding.*
  * @param clubs Clubs this member belongs to, with their per-club role.
  * @param shameClubs List of clubs where this member is currently on the shame list.
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberGetResponseDto (
 
@@ -46,8 +46,7 @@ data class MemberGetResponseDto (
 
     @SerialName(value = "name") @Required val name: kotlin.String,
 
-    /* Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). */
-    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlin.collections.Map<kotlin.String, kotlin.Any>,
+    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlinx.serialization.json.JsonObject,
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
 

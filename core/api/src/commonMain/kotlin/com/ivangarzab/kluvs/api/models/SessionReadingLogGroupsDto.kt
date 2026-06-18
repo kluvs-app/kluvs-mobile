@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param active 
  * @param finished 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionReadingLogGroupsDto (
 

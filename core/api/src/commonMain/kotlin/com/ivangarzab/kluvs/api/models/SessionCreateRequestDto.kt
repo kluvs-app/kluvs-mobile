@@ -32,7 +32,7 @@ import kotlinx.serialization.encoding.*
  * @param allReading Controls the default `is_reading` flag for auto-populated session_members rows (one per existing club member). When true (default), all members are marked as reading and their shelf is set to \"currently_reading\" for this book. Set to false to default new session members to not-reading.
  * @param discussions Optional list of discussions to schedule immediately.
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionCreateRequestDto (
 

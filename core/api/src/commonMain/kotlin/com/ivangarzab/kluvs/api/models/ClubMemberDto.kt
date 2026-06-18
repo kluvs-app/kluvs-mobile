@@ -32,7 +32,7 @@ import kotlinx.serialization.encoding.*
  * @param createdAt 
  * @param clubs IDs of all clubs this member belongs to
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubMemberDto (
 

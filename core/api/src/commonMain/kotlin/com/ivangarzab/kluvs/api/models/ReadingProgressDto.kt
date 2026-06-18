@@ -37,7 +37,7 @@ import kotlinx.serialization.encoding.*
  * @param completedAt 
  * @param book 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ReadingProgressDto (
 

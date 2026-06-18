@@ -25,7 +25,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param success 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ProgressDeleteResponseDto (
 

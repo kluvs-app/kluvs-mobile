@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param message 
  * @param server 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ServerUpdateResponseDto (
 

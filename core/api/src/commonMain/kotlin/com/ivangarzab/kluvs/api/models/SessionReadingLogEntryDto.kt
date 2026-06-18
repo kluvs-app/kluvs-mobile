@@ -30,7 +30,7 @@ import kotlinx.serialization.encoding.*
  * @param book 
  * @param club 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionReadingLogEntryDto (
 

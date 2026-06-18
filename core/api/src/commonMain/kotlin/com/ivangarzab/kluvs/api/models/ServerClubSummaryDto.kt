@@ -41,7 +41,7 @@ import kotlinx.serialization.encoding.*
  * @param memberCount Number of members in this club
  * @param latestSession 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ServerClubSummaryDto (
 

@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param name 
  * @param channels 
  */
-@Serializable@Serializable
+@Serializable
 
 data class DiscordGuildWithChannelsDto (
 

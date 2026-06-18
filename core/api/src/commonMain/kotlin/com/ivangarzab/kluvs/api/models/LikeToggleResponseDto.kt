@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param success 
  * @param liked New state after toggle (true = just liked, false = just unliked)
  */
-@Serializable@Serializable
+@Serializable
 
 data class LikeToggleResponseDto (
 

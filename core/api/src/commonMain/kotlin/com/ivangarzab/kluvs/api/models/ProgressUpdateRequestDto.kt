@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param percentComplete Required when progress_type is percent, unless the entry already has one
  * @param status 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ProgressUpdateRequestDto (
 

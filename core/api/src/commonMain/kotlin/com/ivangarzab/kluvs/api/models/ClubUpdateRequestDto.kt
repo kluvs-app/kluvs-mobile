@@ -31,7 +31,7 @@ import kotlinx.serialization.encoding.*
  * @param joinPolicy Controls how members can join the club. Setting to INVITE_LINK creates (or reuses) an active club invite token; setting to PRIVATE deactivates all active invites for the club. 
  * @param shameList 
  */
-@Serializable@Serializable
+@Serializable
 
 data class ClubUpdateRequestDto (
 

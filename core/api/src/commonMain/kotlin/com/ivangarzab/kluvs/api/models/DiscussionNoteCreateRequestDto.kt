@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param discussionId 
  * @param content 
  */
-@Serializable@Serializable
+@Serializable
 
 data class DiscussionNoteCreateRequestDto (
 

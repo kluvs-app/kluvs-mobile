@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param memberId 
  * @param clubId 
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberAddToClubResponseDto (
 

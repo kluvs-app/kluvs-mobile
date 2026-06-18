@@ -34,7 +34,7 @@ import kotlinx.serialization.encoding.*
  * @param discussions Reserved for future use. Currently only checked for presence to determine the required role (owner/admin) for this request; no discussion records are created, updated, or deleted by this endpoint.
  * @param discussionIdsToDelete Reserved for future use. Currently only checked for presence to determine the required role (owner/admin) for this request; no discussion records are deleted by this endpoint.
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionUpdateRequestDto (
 

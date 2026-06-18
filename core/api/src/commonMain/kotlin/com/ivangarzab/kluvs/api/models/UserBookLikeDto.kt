@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param bookId 
  * @param createdAt 
  */
-@Serializable@Serializable
+@Serializable
 
 data class UserBookLikeDto (
 

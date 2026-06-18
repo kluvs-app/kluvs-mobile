@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param author 
  * @param imageUrl 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionReadingLogBookDto (
 

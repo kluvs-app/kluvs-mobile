@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param title 
  * @param author 
  */
-@Serializable@Serializable
+@Serializable
 
 data class SessionBookPatchInputDto (
 
