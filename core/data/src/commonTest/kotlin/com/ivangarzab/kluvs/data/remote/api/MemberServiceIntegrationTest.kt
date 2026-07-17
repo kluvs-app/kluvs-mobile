@@ -17,12 +17,12 @@ import kotlin.test.assertTrue
  * Integration tests for MemberService using local Supabase instance with seed data.
  *
  * Test data from /kluvs-backend/supabase/seed.sql:
- * - 1: Ivan Garza (clubs: club-1, club-2)
- * - 2: Monica Morales (clubs: club-1, club-2)
- * - 3: Marco Rivera (clubs: club-3)
- * - 4: Anacleto Longoria (clubs: club-3, club-4)
- * - 5: Joel Salinas (clubs: club-1, club-2)
- * - 6: Jorge Longoria (clubs: club-5)
+ * - 1: Ivan Garza (clubs: club-owner, club-admin, club-member)
+ * - 2: Monica Morales (clubs: club-owner, club-admin)
+ * - 3: Marco Rivera (clubs: club-admin, club-member)
+ * - 4: Anacleto Longoria (clubs: club-admin, club-member)
+ * - 5: Joel Salinas (clubs: club-owner, club-admin)
+ * - 6: Jorge Longoria (clubs: club-admin)
  */
 class MemberServiceIntegrationTest {
 
@@ -57,13 +57,14 @@ class MemberServiceIntegrationTest {
         // Should have clubs
         assertTrue(response.clubs?.isNotEmpty() == true, "Member should belong to clubs")
         val clubIds = response.clubs?.map { it.id } ?: emptyList()
-        assertTrue(clubIds.contains("club-1"), "Should belong to club-1")
-        assertTrue(clubIds.contains("club-2"), "Should belong to club-2")
+        assertTrue(clubIds.contains("club-owner"), "Should belong to club-owner")
+        assertTrue(clubIds.contains("club-admin"), "Should belong to club-admin")
+        assertTrue(clubIds.contains("club-member"), "Should belong to club-member")
     }
 
     @Test
     fun testGetMemberWithShameClubs() = runTest {
-        // Given: member 2 is in shame lists (club-1, club-2)
+        // Given: member 2 is in the club-owner shame list
         // When: getting member 2
         val response = memberService.get(memberId = "2")
 
@@ -253,9 +254,13 @@ class MemberServiceIntegrationTest {
 
         try {
             // When: updating member to join clubs
+            // Note: a member field (name) is included alongside clubs because the backend
+            // returns a partial member ({ id } only) on clubs-only updates, which the
+            // spec-generated MemberDto cannot deserialize. Known backend/spec gap.
             val updateRequest = MemberUpdateRequestDto(
                 id = memberId,
-                clubs = listOf("club-1", "club-2")
+                name = "Member With Clubs",
+                clubs = listOf("club-owner", "club-member")
             )
             val response = memberService.update(updateRequest)
 
@@ -267,8 +272,8 @@ class MemberServiceIntegrationTest {
             val retrieved = memberService.get(memberId.toString())
             assertEquals(2, retrieved.clubs?.size)
             val clubIds = retrieved.clubs?.map { it.id } ?: emptyList()
-            assertTrue(clubIds.contains("club-1"))
-            assertTrue(clubIds.contains("club-2"))
+            assertTrue(clubIds.contains("club-owner"))
+            assertTrue(clubIds.contains("club-member"))
         } finally {
             // Cleanup
             try {

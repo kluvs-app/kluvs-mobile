@@ -57,7 +57,7 @@ class SessionServiceIntegrationTest {
             isbn = "123-456-789"
         )
         val request = SessionCreateRequestDto(
-            clubId = "club-1", // Using existing club from seed data
+            clubId = "club-owner", // Using existing club from seed data
             book = book,
             dueDate = "2025-12-31"
         )
@@ -76,7 +76,7 @@ class SessionServiceIntegrationTest {
             sessionId?.let {
                 val retrieved = sessionService.get(it)
                 assertEquals("Test Book", retrieved.book?.title)
-                assertEquals("club-1", retrieved.clubId)
+                assertEquals("club-owner", retrieved.clubId)
             }
         } finally {
             // Cleanup
@@ -96,7 +96,7 @@ class SessionServiceIntegrationTest {
             author = "Get Author"
         )
         val createRequest = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book,
             dueDate = "2025-11-30"
         )
@@ -112,7 +112,7 @@ class SessionServiceIntegrationTest {
             assertEquals(sessionId, response.id)
             assertEquals("Get Test Book", response.book?.title)
             assertEquals("Get Author", response.book?.author)
-            assertEquals("club-1", response.clubId)
+            assertEquals("club-owner", response.clubId)
             assertEquals("2025-11-30", response.dueDate)
             assertTrue(response.discussions.isNullOrEmpty(), "Should have no discussions initially")
         } finally {
@@ -128,7 +128,7 @@ class SessionServiceIntegrationTest {
         // Given: a session exists
         val book = SessionInlineBookInputDto(title = "Original Book", author = "Original Author")
         val createRequest = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book,
             dueDate = "2025-06-01"
         )
@@ -171,7 +171,7 @@ class SessionServiceIntegrationTest {
         // Given: a session exists
         val book = SessionInlineBookInputDto(title = "Delete Test Book", author = "Delete Author")
         val createRequest = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book
         )
         val created = sessionService.create(createRequest)
@@ -207,7 +207,7 @@ class SessionServiceIntegrationTest {
             )
         )
         val request = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book,
             dueDate = "2025-07-01",
             discussions = discussions
@@ -252,7 +252,7 @@ class SessionServiceIntegrationTest {
             )
         )
         val createRequest = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book,
             discussions = initialDiscussions
         )
@@ -300,7 +300,7 @@ class SessionServiceIntegrationTest {
         // Given: a session without due date
         val book = SessionInlineBookInputDto(title = "No Due Date Book", author = "Author")
         val request = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book,
             dueDate = null
         )
@@ -341,7 +341,7 @@ class SessionServiceIntegrationTest {
             pageCount = 320
         )
         val request = SessionCreateRequestDto(
-            clubId = "club-1",
+            clubId = "club-owner",
             book = book
         )
 
