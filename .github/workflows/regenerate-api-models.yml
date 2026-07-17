@@ -54,6 +54,8 @@ jobs:
     steps:
       - name: Checkout kluvs-mobile
         uses: actions/checkout@v5
+        with:
+          ref: develop
 
       - name: Resolve source ref
         id: source
