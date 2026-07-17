@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Kluvs API",
-    "version": "0.21.1",
+    "version": "0.21.2",
     "description": "Supabase Edge Functions API for managing book clubs."
   },
   "servers": [
@@ -527,55 +527,6 @@
       }
     },
     "/session": {
-      "get": {
-        "summary": "Retrieve Reading Log",
-        "description": "When `reading_log=true` is present, returns all sessions the authenticated member is actively reading (`is_reading=true`), grouped by status (`active` / `finished`), across all their clubs. Requires a valid user JWT — bot callers receive 403.\n",
-        "tags": [
-          "Session"
-        ],
-        "parameters": [
-          {
-            "name": "reading_log",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "boolean",
-              "enum": [
-                true
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Reading log grouped by session status (no `id`), or a single session's full data (`?id=`).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/SessionReadingLogResponse"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Session"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid JWT"
-          },
-          "403": {
-            "description": "Bot callers not permitted"
-          },
-          "404": {
-            "description": "No member record found for the authenticated user"
-          }
-        },
-        "operationId": "getSessions"
-      },
       "post": {
         "summary": "Create Session",
         "description": "Create a new reading session for a club. Prefer `book_id` (a registered book's local DB ID). The inline `book` object is supported as a deprecated fallback.",
@@ -611,6 +562,66 @@
           }
         },
         "operationId": "createSession"
+      },
+      "get": {
+        "summary": "Retrieve the reading log or a single session",
+        "description": "Two modes, selected by query parameter (exactly one must be provided). With `reading_log=true`, returns all sessions the authenticated member is actively reading (`is_reading=true`), grouped by status (`active` / `finished`), across all their clubs — requires a valid user JWT; bot callers receive 403. With `id`, returns that session's full data (club, book, discussions, members).\n",
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "reading_log",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "enum": [
+                true
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reading log grouped by session status (`reading_log=true`), or a single session's full data (`id`).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SessionReadingLogResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Session"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither `reading_log=true` nor `id` was provided"
+          },
+          "401": {
+            "description": "Missing or invalid auth token"
+          },
+          "403": {
+            "description": "Bot callers not permitted (reading-log mode only)"
+          },
+          "404": {
+            "description": "Session not found, or no member record for the authenticated user"
+          }
+        },
+        "operationId": "getSessions"
       },
       "put": {
         "summary": "Update Session",
@@ -1939,12 +1950,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Discussion"
-            }
-          },
-          "shame_list": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Member"
             }
           }
         }
@@ -3325,14 +3330,46 @@
           }
         }
       },
+      "DiscussionAttendanceRosterEntry": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "name",
+          "status"
+        ],
+        "properties": {
+          "member_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Member name (null if the member row could not be joined)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "maybe"
+            ],
+            "description": "RSVP response"
+          }
+        }
+      },
       "DiscussionAttendanceRosterResponse": {
         "type": "object",
-        "description": "Best-effort reconstruction based on the endpoint description (\"the roster, the caller's own status, and the club's total member count\") — the spec did not document an exact shape; verify against the real backend response before relying on this.",
+        "required": [
+          "responses",
+          "my_status",
+          "total_members"
+        ],
         "properties": {
-          "attendees": {
+          "responses": {
             "type": "array",
+            "description": "One entry per club member who has responded; members with no entry have not responded.",
             "items": {
-              "$ref": "#/components/schemas/DiscussionAttendance"
+              "$ref": "#/components/schemas/DiscussionAttendanceRosterEntry"
             }
           },
           "my_status": {
@@ -3342,9 +3379,10 @@
               "no",
               "maybe"
             ],
-            "nullable": true
+            "nullable": true,
+            "description": "The calling member's own RSVP response (null if they have not responded)."
           },
-          "member_count": {
+          "total_members": {
             "type": "integer",
             "description": "Total member count of the discussion's club"
           }
