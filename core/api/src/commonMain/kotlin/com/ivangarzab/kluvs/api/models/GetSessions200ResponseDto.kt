@@ -17,7 +17,6 @@ package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.api.models.DiscussionDto
-import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.api.models.SessionDto
 import com.ivangarzab.kluvs.api.models.SessionReadingLogGroupsDto
 import com.ivangarzab.kluvs.api.models.SessionReadingLogResponseDto
@@ -38,7 +37,6 @@ import kotlinx.serialization.encoding.*
  * @param book 
  * @param dueDate 
  * @param discussions 
- * @param shameList 
  */
 @Serializable
 
@@ -61,9 +59,7 @@ data class GetSessions200ResponseDto (
 
     @SerialName(value = "due_date") val dueDate: kotlin.String? = null,
 
-    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null,
-
-    @SerialName(value = "shame_list") val shameList: kotlin.collections.List<MemberDto>? = null
+    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null
 
 ) {
 
