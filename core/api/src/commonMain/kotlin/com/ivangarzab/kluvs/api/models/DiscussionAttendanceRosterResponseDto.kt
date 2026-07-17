@@ -15,34 +15,36 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.DiscussionAttendanceDto
+import com.ivangarzab.kluvs.api.models.DiscussionAttendanceRosterEntryDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 
 /**
- * Best-effort reconstruction based on the endpoint description (\"the roster, the caller's own status, and the club's total member count\") — the spec did not document an exact shape; verify against the real backend response before relying on this.
+ * 
  *
- * @param attendees 
- * @param myStatus 
- * @param memberCount Total member count of the discussion's club
+ * @param responses One entry per club member who has responded; members with no entry have not responded.
+ * @param myStatus The calling member's own RSVP response (null if they have not responded).
+ * @param totalMembers Total member count of the discussion's club
  */
 @Serializable
 
 data class DiscussionAttendanceRosterResponseDto (
 
-    @SerialName(value = "attendees") val attendees: kotlin.collections.List<DiscussionAttendanceDto>? = null,
+    /* One entry per club member who has responded; members with no entry have not responded. */
+    @SerialName(value = "responses") @Required val responses: kotlin.collections.List<DiscussionAttendanceRosterEntryDto>,
 
-    @SerialName(value = "my_status") val myStatus: DiscussionAttendanceRosterResponseDto.MyStatus? = null,
+    /* The calling member's own RSVP response (null if they have not responded). */
+    @SerialName(value = "my_status") @Required val myStatus: DiscussionAttendanceRosterResponseDto.MyStatus?,
 
     /* Total member count of the discussion's club */
-    @SerialName(value = "member_count") val memberCount: kotlin.Int? = null
+    @SerialName(value = "total_members") @Required val totalMembers: kotlin.Int
 
 ) {
 
     /**
-     * 
+     * The calling member's own RSVP response (null if they have not responded).
      *
      * Values: yes,no,maybe
      */
