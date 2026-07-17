@@ -1,6 +1,3 @@
-import groovy.json.JsonOutput
-import groovy.json.JsonSlurper
-
 plugins {
     id("kluvs.kmp.library")
     alias(libs.plugins.kotlinSerialization)
@@ -18,54 +15,18 @@ kotlin {
     }
 }
 
-// core/api/openapi.json is the verbatim spec fetched from kluvs-api (full
-// paths + components.schemas) — the regenerate-api-models.yml workflow writes
-// it as-is, with no filtering, so the committed file always matches the
-// canonical contract exactly.
-//
-// We don't generate directly from it, though. OpenAPI Generator's
-// InlineModelResolver walks every path's requestBody/responses and promotes
-// any inline (non-$ref) schema it finds into its own auto-named model — e.g.
-// "ClubResponse", "InlineResponse200" — regardless of the "models" filter
-// below. Since this module is models-only (no API client) and the epic's
-// scope boundary is explicitly "named components.schemas, not inline
-// envelopes", those promoted models are pure noise (this is exactly what
-// produced ~80 unwanted files the first time this was wired up).
-//
-// The fix: derive a build-only copy of the spec with "paths" zeroed out to
-// an empty object before handing it to the generator. It can't be removed
-// entirely — OpenAPI's spec validator requires the "paths" key to exist,
-// just not contain anything — but an empty object gives InlineModelResolver
-// nothing to walk, so nothing gets promoted. This holds automatically as new
-// entity schemas are added to components.schemas over time; there's no
-// allow/deny list to maintain here.
-val schemaOnlySpec = layout.buildDirectory.file("openapi/schema-only.json")
-
-val stripPathsFromSpec by tasks.registering {
-    val inputFile = file("openapi.json")
-    val outputFile = schemaOnlySpec
-
-    inputs.file(inputFile)
-    outputs.file(outputFile)
-
-    doLast {
-        @Suppress("UNCHECKED_CAST")
-        val spec = JsonSlurper().parse(inputFile) as MutableMap<String, Any?>
-        spec["paths"] = emptyMap<String, Any?>()
-        val target = outputFile.get().asFile
-        target.parentFile.mkdirs()
-        target.writeText(JsonOutput.toJson(spec))
-    }
-}
-
-// openApiGenerate { } below only configures the task's settings — it does not
-// register task dependencies, so stripPathsFromSpec must be wired in here.
-tasks.named("openApiGenerate") {
-    dependsOn(stripPathsFromSpec)
-}
-
 val generatedModelPackagePath = "com/ivangarzab/kluvs/api/models"
 
+// Generates from the full spec (paths included), not just components.schemas.
+// Request/response envelopes that are only ever defined inline under "paths"
+// (e.g. Server's GET oneOf, Session's PUT response variants) get auto-named
+// models too (e.g. ServerGet200ResponseOneOfDto) — uglier names than the
+// named entity schemas, but verified field-for-field accurate against the
+// real spec, and the only way to get those envelope shapes without backend
+// changes to promote them to named schemas. Consume the specific per-branch
+// class relevant to each known call site (services already know which
+// branch applies); don't rely on the ambiguous merged oneOf parent class.
+//
 // The "kotlin"/"multiplatform" library always writes to
 // <outputDir>/src/commonMain/kotlin/<package>/... — it can't be pointed
 // directly at the final models folder without doubling that path. So we
@@ -78,12 +39,10 @@ val generatedModelPackagePath = "com/ivangarzab/kluvs/api/models"
 openApiGenerate {
     generatorName.set("kotlin")
     library.set("multiplatform")
-    inputSpec.set(schemaOnlySpec.map { it.asFile.path })
+    inputSpec.set("$projectDir/openapi.json")
     outputDir.set(layout.buildDirectory.dir("generated/openapi").get().asFile.path)
     // Safe to wipe wholesale on every run now that outputDir is a throwaway
-    // build/ directory, not the module root — otherwise stale files from a
-    // previous config (e.g. before modelNameSuffix was added) just pile up
-    // alongside new output instead of being replaced.
+    // build/ directory, not the module root.
     cleanupOutput.set(true)
     packageName.set("com.ivangarzab.kluvs.api")
     modelPackage.set("com.ivangarzab.kluvs.api.models")
@@ -94,9 +53,6 @@ openApiGenerate {
     modelNameSuffix.set("Dto")
     globalProperties.set(
         mapOf(
-            // "" means "generate every model the generator can see" — safe now
-            // that paths are stripped, since the only models left are the
-            // named components.schemas entities.
             "models" to "",
             "apis" to "false",
             "modelDocs" to "false",
@@ -105,20 +61,51 @@ openApiGenerate {
     )
     configOptions.set(
         mapOf(
-            "serializationLibrary" to "kotlinx_serialization",
+            // Don't set "serializationLibrary" to "kotlinx_serialization" here:
+            // library = "multiplatform" already implies kotlinx serialization in the
+            // generator's own template, so setting it explicitly on top causes the
+            // template to emit @Serializable twice on every generated class.
+            //
             // Only "string" or "kotlinx-datetime" are valid for the multiplatform
             // library. We want raw strings — date parsing already lives in the
             // :core:data mapper layer (DateParsingUtils) and stays there.
             "dateLibrary" to "string"
         )
     )
+    // Free-form objects (schemas with `additionalProperties: true`, e.g. Member's
+    // platform_metadata) default to `kotlin.collections.Map<String, kotlin.Any>`, but
+    // kotlinx.serialization has no serializer for bare `Any` — that fails to compile.
+    //
+    // `typeMappings` can't fix this: the Kotlin generator's getPrimitiveType()
+    // hardcodes a literal "object" return for free-form schemas, bypassing the
+    // typeMapping table entirely (confirmed by decompiling openapi-generator's
+    // DefaultCodegen — there's no map lookup on that code path, just a hardcoded
+    // string literal). The only lever that's checked *before* that hardcoded
+    // branch is schemaMapping, but only for $ref'd schemas — which is why
+    // platform_metadata's properties were changed to `$ref: '#/components/schemas/JsonObject'`
+    // in the spec (a placeholder schema that only exists as a schemaMapping target)
+    // instead of leaving them as inline `additionalProperties: true`.
+    //
+    // Mapped to JsonObject (not Map<String, String>) to preserve the real,
+    // arbitrary-JSON contract — collapsing values to String would misrepresent
+    // the API and break parsing the moment a non-string value shows up.
+    schemaMappings.set(
+        mapOf(
+            "JsonObject" to "kotlinx.serialization.json.JsonObject"
+        )
+    )
+    importMappings.set(
+        mapOf(
+            "JsonObject" to "kotlinx.serialization.json.JsonObject"
+        )
+    )
 }
 
 // Copies generated models from build/ into the committed source tree. Sync
 // (unlike Copy) deletes anything already in the destination that's no longer
-// present in the source — so a model renamed/removed from components.schemas
-// gets its old .kt file cleaned up automatically, scoped only to this one
-// folder. This is the task to actually run after a spec update; it pulls in
+// present in the source — so a model renamed/removed from the spec gets its
+// old .kt file cleaned up automatically, scoped only to this one folder.
+// This is the task to actually run after a spec update; it pulls in
 // openApiGenerate as a dependency so a single invocation does both steps.
 val syncGeneratedApiModels by tasks.registering(Sync::class) {
     dependsOn(tasks.named("openApiGenerate"))

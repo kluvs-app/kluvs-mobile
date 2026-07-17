@@ -15,38 +15,38 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.MemberClubsInnerDto
+import com.ivangarzab.kluvs.api.models.ClubDto
+import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 
 /**
- * 
+ * Full member response with relations populated.
  *
  * @param id Internal member ID
  * @param name 
- * @param platformMetadata Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes).
+ * @param platformMetadata 
  * @param booksRead 
  * @param handle Discord handle or username
  * @param avatarPath 
  * @param userId Linked Supabase Auth User ID
  * @param discordId Discord user snowflake ID. Stored as TEXT to preserve JSON precision.
  * @param createdAt 
- * @param clubs Clubs this member belongs to, each with their per-club role.
- * @param role Member's role in this specific club
+ * @param clubs Clubs this member belongs to, with their per-club role.
+ * @param shameClubs List of clubs where this member is currently on the shame list.
  */
-@Serializable@Serializable
+@Serializable
 
-data class ClubMembersInnerDto (
+data class MemberGetResponseDto (
 
     /* Internal member ID */
     @SerialName(value = "id") @Required val id: kotlin.Int,
 
     @SerialName(value = "name") @Required val name: kotlin.String,
 
-    /* Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). */
-    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlin.collections.Map<kotlin.String, kotlin.Any>,
+    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlinx.serialization.json.JsonObject,
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
 
@@ -63,25 +63,14 @@ data class ClubMembersInnerDto (
 
     @SerialName(value = "created_at") val createdAt: kotlin.String? = null,
 
-    /* Clubs this member belongs to, each with their per-club role. */
-    @SerialName(value = "clubs") val clubs: kotlin.collections.List<MemberClubsInnerDto>? = null,
+    /* Clubs this member belongs to, with their per-club role. */
+    @SerialName(value = "clubs") val clubs: kotlin.collections.List<MemberClubEntryDto>? = null,
 
-    /* Member's role in this specific club */
-    @SerialName(value = "role") val role: ClubMembersInnerDto.Role? = null
+    /* List of clubs where this member is currently on the shame list. */
+    @SerialName(value = "shame_clubs") val shameClubs: kotlin.collections.List<ClubDto>? = null
 
 ) {
 
-    /**
-     * Member's role in this specific club
-     *
-     * Values: owner,admin,member
-     */
-    @Serializable
-    enum class Role(val value: kotlin.String) {
-        @SerialName(value = "owner") owner("owner"),
-        @SerialName(value = "admin") admin("admin"),
-        @SerialName(value = "member") member("member");
-    }
 
 }
 

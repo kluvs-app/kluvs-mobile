@@ -23,16 +23,14 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
- * @param id 
- * @param dueDate 
+ * @param bookId Local DB book ID
  */
-@Serializable@Serializable
+@Serializable
 
-data class ClubPastSessionsInnerDto (
+data class LikeToggleRequestDto (
 
-    @SerialName(value = "id") val id: kotlin.String? = null,
-
-    @SerialName(value = "due_date") val dueDate: kotlin.String? = null
+    /* Local DB book ID */
+    @SerialName(value = "book_id") @Required val bookId: kotlin.Int
 
 ) {
 

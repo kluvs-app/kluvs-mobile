@@ -1,6 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.ClubMemberDto
+import com.ivangarzab.kluvs.api.models.ClubMemberDto
 import com.ivangarzab.kluvs.model.ClubMember
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.Role
@@ -14,15 +14,15 @@ import com.ivangarzab.kluvs.network.utils.parseDateTimeString
  */
 fun ClubMemberDto.toDomain(): ClubMember {
     return ClubMember(
-        role = Role.fromString(role),
+        role = role?.let { Role.fromString(it.value) } ?: Role.MEMBER,
         member = Member(
-            id = id,
+            id = id?.toString() ?: "",
             name = name ?: "",
             handle = handle,
-            avatarPath = avatar_path,
-            booksRead = books_read,
-            userId = user_id,
-            createdAt = parseDateTimeString(created_at),
+            avatarPath = avatarPath,
+            booksRead = booksRead ?: 0,
+            userId = null, // Not present on this embedded wrapper
+            createdAt = parseDateTimeString(createdAt),
             clubs = null,
             shameClubs = null
         )

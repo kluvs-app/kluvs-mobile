@@ -31,7 +31,7 @@ import kotlinx.serialization.encoding.*
  * @param updatedAt 
  * @param book 
  */
-@Serializable@Serializable
+@Serializable
 
 data class UserBookShelfDto (
 

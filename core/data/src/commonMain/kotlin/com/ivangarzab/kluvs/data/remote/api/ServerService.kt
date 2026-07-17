@@ -1,13 +1,14 @@
 package com.ivangarzab.kluvs.data.remote.api
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.ServerGetListResponseDto
+import com.ivangarzab.kluvs.api.models.ServerGetSingleResponseDto
+import com.ivangarzab.kluvs.api.models.ServerCreateResponseDto
+import com.ivangarzab.kluvs.api.models.ServerCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ServerUpdateRequestDto
+import com.ivangarzab.kluvs.api.models.ServerUpdateResponseDto
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
 import com.ivangarzab.kluvs.network.utils.JsonHelper.getJsonForSupabaseService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateServerRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServersResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateServerRequestDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.ktor.client.call.body
@@ -15,23 +16,23 @@ import io.ktor.http.HttpMethod
 import io.ktor.utils.io.InternalAPI
 
 interface ServerService {
-    suspend fun getAll(): ServersResponseDto
-    suspend fun get(serverId: String): ServerResponseDto
-    suspend fun create(request: CreateServerRequestDto): ServerSuccessResponseDto
-    suspend fun update(request: UpdateServerRequestDto): ServerSuccessResponseDto
+    suspend fun getAll(): ServerGetListResponseDto
+    suspend fun get(serverId: String): ServerGetSingleResponseDto
+    suspend fun create(request: ServerCreateRequestDto): ServerCreateResponseDto
+    suspend fun update(request: ServerUpdateRequestDto): ServerUpdateResponseDto
     suspend fun delete(serverId: String): DeleteResponseDto
 }
 
 @OptIn(InternalAPI::class)
 internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerService {
 
-    override suspend fun getAll(): ServersResponseDto {
+    override suspend fun getAll(): ServerGetListResponseDto {
         Bark.d("Fetching all servers")
         return try {
             val response = supabase.functions.invoke("server") {
                 method = HttpMethod.Get
-            }.body<ServersResponseDto>()
-            Bark.v("All servers fetched successfully (count: ${response.servers.size})")
+            }.body<ServerGetListResponseDto>()
+            Bark.v("All servers fetched successfully (count: ${response.servers?.size ?: 0})")
             response
         } catch (error: Exception) {
             Bark.e("Failed to fetch all servers. Check network/API status and retry.", error)
@@ -39,13 +40,13 @@ internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerS
         }
     }
 
-    override suspend fun get(serverId: String): ServerResponseDto {
+    override suspend fun get(serverId: String): ServerGetSingleResponseDto {
         Bark.d("Fetching server (ID: $serverId)")
         return try {
             val response = supabase.functions.invoke("server") {
                 method = HttpMethod.Get
                 url { parameters.append("id", serverId) }
-            }.body<ServerResponseDto>()
+            }.body<ServerGetSingleResponseDto>()
             Bark.v("Server fetched successfully (ID: $serverId)")
             response
         } catch (error: Exception) {
@@ -54,7 +55,7 @@ internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerS
         }
     }
 
-    override suspend fun create(request: CreateServerRequestDto): ServerSuccessResponseDto {
+    override suspend fun create(request: ServerCreateRequestDto): ServerCreateResponseDto {
         Bark.d("Creating server")
         return try {
             val json = getJsonForSupabaseService()
@@ -63,7 +64,7 @@ internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerS
             val response = supabase.functions.invoke("server") {
                 method = HttpMethod.Post
                 body = jsonString
-            }.body<ServerSuccessResponseDto>()
+            }.body<ServerCreateResponseDto>()
             Bark.v("Server created successfully")
             response
         } catch (error: Exception) {
@@ -72,7 +73,7 @@ internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerS
         }
     }
 
-    override suspend fun update(request: UpdateServerRequestDto): ServerSuccessResponseDto {
+    override suspend fun update(request: ServerUpdateRequestDto): ServerUpdateResponseDto {
         Bark.d("Updating server (ID: ${request.id})")
         return try {
             val json = getJsonForSupabaseService()
@@ -81,7 +82,7 @@ internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerS
             val response = supabase.functions.invoke("server") {
                 method = HttpMethod.Put
                 body = jsonString
-            }.body<ServerSuccessResponseDto>()
+            }.body<ServerUpdateResponseDto>()
             Bark.v("Server updated successfully (ID: ${request.id})")
             response
         } catch (error: Exception) {

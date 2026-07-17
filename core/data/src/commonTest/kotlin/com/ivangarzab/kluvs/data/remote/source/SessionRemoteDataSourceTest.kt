@@ -1,16 +1,14 @@
 package com.ivangarzab.kluvs.data.remote.source
 
+import com.ivangarzab.kluvs.api.models.BookDto
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
+import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
+import com.ivangarzab.kluvs.api.models.SessionCreateResponseDto
+import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
+import com.ivangarzab.kluvs.api.models.UpdateSession200ResponseDto
 import com.ivangarzab.kluvs.data.remote.api.SessionService
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.CreateSessionRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.DiscussionDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionUpdatesDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateSessionRequestDto
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
@@ -35,15 +33,15 @@ class SessionRemoteDataSourceTest {
 
     @Test
     fun `getSession success returns mapped Session domain model`() = runTest {
-        // Given: Service returns SessionResponseDto
-        val dto = SessionResponseDto(
+        // Given: Service returns the generated SessionDto (GET /session?id= now documented)
+        val dto = SessionDto(
             id = "session-1",
-            club = ClubDto("club-1", "Book Club", "123456789", "server-1"),
-            book = BookDto("book-1", "The Hobbit", "Tolkien"),
-            due_date = "2024-12-31T23:59:59",
-            shame_list = emptyList(),
+            clubId = "club-1",
+            status = SessionDto.Status.active,
+            book = BookDto(id = 1, title = "The Hobbit", author = "Tolkien"),
+            dueDate = "2024-12-31T23:59:59",
             discussions = listOf(
-                DiscussionDto("disc-1", "session-1", "Chapter 1", "2024-06-15T18:00:00", "Discord")
+                DiscussionDto(id = "disc-1", sessionId = "session-1", title = "Chapter 1", scheduledAt = "2024-06-15T18:00:00", location = "Discord")
             )
         )
 
@@ -81,24 +79,24 @@ class SessionRemoteDataSourceTest {
 
     @Test
     fun `createSession success returns created Session`() = runTest {
-        // Given: Service returns success response
-        val request = CreateSessionRequestDto(
-            club_id = "club-1",
-            book = BookDto("0", "New Book", "New Author"),
-            due_date = "2025-06-30T00:00:00"
+        // Given: Service returns success response (hand-written wrapper; POST /session is undocumented)
+        val request = SessionCreateRequestDto(
+            clubId = "club-1",
+            bookId = 2,
+            dueDate = "2025-06-30T00:00:00"
         )
 
-        val responseDto = SessionSuccessResponseDto(
+        val responseDto = SessionCreateResponseDto(
             success = true,
             message = "Created",
             session = SessionDto(
                 id = "session-2",
-                club_id = "club-1",
-                book = BookDto("book-2", "New Book", "New Author"),
-                due_date = "2025-06-30T00:00:00",
+                clubId = "club-1",
+                status = SessionDto.Status.active,
+                book = BookDto(id = 2, title = "New Book", author = "New Author"),
+                dueDate = "2025-06-30T00:00:00",
                 discussions = emptyList()
-            ),
-            updates = SessionUpdatesDto(book = true, session = true, discussions = false)
+            )
         )
 
         everySuspend { sessionService.create(request) } returns responseDto
@@ -118,16 +116,15 @@ class SessionRemoteDataSourceTest {
     @Test
     fun `createSession with null session in response returns failure`() = runTest {
         // Given: Service returns response without session
-        val request = CreateSessionRequestDto(
-            club_id = "club-1",
-            book = BookDto("0", "Book", "Author")
+        val request = SessionCreateRequestDto(
+            clubId = "club-1",
+            bookId = 1
         )
 
-        val responseDto = SessionSuccessResponseDto(
+        val responseDto = SessionCreateResponseDto(
             success = true,
             message = "Created but no session returned",
-            session = null,
-            updates = null
+            session = null
         )
 
         everySuspend { sessionService.create(request) } returns responseDto
@@ -143,24 +140,16 @@ class SessionRemoteDataSourceTest {
     }
 
     @Test
-    fun `updateSession success returns updated Session`() = runTest {
-        // Given: Service returns success response
-        val request = UpdateSessionRequestDto(
+    fun `updateSession success returns Unit since PUT response carries no session data`() = runTest {
+        // Given: Service returns the general-update branch response
+        val request = SessionUpdateRequestDto(
             id = "session-1",
-            due_date = "2025-12-31T23:59:59"
+            dueDate = "2025-12-31T23:59:59"
         )
 
-        val responseDto = SessionSuccessResponseDto(
+        val responseDto = UpdateSession200ResponseDto(
             success = true,
-            message = "Updated",
-            session = SessionDto(
-                id = "session-1",
-                club_id = "club-1",
-                book = BookDto("book-1", "The Hobbit", "Tolkien"),
-                due_date = "2025-12-31T23:59:59",
-                discussions = emptyList()
-            ),
-            updates = SessionUpdatesDto(book = false, session = true, discussions = false)
+            message = "Updated"
         )
 
         everySuspend { sessionService.update(request) } returns responseDto
@@ -168,9 +157,30 @@ class SessionRemoteDataSourceTest {
         // When: Updating session
         val result = dataSource.updateSession(request)
 
-        // Then: Result is success
+        // Then: Result is success with no payload
         assertTrue(result.isSuccess)
-        assertEquals("session-1", result.getOrNull()?.id)
+
+        verifySuspend { sessionService.update(request) }
+    }
+
+    @Test
+    fun `updateSession with success false returns failure`() = runTest {
+        // Given: Service returns a failure-flagged response
+        val request = SessionUpdateRequestDto(id = "session-1", finish = true)
+
+        val responseDto = UpdateSession200ResponseDto(
+            success = false,
+            message = "Session already finished"
+        )
+
+        everySuspend { sessionService.update(request) } returns responseDto
+
+        // When: Updating session
+        val result = dataSource.updateSession(request)
+
+        // Then: Result is failure
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Session already finished") == true)
 
         verifySuspend { sessionService.update(request) }
     }

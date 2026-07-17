@@ -21,24 +21,21 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 
 /**
- * 
+ * add_to_club response
  *
- * @param id 
- * @param title 
- * @param pageCount 
- * @param imageUrl 
+ * @param success 
+ * @param memberId 
+ * @param clubId 
  */
-@Serializable@Serializable
+@Serializable
 
-data class ReadingProgressBookDto (
+data class MemberAddToClubResponseDto (
 
-    @SerialName(value = "id") val id: kotlin.Int? = null,
+    @SerialName(value = "success") val success: kotlin.Boolean? = null,
 
-    @SerialName(value = "title") val title: kotlin.String? = null,
+    @SerialName(value = "member_id") val memberId: kotlin.Int? = null,
 
-    @SerialName(value = "page_count") val pageCount: kotlin.Int? = null,
-
-    @SerialName(value = "image_url") val imageUrl: kotlin.String? = null
+    @SerialName(value = "club_id") val clubId: kotlin.String? = null
 
 ) {
 

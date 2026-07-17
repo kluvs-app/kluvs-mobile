@@ -1,28 +1,27 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.DiscussionDto
+import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.SessionDiscussionInputDto
 import com.ivangarzab.kluvs.model.Discussion
 
 /**
- * Maps a [com.ivangarzab.kluvs.data.remote.dtos.DiscussionDto] from the API to a [Discussion] domain model.
+ * Maps a [com.ivangarzab.kluvs.api.models.DiscussionDto] from the API to a [Discussion] domain model.
  */
 fun DiscussionDto.toDomain(): Discussion {
     return Discussion(
         id = id,
-        sessionId = session_id,
+        sessionId = sessionId,
         title = title,
-        date = date.parseDateString(),
+        date = scheduledAt.parseDateString(),
         location = location
     )
 }
 
 /**
- * Maps a [Discussion] domain model to a [com.ivangarzab.kluvs.data.remote.dtos.DiscussionDto].
+ * Maps a [Discussion] domain model to a [SessionDiscussionInputDto] request payload.
  */
-fun Discussion.toDto(): DiscussionDto = DiscussionDto(
-    id = id,
-    session_id = sessionId,
+fun Discussion.toDto(): SessionDiscussionInputDto = SessionDiscussionInputDto(
     title = title,
-    date = date.toString(),
+    scheduledAt = date.toString(),
     location = location
 )

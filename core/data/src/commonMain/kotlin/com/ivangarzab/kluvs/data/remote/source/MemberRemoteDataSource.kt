@@ -1,9 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.source
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.data.remote.api.MemberService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateMemberRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
 import com.ivangarzab.kluvs.model.Member
 
@@ -38,14 +38,14 @@ interface MemberRemoteDataSource {
      *
      * Returns the created [Member] (basic info only, no nested relations).
      */
-    suspend fun createMember(request: CreateMemberRequestDto): Result<Member>
+    suspend fun createMember(request: MemberCreateRequestDto): Result<Member>
 
     /**
      * Updates an existing member.
      *
      * Returns the updated [Member] (basic info only, no nested relations).
      */
-    suspend fun updateMember(request: UpdateMemberRequestDto): Result<Member>
+    suspend fun updateMember(request: MemberUpdateRequestDto): Result<Member>
 
     /**
      * Deletes a member by ID.
@@ -81,22 +81,24 @@ class MemberRemoteDataSourceImpl(
         }
     }
 
-    override suspend fun createMember(request: CreateMemberRequestDto): Result<Member> {
+    override suspend fun createMember(request: MemberCreateRequestDto): Result<Member> {
         return try {
             val response = memberService.create(request)
-            Bark.i("Member created (ID: ${response.member.id})")
-            Result.success(response.member.toDomain())
+            val member = response.member ?: error("Member creation response missing member data")
+            Bark.i("Member created (ID: ${member.id})")
+            Result.success(member.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to create member. Please retry.", e)
             Result.failure(e)
         }
     }
 
-    override suspend fun updateMember(request: UpdateMemberRequestDto): Result<Member> {
+    override suspend fun updateMember(request: MemberUpdateRequestDto): Result<Member> {
         return try {
             val response = memberService.update(request)
+            val member = response.member ?: error("Member update response missing member data")
             Bark.i("Member updated (ID: ${request.id})")
-            Result.success(response.member.toDomain())
+            Result.success(member.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to update member (ID: ${request.id}). Please retry.", e)
             Result.failure(e)

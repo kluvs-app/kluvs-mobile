@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Kluvs API",
-    "version": "0.1.0",
+    "version": "0.21.1",
     "description": "Supabase Edge Functions API for managing book clubs."
   },
   "servers": [
@@ -66,7 +66,8 @@
           "404": {
             "description": "Club not found"
           }
-        }
+        },
+        "operationId": "getClub"
       },
       "post": {
         "summary": "Create a new club",
@@ -79,61 +80,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "name"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "server_id": {
-                    "type": "string",
-                    "description": "Optional Discord Server ID."
-                  },
-                  "discord_channel": {
-                    "type": "string"
-                  },
-                  "founded_date": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "members": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/Member"
-                    }
-                  },
-                  "active_session": {
-                    "type": "object",
-                    "description": "Immediately start a session for this club.",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "due_date": {
-                        "type": "string",
-                        "format": "date"
-                      },
-                      "book": {
-                        "$ref": "#/components/schemas/Book"
-                      },
-                      "discussions": {
-                        "type": "array",
-                        "items": {
-                          "$ref": "#/components/schemas/Discussion"
-                        }
-                      }
-                    }
-                  },
-                  "shame_list": {
-                    "type": "array",
-                    "description": "List of Member IDs to immediately add to the shame list.",
-                    "items": {
-                      "type": "integer"
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/ClubCreateRequest"
               }
             }
           }
@@ -144,18 +91,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "club": {
-                      "$ref": "#/components/schemas/Club"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ClubCreateResponse"
                 }
               }
             }
@@ -163,7 +99,8 @@
           "404": {
             "description": "Server not found (if server_id provided)"
           }
-        }
+        },
+        "operationId": "createClub"
       },
       "put": {
         "summary": "Update Club",
@@ -176,42 +113,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "discord_channel": {
-                    "type": "string"
-                  },
-                  "founded_date": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "server_id": {
-                    "type": "string"
-                  },
-                  "join_policy": {
-                    "type": "string",
-                    "enum": [
-                      "PRIVATE",
-                      "INVITE_LINK"
-                    ],
-                    "description": "Controls how members can join the club. Setting to INVITE_LINK creates (or reuses) an active club invite token; setting to PRIVATE deactivates all active invites for the club.\n"
-                  },
-                  "shame_list": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer"
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/ClubUpdateRequest"
               }
             }
           }
@@ -222,26 +124,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "club": {
-                      "$ref": "#/components/schemas/Club"
-                    },
-                    "club_updated": {
-                      "type": "boolean",
-                      "description": "Whether the clubs table row was updated."
-                    },
-                    "shame_list_updated": {
-                      "type": "boolean",
-                      "description": "Whether the shame list membership changed."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ClubUpdateResponse"
                 }
               }
             }
@@ -249,7 +132,8 @@
           "404": {
             "description": "Club not found"
           }
-        }
+        },
+        "operationId": "updateClub"
       },
       "delete": {
         "summary": "Delete Club",
@@ -277,12 +161,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Deleted successfully"
+            "description": "Deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Club not found"
           }
-        }
+        },
+        "operationId": "deleteClub"
       }
     },
     "/member": {
@@ -341,48 +233,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/Member"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "clubs": {
-                          "type": "array",
-                          "description": "Clubs this member belongs to, with their per-club role.",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/Club"
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "role": {
-                                    "type": "string",
-                                    "enum": [
-                                      "owner",
-                                      "admin",
-                                      "member"
-                                    ],
-                                    "description": "Member's role in this specific club"
-                                  }
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "shame_clubs": {
-                          "type": "array",
-                          "description": "List of clubs where this member is currently on the shame list.",
-                          "items": {
-                            "$ref": "#/components/schemas/Club"
-                          }
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/MemberGetResponse"
                 }
               }
             }
@@ -393,7 +244,8 @@
           "404": {
             "description": "Member not found"
           }
-        }
+        },
+        "operationId": "getMember"
       },
       "post": {
         "summary": "Create New Member",
@@ -406,55 +258,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "name"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "clubs": {
-                    "type": "array",
-                    "description": "Array of Club IDs this member belongs to. Optional, but if present must contain at least one club ID (an empty array is rejected).\n",
-                    "minItems": 1,
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "books_read": {
-                    "type": "integer",
-                    "default": 0
-                  },
-                  "handle": {
-                    "type": "string",
-                    "description": "Optional Discord handle or username."
-                  },
-                  "avatar_path": {
-                    "type": "string",
-                    "description": "Path to the avatar image in storage."
-                  },
-                  "discord_id": {
-                    "type": "string",
-                    "description": "Discord user snowflake ID. Stored as text to preserve precision."
-                  },
-                  "platform_metadata": {
-                    "type": "object",
-                    "description": "Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). Defaults to {}.",
-                    "additionalProperties": true
-                  },
-                  "id": {
-                    "type": "integer",
-                    "description": "Optional explicit ID. Omit to let the DB sequence assign one."
-                  }
-                }
+                "$ref": "#/components/schemas/MemberCreateRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Member created successfully"
+            "description": "Member created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCreateResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing name or invalid clubs array"
@@ -462,7 +280,8 @@
           "404": {
             "description": "One or more provided Club IDs do not exist"
           }
-        }
+        },
+        "operationId": "createMember"
       },
       "put": {
         "summary": "Update Member",
@@ -475,62 +294,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "description": "The ID of the member to update (or the target member for add_to_club)."
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "books_read": {
-                    "type": "integer"
-                  },
-                  "handle": {
-                    "type": "string"
-                  },
-                  "avatar_path": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Storage path of the member's avatar. Must start with `{id}/` (e.g. `42/avatar.png`). Pass null to clear the avatar.\n"
-                  },
-                  "discord_id": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Discord user snowflake ID. Pass null to clear it."
-                  },
-                  "platform_metadata": {
-                    "type": "object",
-                    "description": "Flexible JSON object for platform-specific data. Replaces the entire field — callers must Read-Modify-Write.",
-                    "additionalProperties": true
-                  },
-                  "clubs": {
-                    "type": "array",
-                    "description": "Full list of Club IDs this member should belong to. Diffed against existing to add/remove.",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "club_roles": {
-                    "type": "object",
-                    "description": "Map of club_id → role to update per-club roles. Valid roles are admin and member (owner cannot be assigned or changed via this endpoint).",
-                    "additionalProperties": {
-                      "type": "string",
-                      "enum": [
-                        "admin",
-                        "member"
-                      ]
-                    }
-                  },
-                  "add_to_club": {
-                    "type": "string",
-                    "description": "Club ID to add the target member (`id`) to. When present, all other update fields are ignored. The calling user's JWT must belong to a member who is an admin or owner of the target club. The target member is added with the `member` role.\n"
-                  }
-                }
+                "$ref": "#/components/schemas/MemberUpdateRequest"
               }
             }
           }
@@ -543,40 +307,10 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "description": "Standard update response",
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "member": {
-                          "type": "object"
-                        },
-                        "clubs_updated": {
-                          "type": "boolean"
-                        },
-                        "roles_updated": {
-                          "type": "boolean"
-                        }
-                      }
+                      "$ref": "#/components/schemas/MemberUpdateResponse"
                     },
                     {
-                      "description": "add_to_club response",
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean"
-                        },
-                        "member_id": {
-                          "type": "integer"
-                        },
-                        "club_id": {
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/components/schemas/MemberAddToClubResponse"
                     }
                   ]
                 }
@@ -598,7 +332,8 @@
           "409": {
             "description": "Target member is already in the club (add_to_club only)"
           }
-        }
+        },
+        "operationId": "updateMember"
       },
       "delete": {
         "summary": "Delete Member",
@@ -618,12 +353,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Member deleted successfully"
+            "description": "Member deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Member not found"
           }
-        }
+        },
+        "operationId": "deleteMember"
       }
     },
     "/server": {
@@ -651,75 +394,10 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "object",
-                      "description": "Response when ID is provided (Single Server)",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "clubs": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/Club"
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "member_count": {
-                                    "type": "integer",
-                                    "description": "Number of members in this club"
-                                  },
-                                  "latest_session": {
-                                    "type": "object",
-                                    "nullable": true,
-                                    "description": "The club's most recent session by due_date, with nested book title/author, or null if none exist",
-                                    "properties": {
-                                      "id": {
-                                        "type": "string"
-                                      },
-                                      "due_date": {
-                                        "type": "string",
-                                        "format": "date",
-                                        "nullable": true
-                                      },
-                                      "books": {
-                                        "type": "object",
-                                        "nullable": true,
-                                        "description": "Joined book info for the session",
-                                        "properties": {
-                                          "title": {
-                                            "type": "string"
-                                          },
-                                          "author": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
-                        }
-                      }
+                      "$ref": "#/components/schemas/ServerGetSingleResponse"
                     },
                     {
-                      "type": "object",
-                      "description": "Response when ID is omitted (List of Servers)",
-                      "properties": {
-                        "servers": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/Server"
-                          }
-                        }
-                      }
+                      "$ref": "#/components/schemas/ServerGetListResponse"
                     }
                   ]
                 }
@@ -729,7 +407,8 @@
           "404": {
             "description": "Server not found"
           }
-        }
+        },
+        "operationId": "getServers"
       },
       "post": {
         "summary": "Create a new server",
@@ -742,21 +421,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "name"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "The Philosophers"
-                  },
-                  "id": {
-                    "type": "string",
-                    "description": "Optional Discord Snowflake ID. If omitted, a random ID is generated.",
-                    "example": "123456789012345678"
-                  }
-                }
+                "$ref": "#/components/schemas/ServerCreateRequest"
               }
             }
           }
@@ -767,19 +432,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "server": {
-                      "$ref": "#/components/schemas/Server"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ServerCreateResponse"
                 }
               }
             }
@@ -790,7 +443,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "createServer"
       },
       "put": {
         "summary": "Update Server",
@@ -803,25 +457,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/ServerUpdateRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Server updated successfully"
+            "description": "Server updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerUpdateResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing ID or no fields to update"
@@ -829,7 +479,8 @@
           "404": {
             "description": "Server not found"
           }
-        }
+        },
+        "operationId": "updateServer"
       },
       "delete": {
         "summary": "Delete Server",
@@ -849,29 +500,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Server deleted successfully"
+            "description": "Server deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Cannot delete server because it has existing clubs",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "description": "Custom error shape (not the standard Error schema)",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": false
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "Cannot delete server with existing clubs. Please delete all clubs first."
-                    },
-                    "clubs_count": {
-                      "type": "integer",
-                      "description": "Number of clubs still associated with this server"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ServerDeleteConflictResponse"
                 }
               }
             }
@@ -879,7 +522,8 @@
           "404": {
             "description": "Server not found"
           }
-        }
+        },
+        "operationId": "deleteServer"
       }
     },
     "/session": {
@@ -904,109 +548,18 @@
         ],
         "responses": {
           "200": {
-            "description": "Reading log grouped by session status",
+            "description": "Reading log grouped by session status (no `id`), or a single session's full data (`?id=`).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SessionReadingLogResponse"
                     },
-                    "reading_log": {
-                      "type": "object",
-                      "properties": {
-                        "active": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "due_date": {
-                                "type": "string",
-                                "format": "date"
-                              },
-                              "book": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "integer"
-                                  },
-                                  "title": {
-                                    "type": "string"
-                                  },
-                                  "author": {
-                                    "type": "string"
-                                  },
-                                  "image_url": {
-                                    "type": "string",
-                                    "nullable": true
-                                  }
-                                }
-                              },
-                              "club": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        "finished": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "due_date": {
-                                "type": "string",
-                                "format": "date"
-                              },
-                              "book": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "integer"
-                                  },
-                                  "title": {
-                                    "type": "string"
-                                  },
-                                  "author": {
-                                    "type": "string"
-                                  },
-                                  "image_url": {
-                                    "type": "string",
-                                    "nullable": true
-                                  }
-                                }
-                              },
-                              "club": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
+                    {
+                      "$ref": "#/components/schemas/Session"
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -1020,7 +573,8 @@
           "404": {
             "description": "No member record found for the authenticated user"
           }
-        }
+        },
+        "operationId": "getSessions"
       },
       "post": {
         "summary": "Create Session",
@@ -1033,82 +587,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "club_id"
-                ],
-                "properties": {
-                  "club_id": {
-                    "type": "string",
-                    "description": "The ID of the club hosting this session."
-                  },
-                  "book_id": {
-                    "type": "integer",
-                    "description": "Preferred. The local DB ID of a pre-registered book (from POST /book)."
-                  },
-                  "due_date": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Target date for finishing the book."
-                  },
-                  "book": {
-                    "type": "object",
-                    "description": "Deprecated. Inline book object. Use book_id instead.",
-                    "required": [
-                      "title",
-                      "author"
-                    ],
-                    "properties": {
-                      "title": {
-                        "type": "string"
-                      },
-                      "author": {
-                        "type": "string"
-                      },
-                      "year": {
-                        "type": "integer"
-                      },
-                      "isbn": {
-                        "type": "string"
-                      },
-                      "page_count": {
-                        "type": "integer"
-                      }
-                    }
-                  },
-                  "all_reading": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Controls the default `is_reading` flag for auto-populated session_members rows (one per existing club member). When true (default), all members are marked as reading and their shelf is set to \"currently_reading\" for this book. Set to false to default new session members to not-reading."
-                  },
-                  "discussions": {
-                    "type": "array",
-                    "description": "Optional list of discussions to schedule immediately.",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "title": {
-                          "type": "string"
-                        },
-                        "scheduled_at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "ISO 8601 timestamp (with timezone offset) for the discussion"
-                        },
-                        "location": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/SessionCreateRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Session created successfully"
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCreateResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing required fields (club_id, or neither book_id nor book)"
@@ -1116,7 +609,8 @@
           "404": {
             "description": "Club not found, or book_id not found"
           }
-        }
+        },
+        "operationId": "createSession"
       },
       "put": {
         "summary": "Update Session",
@@ -1129,71 +623,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "club_id": {
-                    "type": "string"
-                  },
-                  "due_date": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "book": {
-                    "type": "object",
-                    "description": "Fields to update on the associated book.",
-                    "properties": {
-                      "title": {
-                        "type": "string"
-                      },
-                      "author": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "session_members": {
-                    "type": "array",
-                    "description": "Upsert participation flags for session members. Reading members have their book moved to the \"currently_reading\" shelf; opted-out members have their session-derived \"currently_reading\" shelf entry removed. If this is the only field provided (alongside `id`), any club member may make this request; otherwise owner/admin is required.",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "member_id",
-                        "is_reading"
-                      ],
-                      "properties": {
-                        "member_id": {
-                          "type": "integer"
-                        },
-                        "is_reading": {
-                          "type": "boolean"
-                        }
-                      }
-                    }
-                  },
-                  "finish": {
-                    "type": "boolean",
-                    "description": "If true, marks the session as finished (active -> finished, idempotent guard returns 400 if already finished), increments books_read for all session_members with is_reading=true, and moves their book to the \"read\" shelf. When provided as true, this is handled as a standalone action and short-circuits other updates in the same request."
-                  },
-                  "discussions": {
-                    "type": "array",
-                    "description": "Reserved for future use. Currently only checked for presence to determine the required role (owner/admin) for this request; no discussion records are created, updated, or deleted by this endpoint.",
-                    "items": {
-                      "type": "object"
-                    }
-                  },
-                  "discussion_ids_to_delete": {
-                    "type": "array",
-                    "description": "Reserved for future use. Currently only checked for presence to determine the required role (owner/admin) for this request; no discussion records are deleted by this endpoint.",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/SessionUpdateRequest"
               }
             }
           }
@@ -1206,67 +636,13 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "object",
-                      "description": "Response when `finish` is true",
-                      "properties": {
-                        "success": {
-                          "type": "boolean",
-                          "example": true
-                        },
-                        "message": {
-                          "type": "string",
-                          "example": "Session finished"
-                        },
-                        "members_credited": {
-                          "type": "integer",
-                          "description": "Number of is_reading session_members whose books_read count was incremented"
-                        }
-                      }
+                      "$ref": "#/components/schemas/SessionFinishResponse"
                     },
                     {
-                      "type": "object",
-                      "description": "Response when no changes were applicable",
-                      "properties": {
-                        "success": {
-                          "type": "boolean",
-                          "example": true
-                        },
-                        "message": {
-                          "type": "string",
-                          "example": "No changes to apply"
-                        }
-                      }
+                      "$ref": "#/components/schemas/SessionNoChangesResponse"
                     },
                     {
-                      "type": "object",
-                      "description": "Response for general field updates",
-                      "properties": {
-                        "success": {
-                          "type": "boolean",
-                          "example": true
-                        },
-                        "message": {
-                          "type": "string",
-                          "example": "Session updated successfully"
-                        },
-                        "updates": {
-                          "type": "object",
-                          "properties": {
-                            "book": {
-                              "type": "boolean",
-                              "description": "Whether the associated book was updated"
-                            },
-                            "session": {
-                              "type": "boolean",
-                              "description": "Whether session fields (club_id, due_date) were updated"
-                            },
-                            "session_members": {
-                              "type": "boolean",
-                              "description": "Whether session_members rows were upserted"
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "#/components/schemas/SessionGeneralUpdateResponse"
                     }
                   ]
                 }
@@ -1279,7 +655,8 @@
           "404": {
             "description": "Session not found, or target club not found (when changing club_id)"
           }
-        }
+        },
+        "operationId": "updateSession"
       },
       "delete": {
         "summary": "Delete Session",
@@ -1299,12 +676,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Session deleted successfully"
+            "description": "Session deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Session not found"
           }
-        }
+        },
+        "operationId": "deleteSession"
       }
     },
     "/book": {
@@ -1361,7 +746,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Book(s) found. For ?q= search results, `total` is Google Books' estimated corpus\ncount (not the number of items returned on this page — use `books.length` for that).\nThe estimate is approximate and Google caps actual delivery at ~1,000 items regardless\nof the reported total.\n"
+            "description": "Book(s) found. For ?q= search results, `total` is Google Books' estimated corpus\ncount (not the number of items returned on this page — use `books.length` for that).\nThe estimate is approximate and Google caps actual delivery at ~1,000 items regardless\nof the reported total.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BookSearchResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookLookupResponse"
+                    }
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing or invalid query parameters"
@@ -1372,7 +771,8 @@
           "500": {
             "description": "Internal error or missing API key"
           }
-        }
+        },
+        "operationId": "getBooks"
       },
       "post": {
         "summary": "Register a book",
@@ -1385,45 +785,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "title",
-                  "author"
-                ],
-                "properties": {
-                  "external_google_id": {
-                    "type": "string",
-                    "description": "Google Books volume ID (recommended for deduplication)"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "author": {
-                    "type": "string"
-                  },
-                  "edition": {
-                    "type": "string"
-                  },
-                  "year": {
-                    "type": "integer"
-                  },
-                  "isbn": {
-                    "type": "string"
-                  },
-                  "page_count": {
-                    "type": "integer"
-                  },
-                  "image_url": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/BookRegistrationRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Book registered (or already exists)"
+            "description": "Book registered (or already exists)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookRegistrationResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing required fields"
@@ -1431,7 +807,8 @@
           "500": {
             "description": "Database error"
           }
-        }
+        },
+        "operationId": "registerBook"
       }
     },
     "/join": {
@@ -1451,17 +828,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "token"
-                ],
-                "properties": {
-                  "token": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "The invite token"
-                  }
-                }
+                "$ref": "#/components/schemas/JoinRequest"
               }
             }
           }
@@ -1472,16 +839,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "club_id": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/components/schemas/JoinResponse"
                 }
               }
             }
@@ -1498,7 +856,8 @@
           "404": {
             "description": "Invalid or expired invite, or member record not found"
           }
-        }
+        },
+        "operationId": "joinClub"
       },
       "get": {
         "summary": "Preview an invite link",
@@ -1524,24 +883,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "valid": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "club": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/JoinPreviewResponse"
                 }
               }
             }
@@ -1552,7 +894,8 @@
           "404": {
             "description": "Invalid or expired invite"
           }
-        }
+        },
+        "operationId": "previewInvite"
       }
     },
     "/like": {
@@ -1579,15 +922,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "liked": {
-                      "type": "boolean"
-                    }
-                  }
+                  "$ref": "#/components/schemas/LikeStatusResponse"
                 }
               }
             }
@@ -1607,7 +942,8 @@
           "500": {
             "description": "Database error while resolving the member record"
           }
-        }
+        },
+        "operationId": "getBookLike"
       },
       "post": {
         "summary": "Toggle like for a book",
@@ -1620,16 +956,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "book_id"
-                ],
-                "properties": {
-                  "book_id": {
-                    "type": "integer",
-                    "description": "Local DB book ID"
-                  }
-                }
+                "$ref": "#/components/schemas/LikeToggleRequest"
               }
             }
           }
@@ -1640,16 +967,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "liked": {
-                      "type": "boolean",
-                      "description": "New state after toggle (true = just liked, false = just unliked)"
-                    }
-                  }
+                  "$ref": "#/components/schemas/LikeToggleResponse"
                 }
               }
             }
@@ -1666,7 +984,8 @@
           "404": {
             "description": "Book not found, or no member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "toggleBookLike"
       }
     },
     "/discussion": {
@@ -1681,28 +1000,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "session_id",
-                  "title",
-                  "scheduled_at"
-                ],
-                "properties": {
-                  "session_id": {
-                    "type": "string"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "scheduled_at": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "location": {
-                    "type": "string",
-                    "nullable": true
-                  }
-                }
+                "$ref": "#/components/schemas/DiscussionCreateRequest"
               }
             }
           }
@@ -1727,7 +1025,8 @@
           "404": {
             "description": "Session not found"
           }
-        }
+        },
+        "operationId": "createDiscussion"
       },
       "put": {
         "summary": "Update Discussion",
@@ -1740,26 +1039,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "scheduled_at": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "location": {
-                    "type": "string",
-                    "nullable": true
-                  }
-                }
+                "$ref": "#/components/schemas/DiscussionUpdateRequest"
               }
             }
           }
@@ -1781,7 +1061,8 @@
           "404": {
             "description": "Discussion not found"
           }
-        }
+        },
+        "operationId": "updateDiscussion"
       },
       "delete": {
         "summary": "Delete Discussion",
@@ -1809,7 +1090,8 @@
           "404": {
             "description": "Discussion not found"
           }
-        }
+        },
+        "operationId": "deleteDiscussion"
       }
     },
     "/discussion-attendance": {
@@ -1824,24 +1106,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "discussion_id",
-                  "status"
-                ],
-                "properties": {
-                  "discussion_id": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "yes",
-                      "no",
-                      "maybe"
-                    ]
-                  }
-                }
+                "$ref": "#/components/schemas/DiscussionAttendanceUpsertRequest"
               }
             }
           }
@@ -1852,30 +1117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "discussion_id": {
-                      "type": "string"
-                    },
-                    "member_id": {
-                      "type": "integer"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "yes",
-                        "no",
-                        "maybe"
-                      ]
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
+                  "$ref": "#/components/schemas/DiscussionAttendance"
                 }
               }
             }
@@ -1892,7 +1134,8 @@
           "404": {
             "description": "Discussion not found, or no member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "upsertDiscussionAttendance"
       },
       "get": {
         "summary": "Get the RSVP roster for a discussion",
@@ -1912,7 +1155,14 @@
         ],
         "responses": {
           "200": {
-            "description": "The roster, the caller's own status, and the club's total member count"
+            "description": "The roster, the caller's own status, and the club's total member count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionAttendanceRosterResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing discussion_id"
@@ -1926,7 +1176,8 @@
           "404": {
             "description": "Discussion not found, or no member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "getDiscussionAttendance"
       },
       "delete": {
         "summary": "Clear the caller's RSVP for a discussion",
@@ -1960,7 +1211,8 @@
           "404": {
             "description": "No member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "clearDiscussionAttendance"
       }
     },
     "/discussion-note": {
@@ -1982,7 +1234,19 @@
         ],
         "responses": {
           "200": {
-            "description": "The caller's note, or null"
+            "description": "The caller's note, or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/DiscussionNote"
+                    }
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "description": "Missing discussion_id"
@@ -1996,7 +1260,8 @@
           "404": {
             "description": "No member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "getDiscussionNote"
       },
       "post": {
         "summary": "Create a discussion note",
@@ -2009,26 +1274,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "discussion_id",
-                  "content"
-                ],
-                "properties": {
-                  "discussion_id": {
-                    "type": "string"
-                  },
-                  "content": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/DiscussionNoteCreateRequest"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Note created successfully"
+            "description": "Note created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionNote"
+                }
+              }
+            }
           },
           "400": {
             "description": "Validation failure"
@@ -2045,7 +1305,8 @@
           "409": {
             "description": "A note already exists for this member and discussion — use PUT to overwrite"
           }
-        }
+        },
+        "operationId": "createDiscussionNote"
       },
       "put": {
         "summary": "Overwrite a discussion note",
@@ -2058,26 +1319,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "content"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "content": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/DiscussionNoteUpdateRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Note updated"
+            "description": "Note updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionNote"
+                }
+              }
+            }
           },
           "400": {
             "description": "Validation failure"
@@ -2091,7 +1347,8 @@
           "404": {
             "description": "Note not found, or no member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "updateDiscussionNote"
       },
       "delete": {
         "summary": "Delete a discussion note",
@@ -2125,7 +1382,8 @@
           "404": {
             "description": "Note not found, or no member record for the authenticated user"
           }
-        }
+        },
+        "operationId": "deleteDiscussionNote"
       }
     },
     "/shelf": {
@@ -2153,61 +1411,10 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean"
-                        },
-                        "shelves": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "shelf": {
-                                "type": "string",
-                                "enum": [
-                                  "want_to_read",
-                                  "read",
-                                  "not_finished",
-                                  "currently_reading"
-                                ]
-                              },
-                              "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "source": {
-                                "type": "string",
-                                "enum": [
-                                  "manual",
-                                  "session"
-                                ]
-                              },
-                              "book": {
-                                "$ref": "#/components/schemas/Book"
-                              }
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "#/components/schemas/ShelfListResponse"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "success": {
-                          "type": "boolean"
-                        },
-                        "shelf": {
-                          "type": "string",
-                          "enum": [
-                            "want_to_read",
-                            "read",
-                            "not_finished",
-                            "currently_reading"
-                          ],
-                          "nullable": true
-                        }
-                      }
+                      "$ref": "#/components/schemas/ShelfSingleResponse"
                     }
                   ]
                 }
@@ -2229,7 +1436,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "getShelf"
       },
       "post": {
         "summary": "Set (upsert) a shelf assignment",
@@ -2242,26 +1450,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "book_id",
-                  "shelf"
-                ],
-                "properties": {
-                  "book_id": {
-                    "type": "integer",
-                    "description": "Local DB book ID"
-                  },
-                  "shelf": {
-                    "type": "string",
-                    "enum": [
-                      "want_to_read",
-                      "read",
-                      "not_finished",
-                      "currently_reading"
-                    ]
-                  }
-                }
+                "$ref": "#/components/schemas/ShelfAssignRequest"
               }
             }
           }
@@ -2272,21 +1461,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "shelf": {
-                      "type": "string",
-                      "enum": [
-                        "want_to_read",
-                        "read",
-                        "not_finished",
-                        "currently_reading"
-                      ]
-                    }
-                  }
+                  "$ref": "#/components/schemas/ShelfAssignResponse"
                 }
               }
             }
@@ -2306,7 +1481,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "setShelf"
       }
     },
     "/progress": {
@@ -2352,18 +1528,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "progress": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ReadingProgress"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/ProgressListResponse"
                 }
               }
             }
@@ -2383,7 +1548,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "getReadingProgress"
       },
       "post": {
         "summary": "Log a new reading progress entry",
@@ -2396,37 +1562,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "book_id",
-                  "progress_type"
-                ],
-                "properties": {
-                  "book_id": {
-                    "type": "integer",
-                    "description": "Local DB book ID"
-                  },
-                  "session_id": {
-                    "type": "string",
-                    "description": "Optional session this progress entry is linked to"
-                  },
-                  "progress_type": {
-                    "type": "string",
-                    "enum": [
-                      "page",
-                      "percent"
-                    ]
-                  },
-                  "current_page": {
-                    "type": "integer",
-                    "description": "Required if progress_type is 'page'"
-                  },
-                  "percent_complete": {
-                    "type": "number",
-                    "format": "float",
-                    "description": "Required if progress_type is 'percent', 0-100"
-                  }
-                }
+                "$ref": "#/components/schemas/ProgressCreateRequest"
               }
             }
           }
@@ -2437,15 +1573,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "progress": {
-                      "$ref": "#/components/schemas/ReadingProgress"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ProgressEntryResponse"
                 }
               }
             }
@@ -2465,7 +1593,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "createReadingProgress"
       },
       "put": {
         "summary": "Update a reading progress entry",
@@ -2478,40 +1607,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "progress_type"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "progress_type": {
-                    "type": "string",
-                    "enum": [
-                      "page",
-                      "percent"
-                    ]
-                  },
-                  "current_page": {
-                    "type": "integer",
-                    "description": "Required when progress_type is page, unless the entry already has one"
-                  },
-                  "percent_complete": {
-                    "type": "number",
-                    "format": "float",
-                    "description": "Required when progress_type is percent, unless the entry already has one"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "in_progress",
-                      "completed"
-                    ]
-                  }
-                }
+                "$ref": "#/components/schemas/ProgressUpdateRequest"
               }
             }
           }
@@ -2522,15 +1618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "progress": {
-                      "$ref": "#/components/schemas/ReadingProgress"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ProgressEntryResponse"
                 }
               }
             }
@@ -2550,7 +1638,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "updateReadingProgress"
       },
       "delete": {
         "summary": "Delete a reading progress entry",
@@ -2576,12 +1665,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ProgressDeleteResponse"
                 }
               }
             }
@@ -2601,7 +1685,8 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "operationId": "deleteReadingProgress"
       }
     },
     "/discord-guilds": {
@@ -2635,30 +1720,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "description": "Discord guild snowflake ID."
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "channels": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
+                    "$ref": "#/components/schemas/DiscordGuildWithChannels"
                   }
                 }
               }
@@ -2676,7 +1738,8 @@
           "500": {
             "description": "Missing DISCORD_BOT_TOKEN env var, or Discord API error."
           }
-        }
+        },
+        "operationId": "getDiscordGuilds"
       }
     }
   },
@@ -2767,25 +1830,7 @@
             "type": "array",
             "description": "Club members with their per-club role.",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Member"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "owner",
-                        "admin",
-                        "member"
-                      ],
-                      "description": "Member's role in this specific club"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/ClubMember"
             }
           },
           "active_session": {
@@ -2794,16 +1839,7 @@
           "past_sessions": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "due_date": {
-                  "type": "string",
-                  "format": "date"
-                }
-              }
+              "$ref": "#/components/schemas/PastSession"
             }
           },
           "shame_list": {
@@ -2852,10 +1888,7 @@
             "description": "Discord user snowflake ID. Stored as TEXT to preserve JSON precision."
           },
           "platform_metadata": {
-            "type": "object",
-            "description": "Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes).",
-            "additionalProperties": true,
-            "default": {}
+            "$ref": "#/components/schemas/JsonObject"
           },
           "created_at": {
             "type": "string",
@@ -2865,25 +1898,7 @@
             "type": "array",
             "description": "Clubs this member belongs to, each with their per-club role.",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Club"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "owner",
-                        "admin",
-                        "member"
-                      ],
-                      "description": "Member's role in this specific club"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/components/schemas/ClubSummary"
             }
           }
         }
@@ -3066,23 +2081,7 @@
             "nullable": true
           },
           "book": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer"
-              },
-              "title": {
-                "type": "string"
-              },
-              "page_count": {
-                "type": "integer",
-                "nullable": true
-              },
-              "image_url": {
-                "type": "string",
-                "nullable": true
-              }
-            }
+            "$ref": "#/components/schemas/BookSummary"
           }
         }
       },
@@ -3257,6 +2256,108 @@
           }
         }
       },
+      "ClubMember": {
+        "type": "object",
+        "description": "A member as embedded within a club response, including their per-club role.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "description": "Member's role in this club"
+          },
+          "books_read": {
+            "type": "integer",
+            "default": 0
+          },
+          "handle": {
+            "type": "string"
+          },
+          "avatar_path": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clubs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of all clubs this member belongs to"
+          }
+        }
+      },
+      "ClubSummary": {
+        "type": "object",
+        "description": "A lightweight club reference as embedded within a member response, including the member's role.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "discord_channel": {
+            "type": "string"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "description": "Member's role in this club"
+          }
+        }
+      },
+      "PastSession": {
+        "type": "object",
+        "description": "A finished session as embedded within a club response.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "BookSummary": {
+        "type": "object",
+        "description": "A lightweight book reference as embedded within a reading progress entry.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "page_count": {
+            "type": "integer",
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "UserBookShelf": {
         "type": "object",
         "required": [
@@ -3299,6 +2400,1340 @@
             "$ref": "#/components/schemas/Book"
           }
         }
+      },
+      "DeleteResponse": {
+        "type": "object",
+        "description": "Standard delete acknowledgement, reused across all DELETE endpoints.",
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "warning": {
+            "type": "string",
+            "nullable": true,
+            "description": "Present if the deletion had a non-fatal side effect."
+          }
+        }
+      },
+      "ClubActiveSessionInput": {
+        "type": "object",
+        "description": "Immediately start a session for this club.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "book": {
+            "$ref": "#/components/schemas/Book"
+          },
+          "discussions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Discussion"
+            }
+          }
+        }
+      },
+      "ClubCreateRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "server_id": {
+            "type": "string",
+            "description": "Optional Discord Server ID."
+          },
+          "discord_channel": {
+            "type": "string"
+          },
+          "founded_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            }
+          },
+          "active_session": {
+            "$ref": "#/components/schemas/ClubActiveSessionInput"
+          },
+          "shame_list": {
+            "type": "array",
+            "description": "List of Member IDs to immediately add to the shame list.",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "ClubCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "club": {
+            "$ref": "#/components/schemas/Club"
+          }
+        }
+      },
+      "ClubUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "discord_channel": {
+            "type": "string"
+          },
+          "founded_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "join_policy": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "INVITE_LINK"
+            ],
+            "description": "Controls how members can join the club. Setting to INVITE_LINK creates (or reuses) an active club invite token; setting to PRIVATE deactivates all active invites for the club.\n"
+          },
+          "shame_list": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "ClubUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "club": {
+            "$ref": "#/components/schemas/Club"
+          },
+          "club_updated": {
+            "type": "boolean",
+            "description": "Whether the clubs table row was updated."
+          },
+          "shame_list_updated": {
+            "type": "boolean",
+            "description": "Whether the shame list membership changed."
+          }
+        }
+      },
+      "MemberCreateRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "clubs": {
+            "type": "array",
+            "description": "Array of Club IDs this member belongs to. Optional, but if present must contain at least one club ID (an empty array is rejected).\n",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "books_read": {
+            "type": "integer",
+            "default": 0
+          },
+          "handle": {
+            "type": "string",
+            "description": "Optional Discord handle or username."
+          },
+          "avatar_path": {
+            "type": "string",
+            "description": "Path to the avatar image in storage."
+          },
+          "discord_id": {
+            "type": "string",
+            "description": "Discord user snowflake ID. Stored as text to preserve precision."
+          },
+          "platform_metadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "id": {
+            "type": "integer",
+            "description": "Optional explicit ID. Omit to let the DB sequence assign one."
+          }
+        }
+      },
+      "MemberCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "member": {
+            "$ref": "#/components/schemas/Member"
+          }
+        }
+      },
+      "MemberAssignableRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "member"
+        ],
+        "description": "Valid roles assignable via club_roles (owner cannot be assigned or changed via this endpoint)."
+      },
+      "MemberClubRoles": {
+        "type": "object",
+        "description": "Map of club_id → role to update per-club roles.",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/MemberAssignableRole"
+        }
+      },
+      "MemberUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The ID of the member to update (or the target member for add_to_club)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "books_read": {
+            "type": "integer"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "avatar_path": {
+            "type": "string",
+            "nullable": true,
+            "description": "Storage path of the member's avatar. Must start with `{id}/` (e.g. `42/avatar.png`). Pass null to clear the avatar.\n"
+          },
+          "discord_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Discord user snowflake ID. Pass null to clear it."
+          },
+          "platform_metadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "clubs": {
+            "type": "array",
+            "description": "Full list of Club IDs this member should belong to. Diffed against existing to add/remove.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "club_roles": {
+            "$ref": "#/components/schemas/MemberClubRoles"
+          },
+          "add_to_club": {
+            "type": "string",
+            "description": "Club ID to add the target member (`id`) to. When present, all other update fields are ignored. The calling user's JWT must belong to a member who is an admin or owner of the target club. The target member is added with the `member` role.\n"
+          }
+        }
+      },
+      "MemberUpdateResponse": {
+        "type": "object",
+        "description": "Standard update response",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "member": {
+            "$ref": "#/components/schemas/Member"
+          },
+          "clubs_updated": {
+            "type": "boolean"
+          },
+          "roles_updated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberAddToClubResponse": {
+        "type": "object",
+        "description": "add_to_club response",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "member_id": {
+            "type": "integer"
+          },
+          "club_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ServerCreateRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "The Philosophers"
+          },
+          "id": {
+            "type": "string",
+            "description": "Optional Discord Snowflake ID. If omitted, a random ID is generated.",
+            "example": "123456789012345678"
+          }
+        }
+      },
+      "ServerCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "server": {
+            "$ref": "#/components/schemas/Server"
+          }
+        }
+      },
+      "ServerUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ServerUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "server": {
+            "$ref": "#/components/schemas/Server"
+          }
+        }
+      },
+      "ServerClubLatestSessionBook": {
+        "type": "object",
+        "description": "Joined book info for the session",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          }
+        }
+      },
+      "ServerClubLatestSession": {
+        "type": "object",
+        "nullable": true,
+        "description": "The club's most recent session by due_date, with nested book title/author, or null if none exist",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "books": {
+            "$ref": "#/components/schemas/ServerClubLatestSessionBook",
+            "nullable": true
+          }
+        }
+      },
+      "ServerClubSummary": {
+        "description": "A club embedded within a single-server response, including member_count/latest_session not present on the plain Club schema.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Club"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "member_count": {
+                "type": "integer",
+                "description": "Number of members in this club"
+              },
+              "latest_session": {
+                "$ref": "#/components/schemas/ServerClubLatestSession"
+              }
+            }
+          }
+        ]
+      },
+      "ServerGetSingleResponse": {
+        "type": "object",
+        "description": "Response when ID is provided (Single Server)",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "clubs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerClubSummary"
+            }
+          }
+        }
+      },
+      "ServerGetListResponse": {
+        "type": "object",
+        "description": "Response when ID is omitted (List of Servers)",
+        "properties": {
+          "servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Server"
+            }
+          }
+        }
+      },
+      "ServerDeleteConflictResponse": {
+        "type": "object",
+        "description": "Custom error shape (not the standard Error schema)",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Cannot delete server with existing clubs. Please delete all clubs first."
+          },
+          "clubs_count": {
+            "type": "integer",
+            "description": "Number of clubs still associated with this server"
+          }
+        }
+      },
+      "SessionInlineBookInput": {
+        "type": "object",
+        "description": "Deprecated. Inline book object. Use book_id instead.",
+        "required": [
+          "title",
+          "author"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "isbn": {
+            "type": "string"
+          },
+          "page_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "SessionDiscussionInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp (with timezone offset) for the discussion"
+          },
+          "location": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionCreateRequest": {
+        "type": "object",
+        "required": [
+          "club_id"
+        ],
+        "properties": {
+          "club_id": {
+            "type": "string",
+            "description": "The ID of the club hosting this session."
+          },
+          "book_id": {
+            "type": "integer",
+            "description": "Preferred. The local DB ID of a pre-registered book (from POST /book)."
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Target date for finishing the book."
+          },
+          "book": {
+            "$ref": "#/components/schemas/SessionInlineBookInput"
+          },
+          "all_reading": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls the default `is_reading` flag for auto-populated session_members rows (one per existing club member). When true (default), all members are marked as reading and their shelf is set to \"currently_reading\" for this book. Set to false to default new session members to not-reading."
+          },
+          "discussions": {
+            "type": "array",
+            "description": "Optional list of discussions to schedule immediately.",
+            "items": {
+              "$ref": "#/components/schemas/SessionDiscussionInput"
+            }
+          }
+        }
+      },
+      "SessionCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          }
+        }
+      },
+      "SessionBookPatchInput": {
+        "type": "object",
+        "description": "Fields to update on the associated book.",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionMemberFlagInput": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "is_reading"
+        ],
+        "properties": {
+          "member_id": {
+            "type": "integer"
+          },
+          "is_reading": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SessionUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "club_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "book": {
+            "$ref": "#/components/schemas/SessionBookPatchInput"
+          },
+          "session_members": {
+            "type": "array",
+            "description": "Upsert participation flags for session members. Reading members have their book moved to the \"currently_reading\" shelf; opted-out members have their session-derived \"currently_reading\" shelf entry removed. If this is the only field provided (alongside `id`), any club member may make this request; otherwise owner/admin is required.",
+            "items": {
+              "$ref": "#/components/schemas/SessionMemberFlagInput"
+            }
+          },
+          "finish": {
+            "type": "boolean",
+            "description": "If true, marks the session as finished (active -> finished, idempotent guard returns 400 if already finished), increments books_read for all session_members with is_reading=true, and moves their book to the \"read\" shelf. When provided as true, this is handled as a standalone action and short-circuits other updates in the same request."
+          },
+          "discussions": {
+            "type": "array",
+            "description": "Reserved for future use. Currently only checked for presence to determine the required role (owner/admin) for this request; no discussion records are created, updated, or deleted by this endpoint.",
+            "items": {
+              "type": "object"
+            }
+          },
+          "discussion_ids_to_delete": {
+            "type": "array",
+            "description": "Reserved for future use. Currently only checked for presence to determine the required role (owner/admin) for this request; no discussion records are deleted by this endpoint.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SessionFinishResponse": {
+        "type": "object",
+        "description": "Response when `finish` is true",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Session finished"
+          },
+          "members_credited": {
+            "type": "integer",
+            "description": "Number of is_reading session_members whose books_read count was incremented"
+          }
+        }
+      },
+      "SessionNoChangesResponse": {
+        "type": "object",
+        "description": "Response when no changes were applicable",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "No changes to apply"
+          }
+        }
+      },
+      "SessionUpdateFlags": {
+        "type": "object",
+        "properties": {
+          "book": {
+            "type": "boolean",
+            "description": "Whether the associated book was updated"
+          },
+          "session": {
+            "type": "boolean",
+            "description": "Whether session fields (club_id, due_date) were updated"
+          },
+          "session_members": {
+            "type": "boolean",
+            "description": "Whether session_members rows were upserted"
+          }
+        }
+      },
+      "SessionGeneralUpdateResponse": {
+        "type": "object",
+        "description": "Response for general field updates",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Session updated successfully"
+          },
+          "updates": {
+            "$ref": "#/components/schemas/SessionUpdateFlags"
+          }
+        }
+      },
+      "SessionReadingLogBook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SessionReadingLogClub": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionReadingLogEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "book": {
+            "$ref": "#/components/schemas/SessionReadingLogBook"
+          },
+          "club": {
+            "$ref": "#/components/schemas/SessionReadingLogClub"
+          }
+        }
+      },
+      "SessionReadingLogGroups": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionReadingLogEntry"
+            }
+          },
+          "finished": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionReadingLogEntry"
+            }
+          }
+        }
+      },
+      "SessionReadingLogResponse": {
+        "type": "object",
+        "description": "Response when no `id` is provided (reading log grouped by session status)",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "reading_log": {
+            "$ref": "#/components/schemas/SessionReadingLogGroups"
+          }
+        }
+      },
+      "BookSearchResponse": {
+        "type": "object",
+        "description": "Response for ?q= search queries.",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "books": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Book"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Google Books' estimated corpus count (not the number of items returned on this page — use books.length for that). Approximate; Google caps actual delivery at ~1,000 items regardless of the reported total."
+          }
+        }
+      },
+      "BookLookupResponse": {
+        "type": "object",
+        "description": "Response for ?isbn= or ?id= lookups.",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "book": {
+            "$ref": "#/components/schemas/Book"
+          }
+        }
+      },
+      "BookRegistrationRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "author"
+        ],
+        "properties": {
+          "external_google_id": {
+            "type": "string",
+            "description": "Google Books volume ID (recommended for deduplication)"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "isbn": {
+            "type": "string"
+          },
+          "page_count": {
+            "type": "integer"
+          },
+          "image_url": {
+            "type": "string"
+          }
+        }
+      },
+      "BookRegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "book": {
+            "$ref": "#/components/schemas/Book"
+          },
+          "created": {
+            "type": "boolean",
+            "description": "False if an existing book (matched by external_google_id) was returned instead of created."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "DiscussionCreateRequest": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "title",
+          "scheduled_at"
+        ],
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DiscussionUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DiscussionAttendanceUpsertRequest": {
+        "type": "object",
+        "required": [
+          "discussion_id",
+          "status"
+        ],
+        "properties": {
+          "discussion_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "maybe"
+            ]
+          }
+        }
+      },
+      "DiscussionAttendanceRosterResponse": {
+        "type": "object",
+        "description": "Best-effort reconstruction based on the endpoint description (\"the roster, the caller's own status, and the club's total member count\") — the spec did not document an exact shape; verify against the real backend response before relying on this.",
+        "properties": {
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscussionAttendance"
+            }
+          },
+          "my_status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "maybe"
+            ],
+            "nullable": true
+          },
+          "member_count": {
+            "type": "integer",
+            "description": "Total member count of the discussion's club"
+          }
+        }
+      },
+      "DiscussionNoteCreateRequest": {
+        "type": "object",
+        "required": [
+          "discussion_id",
+          "content"
+        ],
+        "properties": {
+          "discussion_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "DiscussionNoteUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "content"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "ClubPreview": {
+        "type": "object",
+        "description": "Lightweight club reference returned by the invite preview endpoint.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "JoinPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "example": true
+          },
+          "club": {
+            "$ref": "#/components/schemas/ClubPreview"
+          }
+        }
+      },
+      "JoinRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The invite token"
+          }
+        }
+      },
+      "JoinResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "club_id": {
+            "type": "string"
+          }
+        }
+      },
+      "LikeStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "liked": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LikeToggleRequest": {
+        "type": "object",
+        "required": [
+          "book_id"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "integer",
+            "description": "Local DB book ID"
+          }
+        }
+      },
+      "LikeToggleResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "liked": {
+            "type": "boolean",
+            "description": "New state after toggle (true = just liked, false = just unliked)"
+          }
+        }
+      },
+      "ShelfStatus": {
+        "type": "string",
+        "enum": [
+          "want_to_read",
+          "read",
+          "not_finished",
+          "currently_reading"
+        ]
+      },
+      "ShelfEntry": {
+        "type": "object",
+        "properties": {
+          "shelf": {
+            "$ref": "#/components/schemas/ShelfStatus"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "session"
+            ]
+          },
+          "book": {
+            "$ref": "#/components/schemas/Book"
+          }
+        }
+      },
+      "ShelfListResponse": {
+        "type": "object",
+        "description": "Response when no book_id is provided (all shelf entries for the caller).",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "shelves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShelfEntry"
+            }
+          }
+        }
+      },
+      "ShelfSingleResponse": {
+        "type": "object",
+        "description": "Response when book_id is provided (shelf for a single book, or null).",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "shelf": {
+            "$ref": "#/components/schemas/ShelfStatus",
+            "nullable": true
+          }
+        }
+      },
+      "ShelfAssignRequest": {
+        "type": "object",
+        "required": [
+          "book_id",
+          "shelf"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "integer",
+            "description": "Local DB book ID"
+          },
+          "shelf": {
+            "$ref": "#/components/schemas/ShelfStatus"
+          }
+        }
+      },
+      "ShelfAssignResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "shelf": {
+            "$ref": "#/components/schemas/ShelfStatus"
+          }
+        }
+      },
+      "ProgressListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReadingProgress"
+            }
+          }
+        }
+      },
+      "ProgressCreateRequest": {
+        "type": "object",
+        "required": [
+          "book_id",
+          "progress_type"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "integer",
+            "description": "Local DB book ID"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional session this progress entry is linked to"
+          },
+          "progress_type": {
+            "type": "string",
+            "enum": [
+              "page",
+              "percent"
+            ]
+          },
+          "current_page": {
+            "type": "integer",
+            "description": "Required if progress_type is 'page'"
+          },
+          "percent_complete": {
+            "type": "number",
+            "format": "float",
+            "description": "Required if progress_type is 'percent', 0-100"
+          }
+        }
+      },
+      "ProgressUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "progress_type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "progress_type": {
+            "type": "string",
+            "enum": [
+              "page",
+              "percent"
+            ]
+          },
+          "current_page": {
+            "type": "integer",
+            "description": "Required when progress_type is page, unless the entry already has one"
+          },
+          "percent_complete": {
+            "type": "number",
+            "format": "float",
+            "description": "Required when progress_type is percent, unless the entry already has one"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "completed"
+            ]
+          }
+        }
+      },
+      "ProgressEntryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/ReadingProgress"
+          }
+        }
+      },
+      "ProgressDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DiscordChannelSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "DiscordGuildWithChannels": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Discord guild snowflake ID."
+          },
+          "name": {
+            "type": "string"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscordChannelSummary"
+            }
+          }
+        }
+      },
+      "MemberClubEntry": {
+        "description": "A club embedded within a member's `clubs` list, including the member's per-club role.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Club"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "admin",
+                  "member"
+                ],
+                "description": "Member's role in this specific club"
+              }
+            }
+          }
+        ]
+      },
+      "MemberGetResponse": {
+        "description": "Full member response with relations populated.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Member"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "clubs": {
+                "type": "array",
+                "description": "Clubs this member belongs to, with their per-club role.",
+                "items": {
+                  "$ref": "#/components/schemas/MemberClubEntry"
+                }
+              },
+              "shame_clubs": {
+                "type": "array",
+                "description": "List of clubs where this member is currently on the shame list.",
+                "items": {
+                  "$ref": "#/components/schemas/Club"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "JsonObject": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Arbitrary JSON object. Generated as kotlinx.serialization.json.JsonObject (see schemaMappings in core/api/build.gradle.kts) instead of Map<String, Any>, which kotlinx.serialization cannot serialize."
       }
     }
   },
