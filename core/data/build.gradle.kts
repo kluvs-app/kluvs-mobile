@@ -28,6 +28,9 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+            // Integration tests sign in as the seeded auth user to exercise
+            // member-scoped endpoints (shelf/like/progress/discussion-*/join)
+            implementation(libs.supabase.auth)
         }
         androidMain.dependencies {
 

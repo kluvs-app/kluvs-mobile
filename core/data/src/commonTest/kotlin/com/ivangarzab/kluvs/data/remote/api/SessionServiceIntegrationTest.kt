@@ -287,6 +287,36 @@ class SessionServiceIntegrationTest {
     }
 
     @Test
+    fun testGetReadingLog() = runTest {
+        // Given: the reading log is member-scoped — run as the seeded auth user
+        // (Ivan participates in session-owner-active, session-member-active,
+        // and the finished session-owner-past-1)
+        val userSessionService = SessionServiceImpl(createUserAuthedSupabaseClient())
+
+        // When: fetching the reading log
+        val response = userSessionService.getReadingLog()
+
+        // Then: sessions are grouped by status, with book and club context
+        assertTrue(response.success == true, "Reading log fetch should succeed")
+        val readingLog = assertNotNull(response.readingLog)
+
+        val active = readingLog.active ?: emptyList()
+        assertTrue(active.any { it.id == "session-owner-active" },
+            "Active group should include session-owner-active")
+        assertTrue(active.any { it.id == "session-member-active" },
+            "Active group should include session-member-active")
+
+        val finished = readingLog.finished ?: emptyList()
+        assertTrue(finished.any { it.id == "session-owner-past-1" },
+            "Finished group should include session-owner-past-1")
+
+        (active + finished).forEach { entry ->
+            assertNotNull(entry.book, "Reading log entry should include its book")
+            assertNotNull(entry.club, "Reading log entry should include its club")
+        }
+    }
+
+    @Test
     fun testGetNonExistentSession() = runTest {
         // When: trying to get non-existent session
         // Then: should throw exception
