@@ -19,7 +19,6 @@ import kotlin.test.assertTrue
  * Test data from /kluvs-backend/supabase/seed.sql:
  * - 1039326367428395038: Production Server
  * - 1234567890123456789: Test Server Alpha
- * - 987654321098765432: Test Server Beta
  */
 class ServerServiceIntegrationTest {
 
@@ -28,7 +27,6 @@ class ServerServiceIntegrationTest {
     // Test server IDs from seed.sql
     private val productionServerId = "1039326367428395038"
     private val testServerAlphaId = "1234567890123456789"
-    private val testServerBetaId = "987654321098765432"
 
     @BeforeTest
     fun setup() {
@@ -58,7 +56,6 @@ class ServerServiceIntegrationTest {
         val serverIds = servers.map { it.id }
         assertTrue(serverIds.contains(productionServerId), "Should include Production Server")
         assertTrue(serverIds.contains(testServerAlphaId), "Should include Test Server Alpha")
-        assertTrue(serverIds.contains(testServerBetaId), "Should include Test Server Beta")
     }
 
     @Test

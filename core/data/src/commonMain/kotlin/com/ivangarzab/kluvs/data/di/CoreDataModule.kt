@@ -17,8 +17,22 @@ import com.ivangarzab.kluvs.data.remote.api.BookService
 import com.ivangarzab.kluvs.data.remote.api.BookServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.ClubService
 import com.ivangarzab.kluvs.data.remote.api.ClubServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.DiscussionAttendanceService
+import com.ivangarzab.kluvs.data.remote.api.DiscussionAttendanceServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.DiscussionNoteService
+import com.ivangarzab.kluvs.data.remote.api.DiscussionNoteServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.DiscussionService
+import com.ivangarzab.kluvs.data.remote.api.DiscussionServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.JoinService
+import com.ivangarzab.kluvs.data.remote.api.JoinServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.LikeService
+import com.ivangarzab.kluvs.data.remote.api.LikeServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.MemberService
 import com.ivangarzab.kluvs.data.remote.api.MemberServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.ProgressService
+import com.ivangarzab.kluvs.data.remote.api.ProgressServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.ShelfService
+import com.ivangarzab.kluvs.data.remote.api.ShelfServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.ServerService
 import com.ivangarzab.kluvs.data.remote.api.ServerServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.SessionService
@@ -75,6 +89,13 @@ val coreDataModule = module {
     single<ServerService> { ServerServiceImpl(get<SupabaseClient>()) }
     single<SessionService> { SessionServiceImpl(get<SupabaseClient>()) }
     single<AvatarService> { AvatarServiceImpl(get<SupabaseClient>()) }
+    single<ShelfService> { ShelfServiceImpl(get<SupabaseClient>()) }
+    single<LikeService> { LikeServiceImpl(get<SupabaseClient>()) }
+    single<ProgressService> { ProgressServiceImpl(get<SupabaseClient>()) }
+    single<DiscussionService> { DiscussionServiceImpl(get<SupabaseClient>()) }
+    single<DiscussionNoteService> { DiscussionNoteServiceImpl(get<SupabaseClient>()) }
+    single<DiscussionAttendanceService> { DiscussionAttendanceServiceImpl(get<SupabaseClient>()) }
+    single<JoinService> { JoinServiceImpl(get<SupabaseClient>()) }
 
     // Remote Data Sources
     single<AvatarRemoteDataSource> { AvatarRemoteDataSourceImpl(get<AvatarService>()) }

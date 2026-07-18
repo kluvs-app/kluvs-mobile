@@ -31,29 +31,24 @@ import kotlin.test.assertTrue
  * Servers:
  * - 1039326367428395038: Production Server
  * - 1234567890123456789: Test Server Alpha
- * - 987654321098765432: Test Server Beta
  *
  * Clubs:
- * - club-1: "Freaks & Geeks" (channel: 987654321098765432, server: 1039326367428395038)
- * - club-2: "Blingers Pilingers" (channel: 876543210987654321, server: 1039326367428395038)
- * - club-3: "Trifecta" (channel: 765432109876543210, server: 1234567890123456789)
- * - club-4: "Mystery Readers" (channel: 555666777888999000, server: 1234567890123456789)
- * - club-5: "Sci-Fi Enthusiasts" (channel: 111222333444555666, server: 987654321098765432)
+ * - club-owner:  "Freaks & Geeks"     (channel: 1039326367973642363, server: 1039326367428395038)
+ * - club-admin:  "Blingers Pilingers" (web-only — no channel, no server)
+ * - club-member: "Trifecta"           (web-only — no channel, no server)
  *
  * Members (sample):
- * - 1: Ivan Garza (clubs: club-1, club-2)
- * - 2: Monica Morales (clubs: club-1, club-2)
- * - 3: Marco Rivera (clubs: club-3)
- * - 4: Anacleto Longoria (clubs: club-3, club-4)
- * - 5: Joel Salinas (clubs: club-1, club-2)
- * - 6: Jorge Longoria (clubs: club-5)
+ * - 1: Ivan Garza (clubs: club-owner, club-admin, club-member)
+ * - 2: Monica Morales (clubs: club-owner, club-admin)
+ * - 3: Marco Rivera (clubs: club-admin, club-member)
+ * - 4: Anacleto Longoria (clubs: club-admin, club-member)
+ * - 5: Joel Salinas (clubs: club-owner, club-admin)
+ * - 6: Jorge Longoria (clubs: club-admin)
  *
  * Shame Lists:
- * - club-1: [2, 5]
- * - club-2: [1, 2]
- * - club-3: [4]
- * - club-4: [7]
- * - club-5: [6]
+ * - club-owner:  [2]
+ * - club-admin:  [4, 7]
+ * - club-member: [8]
  */
 class ClubServiceIntegrationTest {
 
@@ -62,7 +57,6 @@ class ClubServiceIntegrationTest {
     // Test server IDs from seed.sql
     private val productionServerId = "1039326367428395038"
     private val testServerAlphaId = "1234567890123456789"
-    private val testServerBetaId = "987654321098765432"
 
     @BeforeTest
     fun setup() {
@@ -91,57 +85,53 @@ class ClubServiceIntegrationTest {
 
     @Test
     fun testGetClub() = runTest {
-        // Given: club-1 exists in seed data with known values
-        // When: getting club-1 from Production Server
+        // Given: club-owner exists in seed data with known values
+        // When: getting club-owner from Production Server
         val response = clubService.get(
-            clubId = "club-1",
+            clubId = "club-owner",
             serverId = productionServerId
         )
 
         // Then: should return correct club data
-        assertEquals("club-1", response.id)
+        assertEquals("club-owner", response.id)
         assertEquals("Freaks & Geeks", response.name)
         assertEquals("1039326367973642363", response.discordChannel)
         assertEquals(productionServerId, response.serverId)
 
         // Should have members (from MemberClubs table)
-        assertTrue((response.members?.size ?: 0) >= 3, "club-1 should have at least 3 members")
+        assertTrue((response.members?.size ?: 0) >= 3, "club-owner should have at least 3 members")
 
         // Should have shame list
-        assertEquals(2, response.shameList?.size, "club-1 shame list should have 2 members")
+        assertEquals(1, response.shameList?.size, "club-owner shame list should have 1 member")
         assertTrue(response.shameList?.contains(2) == true, "Member 2 should be in shame list")
-        assertTrue(response.shameList?.contains(5) == true, "Member 5 should be in shame list")
     }
 
     @Test
-    fun testGetClubFromDifferentServer() = runTest {
-        // Given: club-3 exists on Test Server Alpha
-        // When: getting club-3
-        val response = clubService.get(
-            clubId = "club-3",
-            serverId = testServerAlphaId
-        )
+    fun testGetWebOnlyClubWithoutServerId() = runTest {
+        // Given: club-member is a web-only club (no server, no Discord channel)
+        // When: getting club-member by ID alone (mobile use case)
+        val response = clubService.get(clubId = "club-member")
 
         // Then: should return correct club data
-        assertEquals("club-3", response.id)
+        assertEquals("club-member", response.id)
         assertEquals("Trifecta", response.name)
-        assertEquals("765432109876543210", response.discordChannel)
-        assertEquals(testServerAlphaId, response.serverId)
+        assertEquals(null, response.discordChannel)
+        assertEquals(null, response.serverId)
     }
 
     @Test
     fun testGetClubWithSession() = runTest {
-        // Given: club-1 has active sessions in seed data
-        // When: getting club-1
+        // Given: club-owner has an active and a finished session in seed data
+        // When: getting club-owner
         val response = clubService.get(
-            clubId = "club-1",
+            clubId = "club-owner",
             serverId = productionServerId
         )
 
         // Then: should have session data
-        // Note: active_session vs past_sessions depends on due_date
+        // Note: active_session vs past_sessions depends on session status
         val totalSessions = (if (response.activeSession != null) 1 else 0) + (response.pastSessions?.size ?: 0)
-        assertTrue(totalSessions >= 1, "club-1 should have at least one session")
+        assertTrue(totalSessions >= 1, "club-owner should have at least one session")
 
         if (response.activeSession != null) {
             assertNotNull(response.activeSession?.book)
@@ -151,15 +141,15 @@ class ClubServiceIntegrationTest {
 
     @Test
     fun testGetClubWithMembers() = runTest {
-        // Given: club-1 has multiple members
-        // When: getting club-1
+        // Given: club-owner has multiple members
+        // When: getting club-owner
         val response = clubService.get(
-            clubId = "club-1",
+            clubId = "club-owner",
             serverId = productionServerId
         )
 
         // Then: should include all members
-        assertTrue((response.members?.size ?: 0) >= 3, "club-1 should have at least 3 members")
+        assertTrue((response.members?.size ?: 0) >= 3, "club-owner should have at least 3 members")
 
         // Check specific members exist
         val memberNames = response.members?.map { it.name } ?: emptyList()
@@ -175,17 +165,17 @@ class ClubServiceIntegrationTest {
 
     @Test
     fun testGetClubByDiscordChannel() = runTest {
-        // Given: club-2 has discord channel 876543210987654321
+        // Given: club-owner has discord channel 1039326367973642363
         // When: getting club by channel
         val response = clubService.getByChannel(
-            channel = "876543210987654321",
+            channel = "1039326367973642363",
             serverId = productionServerId
         )
 
-        // Then: should return club-2
-        assertEquals("club-2", response.id)
-        assertEquals("Blingers Pilingers", response.name)
-        assertEquals("876543210987654321", response.discordChannel)
+        // Then: should return club-owner
+        assertEquals("club-owner", response.id)
+        assertEquals("Freaks & Geeks", response.name)
+        assertEquals("1039326367973642363", response.discordChannel)
     }
 
     @Test
@@ -199,60 +189,60 @@ class ClubServiceIntegrationTest {
 
     @Test
     fun testGetClubWithWrongServerId() = runTest {
-        // Given: club-1 exists on Production Server
+        // Given: club-owner exists on Production Server
         // When: trying to get it with wrong server ID
         // Then: should throw an exception or return error
         assertFailsWith<Exception> {
-            clubService.get("club-1", "999999999999999999")
+            clubService.get("club-owner", "999999999999999999")
         }
     }
 
     @Test
     fun testGetClubFromWrongServer() = runTest {
-        // Given: club-1 is on Production Server (1039326367428395038)
+        // Given: club-owner is on Production Server (1039326367428395038)
         // When: trying to get it from Test Server Alpha
         // Then: should fail (club doesn't exist on that server)
         assertFailsWith<Exception> {
-            clubService.get("club-1", testServerAlphaId)
+            clubService.get("club-owner", testServerAlphaId)
         }
     }
 
     @Test
-    fun testMultipleClubsOnSameServer() = runTest {
-        // Given: Production Server has multiple clubs
-        // When: getting different clubs from same server
-        val club1 = clubService.get("club-1", productionServerId)
-        val club2 = clubService.get("club-2", productionServerId)
+    fun testMultipleClubs() = runTest {
+        // Given: a Discord-linked club and a web-only club exist
+        // When: getting each one
+        val discordClub = clubService.get("club-owner", productionServerId)
+        val webOnlyClub = clubService.get("club-admin")
 
         // Then: should get different clubs
-        assertEquals("club-1", club1.id)
-        assertEquals("Freaks & Geeks", club1.name)
+        assertEquals("club-owner", discordClub.id)
+        assertEquals("Freaks & Geeks", discordClub.name)
 
-        assertEquals("club-2", club2.id)
-        assertEquals("Blingers Pilingers", club2.name)
+        assertEquals("club-admin", webOnlyClub.id)
+        assertEquals("Blingers Pilingers", webOnlyClub.name)
 
-        // They should be on the same server
-        assertEquals(productionServerId, club1.serverId)
-        assertEquals(productionServerId, club2.serverId)
+        // One is Discord-linked, the other is web-only
+        assertEquals(productionServerId, discordClub.serverId)
+        assertEquals(null, webOnlyClub.serverId)
     }
 
     @Test
     fun testClubShameListIsIntegerList() = runTest {
-        // Given: club-2 has shame list [1, 2]
-        // When: getting club-2
-        val response = clubService.get("club-2", productionServerId)
+        // Given: club-admin has shame list [4, 7]
+        // When: getting club-admin
+        val response = clubService.get("club-admin")
 
         // Then: shame list should contain member IDs as integers
         assertEquals(2, response.shameList?.size)
-        assertTrue(response.shameList?.contains(1) == true)
-        assertTrue(response.shameList?.contains(2) == true)
+        assertTrue(response.shameList?.contains(4) == true)
+        assertTrue(response.shameList?.contains(7) == true)
     }
 
     @Test
     fun testDiscordChannelIsBigint() = runTest {
-        // Given: club-1 has discord_channel as bigint
-        // When: getting club-1
-        val response = clubService.get("club-1", productionServerId)
+        // Given: club-owner has discord_channel as bigint
+        // When: getting club-owner
+        val response = clubService.get("club-owner", productionServerId)
 
         // Then: discord_channel should be a valid Discord Snowflake (large number as string)
         assertNotNull(response.discordChannel)
@@ -267,9 +257,9 @@ class ClubServiceIntegrationTest {
 
     @Test
     fun testServerIdIsBigint() = runTest {
-        // Given: all clubs have server_id as bigint
-        // When: getting any club
-        val response = clubService.get("club-1", productionServerId)
+        // Given: club-owner has server_id as bigint
+        // When: getting the club
+        val response = clubService.get("club-owner", productionServerId)
 
         // Then: server_id should be a valid Discord Snowflake
         assertEquals(productionServerId, response.serverId)
@@ -285,7 +275,7 @@ class ClubServiceIntegrationTest {
     fun testMemberIdsAreIntegers() = runTest {
         // Given: members have integer IDs
         // When: getting a club with members
-        val response = clubService.get("club-1", productionServerId)
+        val response = clubService.get("club-owner", productionServerId)
 
         // Then: all member IDs should be valid integers
         assertTrue(response.members?.isNotEmpty() == true, "Club should have members")
