@@ -13,10 +13,15 @@ import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
+import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
+import com.ivangarzab.kluvs.database.dao.DiscussionNoteDao
+import com.ivangarzab.kluvs.database.dao.LikeDao
 import com.ivangarzab.kluvs.database.dao.MemberDao
+import com.ivangarzab.kluvs.database.dao.ProgressDao
 import com.ivangarzab.kluvs.database.dao.ServerDao
 import com.ivangarzab.kluvs.database.dao.SessionDao
+import com.ivangarzab.kluvs.database.dao.ShelfDao
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
 import com.ivangarzab.kluvs.member.domain.GetCurrentlyReadingBooksUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
@@ -75,6 +80,11 @@ class MeViewModelTest {
         val sessionDao = mock<SessionDao>()
         val bookDao = mock<BookDao>()
         val discussionDao = mock<DiscussionDao>()
+        val shelfDao = mock<ShelfDao>()
+        val likeDao = mock<LikeDao>()
+        val progressDao = mock<ProgressDao>()
+        val discussionNoteDao = mock<DiscussionNoteDao>()
+        val discussionAttendanceDao = mock<DiscussionAttendanceDao>()
 
         database = mock<KluvsDatabase>()
         every { database.clubDao() } returns clubDao
@@ -83,6 +93,11 @@ class MeViewModelTest {
         every { database.sessionDao() } returns sessionDao
         every { database.bookDao() } returns bookDao
         every { database.discussionDao() } returns discussionDao
+        every { database.shelfDao() } returns shelfDao
+        every { database.likeDao() } returns likeDao
+        every { database.progressDao() } returns progressDao
+        every { database.discussionNoteDao() } returns discussionNoteDao
+        every { database.discussionAttendanceDao() } returns discussionAttendanceDao
 
         // Mock the suspend delete methods to return Unit
         everySuspend { clubDao.deleteAll() } returns Unit
@@ -92,6 +107,11 @@ class MeViewModelTest {
         everySuspend { sessionDao.deleteAll() } returns Unit
         everySuspend { bookDao.deleteAll() } returns Unit
         everySuspend { discussionDao.deleteAll() } returns Unit
+        everySuspend { shelfDao.deleteAll() } returns Unit
+        everySuspend { likeDao.deleteAll() } returns Unit
+        everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { discussionNoteDao.deleteAll() } returns Unit
+        everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
 
         // Use REAL UseCases with mocked repositories
         getCurrentUserProfile = GetCurrentUserProfileUseCase(memberRepository, formatDateTime, avatarRepository)

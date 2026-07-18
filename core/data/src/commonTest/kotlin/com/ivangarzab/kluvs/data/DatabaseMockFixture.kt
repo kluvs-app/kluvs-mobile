@@ -3,10 +3,15 @@ package com.ivangarzab.kluvs.data
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
+import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
+import com.ivangarzab.kluvs.database.dao.DiscussionNoteDao
+import com.ivangarzab.kluvs.database.dao.LikeDao
 import com.ivangarzab.kluvs.database.dao.MemberDao
+import com.ivangarzab.kluvs.database.dao.ProgressDao
 import com.ivangarzab.kluvs.database.dao.ServerDao
 import com.ivangarzab.kluvs.database.dao.SessionDao
+import com.ivangarzab.kluvs.database.dao.ShelfDao
 import com.ivangarzab.kluvs.database.entities.BookEntity
 import com.ivangarzab.kluvs.database.entities.ClubEntity
 import com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef
@@ -40,6 +45,11 @@ class DatabaseMockFixture {
     val bookDao: BookDao = mock<BookDao>()
     val discussionDao: DiscussionDao = mock<DiscussionDao>()
     val serverDao: ServerDao = mock<ServerDao>()
+    val shelfDao: ShelfDao = mock<ShelfDao>()
+    val likeDao: LikeDao = mock<LikeDao>()
+    val progressDao: ProgressDao = mock<ProgressDao>()
+    val discussionNoteDao: DiscussionNoteDao = mock<DiscussionNoteDao>()
+    val discussionAttendanceDao: DiscussionAttendanceDao = mock<DiscussionAttendanceDao>()
 
     val database: KluvsDatabase = mock<KluvsDatabase>().also { db ->
         every { db.clubDao() } returns clubDao
@@ -48,6 +58,11 @@ class DatabaseMockFixture {
         every { db.bookDao() } returns bookDao
         every { db.discussionDao() } returns discussionDao
         every { db.serverDao() } returns serverDao
+        every { db.shelfDao() } returns shelfDao
+        every { db.likeDao() } returns likeDao
+        every { db.progressDao() } returns progressDao
+        every { db.discussionNoteDao() } returns discussionNoteDao
+        every { db.discussionAttendanceDao() } returns discussionAttendanceDao
 
         // Mock all insert/update operations to accept any argument and return Unit
         everySuspend { clubDao.insertClub(any()) } returns Unit
@@ -80,6 +95,28 @@ class DatabaseMockFixture {
         everySuspend { serverDao.deleteServer(any()) } returns Unit
         everySuspend { serverDao.deleteAll() } returns Unit
 
+        everySuspend { shelfDao.insertShelfEntry(any()) } returns Unit
+        everySuspend { shelfDao.insertShelfEntries(any()) } returns Unit
+        everySuspend { shelfDao.deleteShelfEntry(any()) } returns Unit
+        everySuspend { shelfDao.deleteAll() } returns Unit
+
+        everySuspend { likeDao.insertLike(any()) } returns Unit
+        everySuspend { likeDao.deleteLike(any()) } returns Unit
+        everySuspend { likeDao.deleteAll() } returns Unit
+
+        everySuspend { progressDao.insertProgress(any()) } returns Unit
+        everySuspend { progressDao.insertProgressEntries(any()) } returns Unit
+        everySuspend { progressDao.deleteProgress(any()) } returns Unit
+        everySuspend { progressDao.deleteAll() } returns Unit
+
+        everySuspend { discussionNoteDao.insertNote(any()) } returns Unit
+        everySuspend { discussionNoteDao.deleteNote(any()) } returns Unit
+        everySuspend { discussionNoteDao.deleteAll() } returns Unit
+
+        everySuspend { discussionAttendanceDao.insertAttendance(any()) } returns Unit
+        everySuspend { discussionAttendanceDao.deleteAttendance(any()) } returns Unit
+        everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
+
         // Mock read operations to return empty lists by default
         everySuspend { clubDao.getClub(any()) } returns null
         everySuspend { clubDao.getClubsForServer(any()) } returns emptyList()
@@ -94,5 +131,19 @@ class DatabaseMockFixture {
         everySuspend { serverDao.getServer(any()) } returns null
         everySuspend { serverDao.getAllServers() } returns emptyList()
         everySuspend { discussionDao.getDiscussionsForSession(any()) } returns emptyList()
+
+        everySuspend { shelfDao.getShelfEntry(any()) } returns null
+        everySuspend { shelfDao.getShelf() } returns emptyList()
+        everySuspend { shelfDao.getLastFetchedAt(any()) } returns null
+        everySuspend { likeDao.getLike(any()) } returns null
+        everySuspend { likeDao.getLastFetchedAt(any()) } returns null
+        everySuspend { progressDao.getProgress(any()) } returns null
+        everySuspend { progressDao.getProgressEntries(any(), any(), any()) } returns emptyList()
+        everySuspend { progressDao.getLastFetchedAt(any()) } returns null
+        everySuspend { discussionNoteDao.getNote(any()) } returns null
+        everySuspend { discussionNoteDao.getNoteById(any()) } returns null
+        everySuspend { discussionNoteDao.getLastFetchedAt(any()) } returns null
+        everySuspend { discussionAttendanceDao.getAttendance(any()) } returns null
+        everySuspend { discussionAttendanceDao.getLastFetchedAt(any()) } returns null
     }
 }

@@ -2,6 +2,8 @@ package com.ivangarzab.kluvs.data.repositories
 
 import com.ivangarzab.kluvs.api.models.ProgressCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ProgressUpdateRequestDto
+import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.source.ProgressLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ProgressRemoteDataSource
 import com.ivangarzab.kluvs.model.ProgressStatus
 import com.ivangarzab.kluvs.model.ProgressType
@@ -16,10 +18,14 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class ProgressRepositoryTest {
 
     private lateinit var remoteDataSource: ProgressRemoteDataSource
+    private lateinit var localDataSource: ProgressLocalDataSource
+    private lateinit var cachePolicy: CachePolicy
     private lateinit var repository: ProgressRepository
 
     private val testProgress = ReadingProgress(
@@ -34,11 +40,19 @@ class ProgressRepositoryTest {
     @BeforeTest
     fun setup() {
         remoteDataSource = mock<ProgressRemoteDataSource>()
-        repository = ProgressRepositoryImpl(remoteDataSource)
+        localDataSource = mock<ProgressLocalDataSource>()
+        cachePolicy = CachePolicy()
+        repository = ProgressRepositoryImpl(remoteDataSource, localDataSource, cachePolicy)
+
+        // Default behavior: cache miss (empty/null)
+        everySuspend { localDataSource.getProgress(any(), any(), any()) } returns emptyList()
+        everySuspend { localDataSource.getLastFetchedAt(any()) } returns null
+        everySuspend { localDataSource.insertProgress(any()) } returns Unit
+        everySuspend { localDataSource.deleteProgress(any()) } returns Unit
     }
 
     @Test
-    fun `getProgress success delegates to remote with optional parameters`() = runTest {
+    fun `getProgress cache miss delegates to remote and caches result`() = runTest {
         val expected = listOf(testProgress)
         everySuspend { remoteDataSource.getProgress(any(), any(), any()) } returns Result.success(expected)
 
@@ -47,6 +61,20 @@ class ProgressRepositoryTest {
         assertTrue(result.isSuccess)
         assertEquals(expected, result.getOrNull())
         verifySuspend { remoteDataSource.getProgress(42, "session-1", "in_progress") }
+        verifySuspend { localDataSource.insertProgress(testProgress) }
+    }
+
+    @Test
+    fun `getProgress cache hit returns cached data without hitting remote`() = runTest {
+        // remoteDataSource.getProgress() intentionally left unstubbed: a strict mock
+        // throws if it's invoked, so a passing test proves the cache path was used.
+        everySuspend { localDataSource.getProgress("42", null, null) } returns listOf(testProgress)
+        everySuspend { localDataSource.getLastFetchedAt("progress-1") } returns Long.MAX_VALUE
+
+        val result = repository.getProgress(bookId = "42")
+
+        assertTrue(result.isSuccess)
+        assertEquals(listOf(testProgress), result.getOrNull())
     }
 
     @Test
@@ -58,7 +86,7 @@ class ProgressRepositoryTest {
     }
 
     @Test
-    fun `createProgress success delegates to remote with mapped request`() = runTest {
+    fun `createProgress success delegates to remote with mapped request and caches result`() = runTest {
         everySuspend { remoteDataSource.createProgress(any()) } returns Result.success(testProgress)
 
         val result = repository.createProgress(
@@ -80,6 +108,7 @@ class ProgressRepositoryTest {
                 )
             )
         }
+        verifySuspend { localDataSource.insertProgress(testProgress) }
     }
 
     @Test
@@ -91,7 +120,7 @@ class ProgressRepositoryTest {
     }
 
     @Test
-    fun `updateProgress success delegates to remote with mapped request`() = runTest {
+    fun `updateProgress success delegates to remote with mapped request and caches result`() = runTest {
         everySuspend { remoteDataSource.updateProgress(any()) } returns Result.success(testProgress)
 
         val result = repository.updateProgress(
@@ -113,15 +142,17 @@ class ProgressRepositoryTest {
                 )
             )
         }
+        verifySuspend { localDataSource.insertProgress(testProgress) }
     }
 
     @Test
-    fun `deleteProgress success delegates to remote`() = runTest {
+    fun `deleteProgress success delegates to remote and evicts cache`() = runTest {
         everySuspend { remoteDataSource.deleteProgress("progress-1") } returns Result.success(Unit)
 
         val result = repository.deleteProgress("progress-1")
 
         assertTrue(result.isSuccess)
         verifySuspend { remoteDataSource.deleteProgress("progress-1") }
+        verifySuspend { localDataSource.deleteProgress("progress-1") }
     }
 }

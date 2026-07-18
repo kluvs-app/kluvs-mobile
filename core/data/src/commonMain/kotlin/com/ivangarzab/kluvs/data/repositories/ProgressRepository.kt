@@ -3,6 +3,9 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ProgressCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ProgressUpdateRequestDto
+import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.CacheTTL
+import com.ivangarzab.kluvs.data.local.source.ProgressLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toCreateDto
 import com.ivangarzab.kluvs.data.remote.mappers.toQueryValue
 import com.ivangarzab.kluvs.data.remote.mappers.toUpdateDto
@@ -80,8 +83,20 @@ interface ProgressRepository {
     suspend fun deleteProgress(progressId: String): Result<Unit>
 }
 
+/**
+ * Implementation of [ProgressRepository] with TTL-based caching.
+ *
+ * Implements a cache-aside pattern:
+ * - Reads check local cache first (1h TTL), using the freshness of the first
+ *   cached entry as a proxy for the whole filtered result set (entries are
+ *   always fetched and cached together)
+ * - Cache misses fetch from remote and populate cache
+ * - Mutations write-through to cache on success
+ */
 internal class ProgressRepositoryImpl(
-    private val progressRemoteDataSource: ProgressRemoteDataSource
+    private val progressRemoteDataSource: ProgressRemoteDataSource,
+    private val progressLocalDataSource: ProgressLocalDataSource,
+    private val cachePolicy: CachePolicy
 ) : ProgressRepository {
 
     override suspend fun getProgress(
@@ -93,11 +108,36 @@ internal class ProgressRepositoryImpl(
             it.toIntOrNull()
                 ?: return Result.failure(IllegalArgumentException("Invalid book ID: $it"))
         }
-        return progressRemoteDataSource.getProgress(
+
+        val cachedEntries = progressLocalDataSource.getProgress(bookId, sessionId, status?.name)
+        if (cachedEntries.isNotEmpty()) {
+            val lastFetchedAt = progressLocalDataSource.getLastFetchedAt(cachedEntries.first().id)
+            if (!cachePolicy.isStale(lastFetchedAt, CacheTTL.PROGRESS)) {
+                Bark.d("Cache hit for progress entries")
+                return Result.success(cachedEntries)
+            }
+        }
+        Bark.d("Cache miss for progress entries")
+
+        val result = progressRemoteDataSource.getProgress(
             bookId = bookIdInt,
             sessionId = sessionId,
             status = status?.toQueryValue()
         )
+
+        result.onSuccess { entries ->
+            Bark.v("Persisting ${entries.size} progress entries to cache")
+            try {
+                entries.forEach { progressLocalDataSource.insertProgress(it) }
+                Bark.d("Progress entries cached (${entries.size})")
+            } catch (e: Exception) {
+                Bark.e("Progress cache failed. Will use remote data on next fetch.", e)
+            }
+        }.onFailure { error ->
+            Bark.e("Failed to fetch progress entries. Cached data may be unavailable.", error)
+        }
+
+        return result
     }
 
     override suspend fun createProgress(
@@ -110,7 +150,7 @@ internal class ProgressRepositoryImpl(
         val bookIdInt = bookId.toIntOrNull()
             ?: return Result.failure(IllegalArgumentException("Invalid book ID: $bookId"))
         Bark.d("Creating progress entry for book (ID: $bookId)")
-        return progressRemoteDataSource.createProgress(
+        val result = progressRemoteDataSource.createProgress(
             ProgressCreateRequestDto(
                 bookId = bookIdInt,
                 progressType = type.toCreateDto(),
@@ -119,6 +159,20 @@ internal class ProgressRepositoryImpl(
                 percentComplete = percentComplete
             )
         )
+
+        result.onSuccess { progress ->
+            Bark.v("Persisting new progress entry to cache (ID: ${progress.id})")
+            try {
+                progressLocalDataSource.insertProgress(progress)
+                Bark.i("Progress entry created and cached (ID: ${progress.id})")
+            } catch (e: Exception) {
+                Bark.e("Progress cache failed. Will fetch from remote if needed.", e)
+            }
+        }.onFailure { error ->
+            Bark.e("Progress creation failed. Check input and retry.", error)
+        }
+
+        return result
     }
 
     override suspend fun updateProgress(
@@ -129,7 +183,7 @@ internal class ProgressRepositoryImpl(
         status: ProgressStatus?,
     ): Result<ReadingProgress> {
         Bark.d("Updating progress entry (ID: $progressId)")
-        return progressRemoteDataSource.updateProgress(
+        val result = progressRemoteDataSource.updateProgress(
             ProgressUpdateRequestDto(
                 id = progressId,
                 progressType = type.toUpdateDto(),
@@ -138,10 +192,33 @@ internal class ProgressRepositoryImpl(
                 status = status?.toUpdateDto()
             )
         )
+
+        result.onSuccess { progress ->
+            Bark.v("Persisting updated progress entry to cache (ID: ${progress.id})")
+            try {
+                progressLocalDataSource.insertProgress(progress)
+                Bark.i("Progress entry updated and cached (ID: ${progress.id})")
+            } catch (e: Exception) {
+                Bark.e("Progress cache failed. Will fetch updated data from remote.", e)
+            }
+        }.onFailure { error ->
+            Bark.e("Progress update failed. Verify input and retry.", error)
+        }
+
+        return result
     }
 
     override suspend fun deleteProgress(progressId: String): Result<Unit> {
         Bark.d("Deleting progress entry (ID: $progressId)")
-        return progressRemoteDataSource.deleteProgress(progressId)
+        val result = progressRemoteDataSource.deleteProgress(progressId)
+
+        result.onSuccess {
+            Bark.v("Removing progress entry from cache (ID: $progressId)")
+            progressLocalDataSource.deleteProgress(progressId)
+        }.onFailure { error ->
+            Bark.e("Progress deletion failed. Verify progress entry exists and retry.", error)
+        }
+
+        return result
     }
 }
