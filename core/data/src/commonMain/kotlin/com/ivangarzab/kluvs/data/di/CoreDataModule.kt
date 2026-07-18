@@ -43,24 +43,52 @@ import com.ivangarzab.kluvs.data.remote.source.BookRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.BookRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.DiscussionAttendanceRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.DiscussionAttendanceRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.DiscussionNoteRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.DiscussionNoteRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.DiscussionRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.DiscussionRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.JoinRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.JoinRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.LikeRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.LikeRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.ProgressRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.ProgressRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.ServerRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.ServerRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.SessionRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.SessionRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.ShelfRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.ShelfRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.AvatarRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.BookRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.DiscussionNoteRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionNoteRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.JoinRepository
+import com.ivangarzab.kluvs.data.repositories.JoinRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.LikeRepository
+import com.ivangarzab.kluvs.data.repositories.LikeRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.ProgressRepository
+import com.ivangarzab.kluvs.data.repositories.ProgressRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ServerRepository
 import com.ivangarzab.kluvs.data.repositories.ServerRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.ShelfRepository
+import com.ivangarzab.kluvs.data.repositories.ShelfRepositoryImpl
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import io.github.jan.supabase.SupabaseClient
 import org.koin.core.module.Module
@@ -104,6 +132,13 @@ val coreDataModule = module {
     single<MemberRemoteDataSource> { MemberRemoteDataSourceImpl(get<MemberService>()) }
     single<ServerRemoteDataSource> { ServerRemoteDataSourceImpl(get<ServerService>()) }
     single<SessionRemoteDataSource> { SessionRemoteDataSourceImpl(get<SessionService>()) }
+    single<ShelfRemoteDataSource> { ShelfRemoteDataSourceImpl(get<ShelfService>()) }
+    single<LikeRemoteDataSource> { LikeRemoteDataSourceImpl(get<LikeService>()) }
+    single<ProgressRemoteDataSource> { ProgressRemoteDataSourceImpl(get<ProgressService>()) }
+    single<DiscussionRemoteDataSource> { DiscussionRemoteDataSourceImpl(get<DiscussionService>()) }
+    single<DiscussionNoteRemoteDataSource> { DiscussionNoteRemoteDataSourceImpl(get<DiscussionNoteService>()) }
+    single<DiscussionAttendanceRemoteDataSource> { DiscussionAttendanceRemoteDataSourceImpl(get<DiscussionAttendanceService>()) }
+    single<JoinRemoteDataSource> { JoinRemoteDataSourceImpl(get<JoinService>()) }
 
     // Repositories
     single<AvatarRepository> { AvatarRepositoryImpl(get<AvatarRemoteDataSource>()) }
@@ -141,6 +176,13 @@ val coreDataModule = module {
             get<CachePolicy>()
         )
     }
+    single<ShelfRepository> { ShelfRepositoryImpl(get<ShelfRemoteDataSource>()) }
+    single<LikeRepository> { LikeRepositoryImpl(get<LikeRemoteDataSource>()) }
+    single<ProgressRepository> { ProgressRepositoryImpl(get<ProgressRemoteDataSource>()) }
+    single<DiscussionRepository> { DiscussionRepositoryImpl(get<DiscussionRemoteDataSource>()) }
+    single<DiscussionNoteRepository> { DiscussionNoteRepositoryImpl(get<DiscussionNoteRemoteDataSource>()) }
+    single<DiscussionAttendanceRepository> { DiscussionAttendanceRepositoryImpl(get<DiscussionAttendanceRemoteDataSource>()) }
+    single<JoinRepository> { JoinRepositoryImpl(get<JoinRemoteDataSource>()) }
 }
 
 expect val databaseModule: Module

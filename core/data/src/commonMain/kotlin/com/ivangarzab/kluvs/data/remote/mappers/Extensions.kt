@@ -18,3 +18,22 @@ fun String.parseDateString(): LocalDateTime {
         LocalDate.parse(this).atTime(17, 0)
     }
 }
+
+/**
+ * Lenient variant of [parseDateString] for metadata timestamps (created_at,
+ * updated_at, completed_at, ...) whose wire format the backend does not
+ * guarantee. Strips a trailing timezone designator (kotlinx [LocalDateTime]
+ * cannot parse zoned strings) and returns null instead of throwing when the
+ * string still cannot be parsed.
+ */
+fun String?.parseDateStringOrNull(): LocalDateTime? {
+    if (this.isNullOrBlank()) return null
+    val normalized = this
+        .removeSuffix("Z")
+        .replace(Regex("""[+-]\d{2}:\d{2}$"""), "")
+    return try {
+        normalized.parseDateString()
+    } catch (e: Exception) {
+        null
+    }
+}
