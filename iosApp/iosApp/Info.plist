@@ -17,5 +17,16 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>EBGaramond-Regular.ttf</string>
+		<string>EBGaramond-Medium.ttf</string>
+		<string>EBGaramond-Bold.ttf</string>
+		<string>EBGaramond-Italic.ttf</string>
+		<string>EBGaramond-MediumItalic.ttf</string>
+		<string>IBMPlexSans-Regular.ttf</string>
+		<string>IBMPlexSans-Medium.ttf</string>
+		<string>IBMPlexSans-Bold.ttf</string>
+	</array>
 </dict>
 </plist>
