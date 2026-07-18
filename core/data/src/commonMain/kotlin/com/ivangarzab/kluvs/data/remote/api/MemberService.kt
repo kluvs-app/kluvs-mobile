@@ -1,12 +1,13 @@
 package com.ivangarzab.kluvs.data.remote.api
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
+import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
+import com.ivangarzab.kluvs.api.models.MemberCreateResponseDto
+import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
+import com.ivangarzab.kluvs.api.models.MemberUpdateResponseDto
 import com.ivangarzab.kluvs.network.utils.JsonHelper.getJsonForSupabaseService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateMemberRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateMemberRequestDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.ktor.client.call.body
@@ -14,23 +15,23 @@ import io.ktor.http.HttpMethod
 import io.ktor.utils.io.InternalAPI
 
 interface MemberService {
-    suspend fun get(memberId: String): MemberResponseDto
-    suspend fun getByUserId(userId: String): MemberResponseDto
-    suspend fun create(request: CreateMemberRequestDto): MemberSuccessResponseDto
-    suspend fun update(request: UpdateMemberRequestDto): MemberSuccessResponseDto
+    suspend fun get(memberId: String): MemberGetResponseDto
+    suspend fun getByUserId(userId: String): MemberGetResponseDto
+    suspend fun create(request: MemberCreateRequestDto): MemberCreateResponseDto
+    suspend fun update(request: MemberUpdateRequestDto): MemberUpdateResponseDto
     suspend fun delete(memberId: String): DeleteResponseDto
 }
 
 @OptIn(InternalAPI::class)
 internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberService {
 
-    override suspend fun get(memberId: String): MemberResponseDto {
+    override suspend fun get(memberId: String): MemberGetResponseDto {
         Bark.d("Fetching member (ID: $memberId)")
         return try {
             val response = supabase.functions.invoke("member") {
                 method = HttpMethod.Get
                 url { parameters.append("id", memberId) }
-            }.body<MemberResponseDto>()
+            }.body<MemberGetResponseDto>()
             Bark.v("Member fetched successfully (ID: $memberId)")
             response
         } catch (error: Exception) {
@@ -39,13 +40,13 @@ internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberS
         }
     }
 
-    override suspend fun getByUserId(userId: String): MemberResponseDto {
+    override suspend fun getByUserId(userId: String): MemberGetResponseDto {
         Bark.d("Fetching member by user ID (User: $userId)")
         return try {
             val response = supabase.functions.invoke("member") {
                 method = HttpMethod.Get
                 url { parameters.append("user_id", userId) }
-            }.body<MemberResponseDto>()
+            }.body<MemberGetResponseDto>()
             Bark.v("Member fetched by user ID successfully (User: $userId)")
             response
         } catch (error: Exception) {
@@ -54,7 +55,7 @@ internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberS
         }
     }
 
-    override suspend fun create(request: CreateMemberRequestDto): MemberSuccessResponseDto {
+    override suspend fun create(request: MemberCreateRequestDto): MemberCreateResponseDto {
         Bark.d("Creating member")
         return try {
             val json = getJsonForSupabaseService()
@@ -63,7 +64,7 @@ internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberS
             val response = supabase.functions.invoke("member") {
                 method = HttpMethod.Post
                 body = jsonString
-            }.body<MemberSuccessResponseDto>()
+            }.body<MemberCreateResponseDto>()
             Bark.v("Member created successfully")
             response
         } catch (error: Exception) {
@@ -72,7 +73,7 @@ internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberS
         }
     }
 
-    override suspend fun update(request: UpdateMemberRequestDto): MemberSuccessResponseDto {
+    override suspend fun update(request: MemberUpdateRequestDto): MemberUpdateResponseDto {
         Bark.d("Updating member (ID: ${request.id})")
         return try {
             val json = getJsonForSupabaseService()
@@ -81,7 +82,7 @@ internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberS
             val response = supabase.functions.invoke("member") {
                 method = HttpMethod.Put
                 body = jsonString
-            }.body<MemberSuccessResponseDto>()
+            }.body<MemberUpdateResponseDto>()
             Bark.v("Member updated successfully (ID: ${request.id})")
             response
         } catch (error: Exception) {

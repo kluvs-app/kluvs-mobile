@@ -1,9 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.source
 
+import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.data.remote.api.BookService
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.BookRegistrationResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.CreateBookRequestDto
+import com.ivangarzab.kluvs.api.models.BookRegistrationResponseDto
+import com.ivangarzab.kluvs.api.models.BookSearchResponseDto
 import com.ivangarzab.kluvs.model.Book
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.throws
@@ -22,14 +22,14 @@ class BookRemoteDataSourceTest {
     private lateinit var dataSource: BookRemoteDataSource
 
     private val testBookDto = BookDto(
-        id = "42",
+        id = 42,
         title = "The Hobbit",
         author = "J.R.R. Tolkien",
         year = 1937,
         isbn = "978-0-395-07122-1",
-        page_count = 310,
-        image_url = "https://example.com/hobbit.jpg",
-        external_google_id = "goog-hobbit"
+        pageCount = 310,
+        imageUrl = "https://example.com/hobbit.jpg",
+        externalGoogleId = "goog-hobbit"
     )
 
     private val testBook = Book(
@@ -55,7 +55,10 @@ class BookRemoteDataSourceTest {
 
     @Test
     fun `searchBooks success returns list of books`() = runTest {
-        everySuspend { bookService.search(any(), any()) } returns listOf(testBookDto)
+        everySuspend { bookService.search(any(), any()) } returns BookSearchResponseDto(
+            success = true,
+            books = listOf(testBookDto)
+        )
 
         val result = dataSource.searchBooks("hobbit")
 
@@ -67,7 +70,10 @@ class BookRemoteDataSourceTest {
 
     @Test
     fun `searchBooks returns empty list when no results`() = runTest {
-        everySuspend { bookService.search(any(), any()) } returns emptyList()
+        everySuspend { bookService.search(any(), any()) } returns BookSearchResponseDto(
+            success = true,
+            books = emptyList()
+        )
 
         val result = dataSource.searchBooks("xyzzy")
 

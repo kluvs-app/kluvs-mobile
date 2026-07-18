@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param status RSVP response
  * @param updatedAt 
  */
-@Serializable@Serializable
+@Serializable
 
 data class DiscussionAttendanceDto (
 

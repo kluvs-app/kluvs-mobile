@@ -1,15 +1,16 @@
 package com.ivangarzab.kluvs.data.repositories
 
+import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
+import com.ivangarzab.kluvs.api.models.SessionBookPatchInputDto
+import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.SessionLocalDataSource
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.CreateSessionRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateSessionRequestDto
 import com.ivangarzab.kluvs.data.remote.mappers.toDto
 import com.ivangarzab.kluvs.data.remote.source.SessionRemoteDataSource
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Discussion
+import com.ivangarzab.kluvs.model.ReadingLog
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.bark.Bark
 import kotlinx.datetime.LocalDateTime
@@ -37,7 +38,7 @@ interface SessionRepository {
      * Creates a new reading session.
      *
      * @param clubId The ID of the club this session belongs to
-     * @param book The book for this reading session
+     * @param book The book for this reading session (must already be registered — its [Book.id] is used)
      * @param dueDate Optional due date for completing the book
      * @param discussions Optional list of discussions to create with this session
      * @return Result containing the created Session if successful, or an error if the operation failed
@@ -55,15 +56,21 @@ interface SessionRepository {
      * Uses PATCH semantics - only fields that are non-null will be updated.
      * Pass null for any field you want to leave unchanged.
      *
-     * @param sessionId The ID of the session to update
-     * @param book Optional new Book to replace the session's book (null = don't update book)
-     * @param dueDate Optional new due date (null = don't update due date)
-     * @param discussions Optional list of discussions to replace all discussions (null = don't update discussions)
-     * @param discussionIdsToDelete Optional list of discussion IDs to delete
-     * @return Result containing the updated Session if successful, or an error if the operation failed
+     * Note: the backend's PUT /session response never includes the updated session, so
+     * on success this re-fetches the session via [getSession] to return fresh data.
      *
-     * Note: When providing discussions, it will replace ALL discussions. To add/remove individual
-     * discussions, use the dedicated methods or provide the complete list with additions/removals.
+     * @param sessionId The ID of the session to update
+     * @param book Optional book whose [Book.title]/[Book.author] should be patched on the
+     *             session's existing book (the backend only supports patching those two
+     *             fields here — it cannot re-point the session at a different book)
+     * @param dueDate Optional new due date (null = don't update due date)
+     * @param discussions Reserved for future use by the backend — currently only checked
+     *                     for presence to determine the required role; no discussion
+     *                     records are created/updated by this endpoint
+     * @param discussionIdsToDelete Reserved for future use by the backend — currently only
+     *                               checked for presence; no discussion records are deleted
+     *                               by this endpoint
+     * @return Result containing the updated Session if successful, or an error if the operation failed
      */
     suspend fun updateSession(
         sessionId: String,
@@ -80,6 +87,14 @@ interface SessionRepository {
      * @return Result containing success message if deletion was successful, or an error if the operation failed
      */
     suspend fun deleteSession(sessionId: String): Result<String>
+
+    /**
+     * Retrieves the authenticated member's reading log — all their sessions
+     * grouped into active and finished. Requires a signed-in user session.
+     *
+     * @return Result containing the [ReadingLog] if successful, or an error if the operation failed
+     */
+    suspend fun getReadingLog(): Result<ReadingLog>
 }
 
 /**
@@ -138,10 +153,10 @@ internal class SessionRepositoryImpl(
     ): Result<Session> {
         Bark.d("Creating session for club (ID: $clubId): ${book.title}")
         val result = sessionRemoteDataSource.createSession(
-            CreateSessionRequestDto(
-                club_id = clubId,
-                book_id = book.id,
-                due_date = dueDate?.toString(),
+            SessionCreateRequestDto(
+                clubId = clubId,
+                bookId = book.id.toIntOrNull(),
+                dueDate = dueDate?.toString(),
                 discussions = discussions?.map { it.toDto() }
             )
         )
@@ -169,24 +184,23 @@ internal class SessionRepositoryImpl(
         discussionIdsToDelete: List<String>?
     ): Result<Session> {
         Bark.d("Updating session (ID: $sessionId)")
-        val result = sessionRemoteDataSource.updateSession(
-            UpdateSessionRequestDto(
+        val updateResult = sessionRemoteDataSource.updateSession(
+            SessionUpdateRequestDto(
                 id = sessionId,
-                book = book?.let {
-                    BookDto(
-                        id = it.id,
-                        title = it.title,
-                        author = it.author,
-                        edition = it.edition,
-                        year = it.year,
-                        isbn = it.isbn
-                    )
-                },
-                due_date = dueDate?.toString(),
-                discussions = discussions?.map { it.toDto() },
-                discussion_ids_to_delete = discussionIdsToDelete
+                dueDate = dueDate?.toString(),
+                book = book?.let { SessionBookPatchInputDto(title = it.title, author = it.author) },
+                discussions = discussions?.map { it.id },
+                discussionIdsToDelete = discussionIdsToDelete
             )
         )
+
+        if (updateResult.isFailure) {
+            Bark.e("Session update failed. Verify input and retry.", updateResult.exceptionOrNull())
+            return Result.failure(updateResult.exceptionOrNull() ?: Exception("Session update failed"))
+        }
+
+        // PUT /session never returns the updated session, so re-fetch it for fresh data.
+        val result = sessionRemoteDataSource.getSession(sessionId)
 
         result.onSuccess { session ->
             Bark.v("Persisting updated session to cache (ID: ${session.id})")
@@ -197,7 +211,7 @@ internal class SessionRepositoryImpl(
                 Bark.e("Session cache failed. Will fetch updated data from remote.", e)
             }
         }.onFailure { error ->
-            Bark.e("Session update failed. Verify input and retry.", error)
+            Bark.e("Session updated, but re-fetching fresh data failed.", error)
         }
 
         return result
@@ -216,5 +230,10 @@ internal class SessionRepositoryImpl(
         }
 
         return result
+    }
+
+    override suspend fun getReadingLog(): Result<ReadingLog> {
+        Bark.d("Fetching reading log from remote")
+        return sessionRemoteDataSource.getReadingLog()
     }
 }

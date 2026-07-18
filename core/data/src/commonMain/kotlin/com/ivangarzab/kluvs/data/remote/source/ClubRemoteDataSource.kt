@@ -1,9 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.source
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.remote.api.ClubService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateClubRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateClubRequestDto
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
 import com.ivangarzab.kluvs.model.Club
 
@@ -43,14 +43,14 @@ interface ClubRemoteDataSource {
      *
      * Returns the created [Club] (basic info only, no nested relations).
      */
-    suspend fun createClub(request: CreateClubRequestDto): Result<Club>
+    suspend fun createClub(request: ClubCreateRequestDto): Result<Club>
 
     /**
      * Updates an existing club.
      *
      * Returns the updated [Club] (basic info only, no nested relations).
      */
-    suspend fun updateClub(request: UpdateClubRequestDto): Result<Club>
+    suspend fun updateClub(request: ClubUpdateRequestDto): Result<Club>
 
     /**
      * Deletes a club by ID with optional server ID.
@@ -89,22 +89,24 @@ class ClubRemoteDataSourceImpl(
         }
     }
 
-    override suspend fun createClub(request: CreateClubRequestDto): Result<Club> {
+    override suspend fun createClub(request: ClubCreateRequestDto): Result<Club> {
         return try {
             val response = clubService.create(request)
+            val club = response.club ?: error("Club creation response missing club data")
             Bark.i("Club created (name: ${request.name})")
-            Result.success(response.club.toDomain())
+            Result.success(club.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to create club. Please retry.", e)
             Result.failure(e)
         }
     }
 
-    override suspend fun updateClub(request: UpdateClubRequestDto): Result<Club> {
+    override suspend fun updateClub(request: ClubUpdateRequestDto): Result<Club> {
         return try {
             val response = clubService.update(request)
+            val club = response.club ?: error("Club update response missing club data")
             Bark.i("Club updated (ID: ${request.id})")
-            Result.success(response.club.toDomain())
+            Result.success(club.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to update club (ID: ${request.id}). Please retry.", e)
             Result.failure(e)

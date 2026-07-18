@@ -1,82 +1,54 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.ClubResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerClubDto
+import com.ivangarzab.kluvs.api.models.ClubDto
+import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.network.utils.parseDateOnlyString
 
 /**
- * Maps a [com.ivangarzab.kluvs.data.remote.dtos.ClubDto] from the API to a [Club] domain model.
+ * Maps a [ClubDto] from the API to a [Club] domain model.
  *
- * Note: ClubDto contains only basic club info without nested relations.
- * Relations (members, sessions) will be null.
+ * Note: [Club.role] is only ever populated when a club comes from inside a Member's
+ * `clubs` list (see [MemberClubEntryDto.toDomain]); a standalone
+ * club fetch always has a null role.
+ *
+ * Note: [Club.pastSessions] is left null — the API's `past_sessions` here is a
+ * lightweight id+due_date shape with no book data, and [com.ivangarzab.kluvs.model.Session]
+ * requires a non-null book, so it cannot be constructed from this response.
  */
 fun ClubDto.toDomain(): Club {
     return Club(
         id = id,
         name = name,
-        discordChannel = discord_channel,
-        serverId = server_id,
-        foundedDate = parseDateOnlyString(founded_date),
-        shameList = emptyList(),
-        role = role?.let { Role.fromString(it) },
-        members = null,
-        activeSession = null,
+        discordChannel = discordChannel,
+        serverId = serverId,
+        foundedDate = parseDateOnlyString(foundedDate),
+        shameList = shameList?.map { it.toString() } ?: emptyList(),
+        role = null,
+        members = members?.map { it.toDomain() },
+        activeSession = activeSession?.toDomain(),
         pastSessions = null
     )
 }
 
 /**
- * Maps a [com.ivangarzab.kluvs.data.remote.dtos.ClubResponseDto] from the API to a [Club] domain model.
+ * Maps a [MemberClubEntryDto] (a club embedded within a member's
+ * `clubs` list, including the member's per-club role) to a [Club] domain model.
  *
- * This is the full club response with all nested relations populated:
- * - members (list of Member objects)
- * - active_session (Session object)
- * - past_sessions (list of Session objects)
- * - shame_list (list of member IDs)
+ * This is the only context where [Club.role] gets populated from real data.
  */
-fun ClubResponseDto.toDomain(): Club {
+fun MemberClubEntryDto.toDomain(): Club {
     return Club(
         id = id,
         name = name,
-        discordChannel = discord_channel,
-        serverId = server_id,
-        foundedDate = parseDateOnlyString(founded_date),
-        shameList = shame_list,
-        role = null,
-        // Map nested DTOs to domain models using their respective mappers
-        members = members.map { it.toDomain() },
-        activeSession = active_session?.toDomain(),
-        // Filter out past sessions without book data (backend only returns id + due_date for past sessions)
-        pastSessions = past_sessions.mapNotNull { session ->
-            if (session.book != null) session.toDomain() else null
-        }
-    )
-}
-
-/**
- * Maps a [com.ivangarzab.kluvs.data.remote.dtos.ServerClubDto] from the API to a [Club] domain model.
- *
- * Note: ServerClubDto is used in Server responses and contains:
- * - Basic club info (id, name, discord_channel)
- * - member_count (not stored in domain)
- * - latest_session (mapped to activeSession)
- *
- * Other relations (members, pastSessions) will be null.
- */
-fun ServerClubDto.toDomain(): Club {
-    return Club(
-        id = id,
-        name = name,
-        discordChannel = discord_channel,
-        serverId = null, // Not available in ServerClubDto
-        foundedDate = parseDateOnlyString(founded_date),
-        shameList = emptyList(),
-        role = null,
-        members = null,
-        activeSession = latest_session?.toDomain(),
+        discordChannel = discordChannel,
+        serverId = serverId,
+        foundedDate = parseDateOnlyString(foundedDate),
+        shameList = shameList?.map { it.toString() } ?: emptyList(),
+        role = role?.let { Role.fromString(it.value) },
+        members = members?.map { it.toDomain() },
+        activeSession = activeSession?.toDomain(),
         pastSessions = null
     )
 }

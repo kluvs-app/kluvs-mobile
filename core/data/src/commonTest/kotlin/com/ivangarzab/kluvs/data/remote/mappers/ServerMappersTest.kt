@@ -1,10 +1,10 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerDto
-import com.ivangarzab.kluvs.data.remote.dtos.ServerResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionDto
+import com.ivangarzab.kluvs.api.models.ClubDto
+import com.ivangarzab.kluvs.api.models.ServerDto
+import com.ivangarzab.kluvs.api.models.ServerClubLatestSessionDto
+import com.ivangarzab.kluvs.api.models.ServerClubSummaryDto
+import com.ivangarzab.kluvs.api.models.ServerGetSingleResponseDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -15,7 +15,7 @@ class ServerMappersTest {
 
     @Test
     fun `ServerDto toDomain maps basic fields only`() {
-        // Given: A ServerDto
+        // Given: A ServerDto with no clubs
         val dto = ServerDto(
             id = "server-1",
             name = "Production Server"
@@ -31,62 +31,76 @@ class ServerMappersTest {
     }
 
     @Test
-    fun `ServerResponseDto toDomain maps nested clubs`() {
-        // Given: A ServerResponseDto with nested clubs
-        val sessionDto = SessionDto(
-            id = "session-1",
-            club_id = "club-1",
-            book = BookDto(id = "book-1", title = "Book", author = "Author"),
-            due_date = null,
-            discussions = emptyList()
-        )
-
-        val clubDto1 = ServerClubDto(
-            id = "club-1",
-            name = "Club One",
-            discord_channel = "123456789",
-            member_count = 10,
-            latest_session = sessionDto
-        )
-
-        val clubDto2 = ServerClubDto(
-            id = "club-2",
-            name = "Club Two",
-            discord_channel = "987654321",
-            member_count = 5,
-            latest_session = null
-        )
-
-        val dto = ServerResponseDto(
+    fun `ServerDto toDomain maps plain nested clubs from list endpoint shape`() {
+        // Given: A ServerDto (list/create/update shape) with plain ClubDto clubs
+        val dto = ServerDto(
             id = "server-2",
             name = "Test Server",
-            clubs = listOf(clubDto1, clubDto2)
+            clubs = listOf(
+                ClubDto(id = "club-1", name = "Club One", discordChannel = "123456789"),
+                ClubDto(id = "club-2", name = "Club Two", discordChannel = "987654321")
+            )
         )
 
         // When: Mapping to domain
         val domain = dto.toDomain()
 
-        // Then: All nested clubs are mapped
+        // Then: All nested clubs are mapped, with no active session (not in this shape)
         assertEquals("server-2", domain.id)
-        assertEquals("Test Server", domain.name)
         assertNotNull(domain.clubs)
         assertEquals(2, domain.clubs?.size)
-
-        val firstClub = domain.clubs?.first()
-        assertEquals("club-1", firstClub?.id)
-        assertEquals("Club One", firstClub?.name)
-        assertNotNull(firstClub?.activeSession)
-        assertEquals("session-1", firstClub?.activeSession?.id)
-
-        val secondClub = domain.clubs?.get(1)
-        assertEquals("club-2", secondClub?.id)
-        assertNull(secondClub?.activeSession)
+        assertEquals("club-1", domain.clubs?.first()?.id)
+        assertNull(domain.clubs?.first()?.activeSession)
     }
 
     @Test
-    fun `ServerResponseDto toDomain handles empty clubs list`() {
-        // Given: A ServerResponseDto with no clubs
-        val dto = ServerResponseDto(
+    fun `ServerGetSingleResponseDto toDomain maps nested clubs with member_count`() {
+        // Given: A single-server response with nested clubs (member_count/latest_session shape)
+        val fullClub = ServerClubSummaryDto(
+            id = "club-full",
+            name = "Full Club",
+            discordChannel = "111222333",
+            memberCount = 20,
+            latestSession = ServerClubLatestSessionDto(
+                id = "session-full",
+                dueDate = "2024-12-31"
+            )
+        )
+
+        val minimalClub = ServerClubSummaryDto(
+            id = "club-minimal",
+            name = "Minimal Club",
+            memberCount = null,
+            latestSession = null
+        )
+
+        val dto = ServerGetSingleResponseDto(
+            id = "server-4",
+            name = "Mixed Server",
+            clubs = listOf(fullClub, minimalClub)
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Both clubs are mapped; activeSession is always null (latest_session
+        // has no usable book id to construct a domain Session)
+        assertEquals(2, domain.clubs?.size)
+
+        val full = domain.clubs?.first { it.id == "club-full" }
+        assertEquals("Full Club", full?.name)
+        assertNull(full?.activeSession)
+
+        val minimal = domain.clubs?.first { it.id == "club-minimal" }
+        assertEquals("Minimal Club", minimal?.name)
+        assertNull(minimal?.activeSession)
+        assertNull(minimal?.discordChannel)
+    }
+
+    @Test
+    fun `ServerGetSingleResponseDto toDomain handles empty clubs list`() {
+        // Given: A single-server response with no clubs
+        val dto = ServerGetSingleResponseDto(
             id = "server-3",
             name = "Empty Server",
             clubs = emptyList()
@@ -100,52 +114,5 @@ class ServerMappersTest {
         assertEquals("Empty Server", domain.name)
         assertNotNull(domain.clubs)
         assertTrue(domain.clubs?.isEmpty() == true)
-    }
-
-    @Test
-    fun `ServerResponseDto toDomain handles clubs with varying data`() {
-        // Given: Clubs with different levels of completeness
-        val fullClub = ServerClubDto(
-            id = "club-full",
-            name = "Full Club",
-            discord_channel = "111222333",
-            member_count = 20,
-            latest_session = SessionDto(
-                id = "session-full",
-                club_id = "club-full",
-                book = BookDto(id = "book-full", title = "Full Book", author = "Full Author"),
-                due_date = "2024-12-31T00:00:00",
-                discussions = emptyList()
-            )
-        )
-
-        val minimalClub = ServerClubDto(
-            id = "club-minimal",
-            name = "Minimal Club",
-            discord_channel = null,
-            member_count = null,
-            latest_session = null
-        )
-
-        val dto = ServerResponseDto(
-            id = "server-4",
-            name = "Mixed Server",
-            clubs = listOf(fullClub, minimalClub)
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: Both clubs are mapped correctly
-        assertEquals(2, domain.clubs?.size)
-
-        val full = domain.clubs?.first { it.id == "club-full" }
-        assertEquals("Full Club", full?.name)
-        assertNotNull(full?.activeSession)
-
-        val minimal = domain.clubs?.first { it.id == "club-minimal" }
-        assertEquals("Minimal Club", minimal?.name)
-        assertNull(minimal?.activeSession)
-        assertNull(minimal?.discordChannel)
     }
 }

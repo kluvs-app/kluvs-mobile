@@ -1,6 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.BookDto
+import com.ivangarzab.kluvs.api.models.BookDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -11,15 +11,15 @@ class BookMappersTest {
     fun `toDomain maps all fields correctly`() {
         // Given: A BookDto with all fields populated
         val dto = BookDto(
-            id = "123",
+            id = 123,
             title = "The Hobbit",
             author = "J.R.R. Tolkien",
             edition = "First Edition",
             year = 1937,
             isbn = "978-0-395-07122-1",
-            page_count = 310,
-            image_url = "https://example.com/hobbit.jpg",
-            external_google_id = "goog-123"
+            pageCount = 310,
+            imageUrl = "https://example.com/hobbit.jpg",
+            externalGoogleId = "goog-123"
         )
 
         // When: Mapping to domain
@@ -41,13 +41,13 @@ class BookMappersTest {
     fun `toDomain handles nullable fields correctly`() {
         // Given: A BookDto with only required fields
         val dto = BookDto(
-            id = "0",
+            id = 0,
             title = "Some Book",
             author = "Some Author",
             edition = null,
             year = null,
             isbn = null,
-            page_count = null
+            pageCount = null
         )
 
         // When: Mapping to domain

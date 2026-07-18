@@ -11,6 +11,7 @@ kotlin {
             implementation(project(":core:network"))
             implementation(project(":core:database"))
             implementation(project(":core:auth"))
+            implementation(project(":core:api"))
 
             implementation(libs.ktor.client.core)
             implementation(libs.supabase.functions)
@@ -27,6 +28,9 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+            // Integration tests sign in as the seeded auth user to exercise
+            // member-scoped endpoints (shelf/like/progress/discussion-*/join)
+            implementation(libs.supabase.auth)
         }
         androidMain.dependencies {
 

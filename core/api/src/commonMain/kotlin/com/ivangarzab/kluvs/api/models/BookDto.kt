@@ -33,7 +33,7 @@ import kotlinx.serialization.encoding.*
  * @param imageUrl Cover image URL (HTTPS)
  * @param externalGoogleId Google Books volume ID for deduplication
  */
-@Serializable@Serializable
+@Serializable
 
 data class BookDto (
 

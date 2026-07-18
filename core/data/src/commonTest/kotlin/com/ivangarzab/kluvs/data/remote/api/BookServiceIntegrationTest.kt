@@ -1,6 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.api
 
-import com.ivangarzab.kluvs.data.remote.dtos.CreateBookRequestDto
+import com.ivangarzab.kluvs.api.models.BookRegistrationRequestDto
 import com.ivangarzab.kluvs.network.BuildKonfig
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
@@ -25,15 +25,18 @@ import kotlin.time.ExperimentalTime
  *
  * Test data is defined in /kluvs-backend/supabase/seed.sql:
  *
- * Books (seeded):
- * - 1: "The Republic" by Plato (ISBN: 978-0872207363, year: -380, pages: 416)
- * - 2: "Das Kapital" by Karl Marx (ISBN: 978-0140445688, year: 1867, pages: 1152)
- * - 3: "My Birth Day" by Ivan Garza Bermea (ISBN: 978-0618260300, year: 1992, pages: 32)
- * - 4: "Nicomachean Ethics" by Aristotle (ISBN: 978-0553293357, year: -2000, pages: 368)
- * - 5: "1984" by George Orwell (ISBN: 978-0062073488, year: 1948, pages: 328)
- * - 6: "Our First Day With Her" by Skye Garza Morales (ISBN: 978-0618640157, year: 2021, pages: 24)
- * - 7: "Dune" by Frank Herbert (ISBN: 978-0441013593, year: 1965, pages: 688)
- * - 8: "The Murder of Roger Ackroyd" by Agatha Christie (ISBN: 978-0062073563, year: 1926, pages: 288)
+ * Books (seeded — all sourced from Google Books with external_google_id set):
+ * - 1: "The Republic" by Plato (ISBN: 978-0140455113, year: -380, pages: 416)
+ * - 2: "Nicomachean Ethics" by Aristotle (ISBN: 978-0199213610, year: -350, pages: 304)
+ * - 3: "Capital" by Karl Marx (ISBN: 978-0140445688, year: 1867, pages: 1152)
+ * - 4: "1984" by George Orwell (ISBN: 978-0451524935, year: 1949, pages: 328)
+ * - 5: "Brave New World" by Aldous Huxley (ISBN: 978-0060850524, year: 1932, pages: 288)
+ * - 6: "The Prospect of a Humanitarian Artificial Intelligence" by Carlos Montemayor (ISBN: 978-1350348400, year: 2021, pages: 296)
+ * - 7: "Ficciones" by Jorge Luis Borges (ISBN: 978-8499089183, year: 1944, pages: 224)
+ * - 8: "Diarios de Motocicleta" by Ernesto "Che" Guevara (ISBN: 978-8408068523, year: 1993, pages: 163)
+ * - 9: "Meditations" by Marcus Aurelius (ISBN: 978-0140449334, year: 180, pages: 304)
+ *
+ * These tests create their own books via register() and do not depend on the seeded rows.
  *
  * NOTE: search() and lookupByIsbn() call the Google Books API and require
  * GOOGLE_BOOKS_API_KEY to be configured in the backend. These are NOT tested here
@@ -76,81 +79,82 @@ class BookServiceIntegrationTest {
     @Test
     fun testRegisterNewBook() = runTest {
         // Given: a book that does not exist in the DB
-        val request = CreateBookRequestDto(
+        val request = BookRegistrationRequestDto(
             title = "Integration Test Book ${Clock.System.now().toEpochMilliseconds()}",
             author = "Test Author",
             year = 2024,
             isbn = null,
-            page_count = 200,
-            image_url = null,
-            external_google_id = null
+            pageCount = 200,
+            imageUrl = null,
+            externalGoogleId = null
         )
 
         // When
         val response = bookService.register(request)
 
         // Then: should be created successfully
-        assertTrue(response.success)
-        assertTrue(response.created, "Expected created=true for a brand new book")
-        assertNotNull(response.book)
-        assertEquals(request.title, response.book.title)
-        assertEquals(request.author, response.book.author)
-        assertEquals(request.year, response.book.year)
-        assertEquals(request.page_count, response.book.page_count)
+        assertTrue(response.success == true)
+        assertTrue(response.created == true, "Expected created=true for a brand new book")
+        val book = assertNotNull(response.book)
+        assertEquals(request.title, book.title)
+        assertEquals(request.author, book.author)
+        assertEquals(request.year, book.year)
+        assertEquals(request.pageCount, book.pageCount)
     }
 
     @Test
     fun testRegisterBookWithExternalGoogleId() = runTest {
         // Given: a book with a known external_google_id (simulates Google Books import)
         val googleId = "integration-test-google-id-${Clock.System.now().toEpochMilliseconds()}"
-        val request = CreateBookRequestDto(
+        val request = BookRegistrationRequestDto(
             title = "Google Book Integration Test",
             author = "Google Author",
             year = 2023,
             isbn = null,
-            page_count = 300,
-            image_url = "https://example.com/cover.jpg",
-            external_google_id = googleId
+            pageCount = 300,
+            imageUrl = "https://example.com/cover.jpg",
+            externalGoogleId = googleId
         )
 
         // When
         val response = bookService.register(request)
 
         // Then: first registration should create the book
-        assertTrue(response.success)
-        assertTrue(response.created, "Expected created=true for a new book with external_google_id")
-        assertNotNull(response.book)
-        assertEquals(request.title, response.book.title)
-        assertEquals(request.external_google_id, response.book.external_google_id)
-        assertEquals(request.image_url, response.book.image_url)
+        assertTrue(response.success == true)
+        assertTrue(response.created == true, "Expected created=true for a new book with external_google_id")
+        val book = assertNotNull(response.book)
+        assertEquals(request.title, book.title)
+        assertEquals(request.externalGoogleId, book.externalGoogleId)
+        assertEquals(request.imageUrl, book.imageUrl)
     }
 
     @Test
     fun testRegisterIsIdempotentViaExternalGoogleId() = runTest {
         // Given: a book already registered with a specific external_google_id
         val googleId = "idempotent-test-google-id-${Clock.System.now().toEpochMilliseconds()}"
-        val request = CreateBookRequestDto(
+        val request = BookRegistrationRequestDto(
             title = "Idempotent Book Test",
             author = "Idempotent Author",
             year = 2022,
             isbn = null,
-            page_count = 150,
-            image_url = null,
-            external_google_id = googleId
+            pageCount = 150,
+            imageUrl = null,
+            externalGoogleId = googleId
         )
 
         // Register once
         val firstResponse = bookService.register(request)
-        assertTrue(firstResponse.created, "First registration should create the book")
-        val firstBookId = firstResponse.book.id
+        assertTrue(firstResponse.created == true, "First registration should create the book")
+        val firstBookId = assertNotNull(firstResponse.book).id
 
         // When: registering the same book again
         val secondResponse = bookService.register(request)
 
         // Then: should return the existing book without creating a new one
-        assertTrue(secondResponse.success)
-        assertFalse(secondResponse.created, "Expected created=false when book already exists")
-        assertEquals(firstBookId, secondResponse.book.id, "Should return the same book ID")
-        assertEquals(request.title, secondResponse.book.title)
+        assertTrue(secondResponse.success == true)
+        assertFalse(secondResponse.created == true, "Expected created=false when book already exists")
+        val secondBook = assertNotNull(secondResponse.book)
+        assertEquals(firstBookId, secondBook.id, "Should return the same book ID")
+        assertEquals(request.title, secondBook.title)
     }
 }

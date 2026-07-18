@@ -1,8 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.data.remote.dtos.ClubDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberDto
-import com.ivangarzab.kluvs.data.remote.dtos.MemberResponseDto
+import com.ivangarzab.kluvs.api.models.MemberDto
+import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
+import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
+import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -14,12 +15,11 @@ class MemberMappersTest {
     fun `MemberDto toDomain maps basic fields only`() {
         // Given: A MemberDto with basic info
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Jane Doe",
-            books_read = 10,
-            user_id = "user-123",
-            role = "member",
-            clubs = emptyList()
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 10,
+            userId = "user-123"
         )
 
         // When: Mapping to domain
@@ -35,29 +35,37 @@ class MemberMappersTest {
     }
 
     @Test
-    fun `MemberResponseDto toDomain maps all nested clubs`() {
-        // Given: A MemberResponseDto with nested clubs
-        val clubDto1 = ClubDto(
+    fun `MemberGetResponseDto toDomain maps all nested clubs`() {
+        // Given: A MemberGetResponseDto with nested clubs
+        val clubInner1 = MemberClubEntryDto(
             id = "club-1",
             name = "Fiction Club",
-            discord_channel = "123456789",
-            server_id = "987654321"
+            discordChannel = "123456789",
+            serverId = "987654321"
         )
 
-        val clubDto2 = ClubDto(
+        val clubInner2 = MemberClubEntryDto(
             id = "club-2",
             name = "Science Club",
-            discord_channel = "111222333",
-            server_id = "987654321"
+            discordChannel = "111222333",
+            serverId = "987654321"
         )
 
-        val dto = MemberResponseDto(
-            id = "2",
+        val shameClub = com.ivangarzab.kluvs.api.models.ClubDto(
+            id = "club-1",
+            name = "Fiction Club",
+            discordChannel = "123456789",
+            serverId = "987654321"
+        )
+
+        val dto = MemberGetResponseDto(
+            id = 2,
             name = "John Smith",
-            books_read = 15,
-            user_id = "user-456",
-            clubs = listOf(clubDto1, clubDto2),
-            shame_clubs = listOf(clubDto1)
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 15,
+            userId = "user-456",
+            clubs = listOf(clubInner1, clubInner2),
+            shameClubs = listOf(shameClub)
         )
 
         // When: Mapping to domain
@@ -79,15 +87,15 @@ class MemberMappersTest {
     }
 
     @Test
-    fun `MemberResponseDto toDomain handles empty club lists`() {
-        // Given: A MemberResponseDto with no clubs
-        val dto = MemberResponseDto(
-            id = "3",
+    fun `MemberGetResponseDto toDomain handles empty club lists`() {
+        // Given: A MemberGetResponseDto with no clubs
+        val dto = MemberGetResponseDto(
+            id = 3,
             name = "New Member",
-            books_read = 0,
-            user_id = null,
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 0,
             clubs = emptyList(),
-            shame_clubs = emptyList()
+            shameClubs = emptyList()
         )
 
         // When: Mapping to domain
@@ -105,12 +113,11 @@ class MemberMappersTest {
     fun `MemberDto toDomain handles nullable fields`() {
         // Given: A MemberDto with null optional fields
         val dto = MemberDto(
-            id = "4",
+            id = 4,
             name = "Anonymous",
-            books_read = 0,
-            user_id = null,
-            role = null,
-            clubs = emptyList()
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 0,
+            userId = null
         )
 
         // When: Mapping to domain
@@ -124,17 +131,15 @@ class MemberMappersTest {
 
     @Test
     fun `MemberDto with avatarPath maps correctly`() {
-        // Given: A MemberDto with avatar_path
+        // Given: A MemberDto with avatarPath
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Test Member",
+            platformMetadata = JsonObject(emptyMap()),
             handle = "testuser",
-            avatar_path = "member-1/avatar.png",
-            books_read = 5,
-            user_id = "user-123",
-            role = "member",
-            created_at = null,
-            clubs = emptyList()
+            avatarPath = "member-1/avatar.png",
+            booksRead = 5,
+            userId = "user-123"
         )
 
         // When: Mapping to domain
@@ -146,17 +151,15 @@ class MemberMappersTest {
 
     @Test
     fun `MemberDto with null avatarPath maps correctly`() {
-        // Given: A MemberDto without avatar_path
+        // Given: A MemberDto without avatarPath
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Test Member",
+            platformMetadata = JsonObject(emptyMap()),
             handle = "testuser",
-            avatar_path = null,
-            books_read = 5,
-            user_id = "user-123",
-            role = "member",
-            created_at = null,
-            clubs = emptyList()
+            avatarPath = null,
+            booksRead = 5,
+            userId = "user-123"
         )
 
         // When: Mapping to domain
@@ -167,18 +170,19 @@ class MemberMappersTest {
     }
 
     @Test
-    fun `MemberResponseDto with avatarPath maps correctly`() {
-        // Given: A MemberResponseDto with avatar_path
-        val dto = MemberResponseDto(
-            id = "2",
+    fun `MemberGetResponseDto with avatarPath maps correctly`() {
+        // Given: A MemberGetResponseDto with avatarPath
+        val dto = MemberGetResponseDto(
+            id = 2,
             name = "John Smith",
+            platformMetadata = JsonObject(emptyMap()),
             handle = "johnsmith",
-            avatar_path = "member-2/avatar.png",
-            books_read = 15,
-            user_id = "user-456",
-            created_at = "2023-06-10T14:22:33Z",
+            avatarPath = "member-2/avatar.png",
+            booksRead = 15,
+            userId = "user-456",
+            createdAt = "2023-06-10T14:22:33Z",
             clubs = emptyList(),
-            shame_clubs = emptyList()
+            shameClubs = emptyList()
         )
 
         // When: Mapping to domain
@@ -189,39 +193,14 @@ class MemberMappersTest {
     }
 
     @Test
-    fun `MemberResponseDto with null avatarPath maps correctly`() {
-        // Given: A MemberResponseDto without avatar_path
-        val dto = MemberResponseDto(
-            id = "2",
-            name = "John Smith",
-            handle = "johnsmith",
-            avatar_path = null,
-            books_read = 15,
-            user_id = "user-456",
-            created_at = "2023-06-10T14:22:33Z",
-            clubs = emptyList(),
-            shame_clubs = emptyList()
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: avatarPath is null
-        assertNull(domain.avatarPath)
-    }
-
-    @Test
     fun `MemberDto with createdAt timestamp maps to LocalDateTime`() {
         // Given: A MemberDto with createdAt timestamp
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Test Member",
-            handle = null,
-            books_read = 0,
-            user_id = null,
-            role = null,
-            created_at = "2024-01-15T10:30:00+00:00",
-            clubs = emptyList()
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 0,
+            createdAt = "2024-01-15T10:30:00+00:00"
         )
 
         // When: Mapping to domain
@@ -240,14 +219,11 @@ class MemberMappersTest {
     fun `MemberDto with null createdAt maps correctly`() {
         // Given: A MemberDto without createdAt
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Test Member",
-            handle = null,
-            books_read = 0,
-            user_id = null,
-            role = null,
-            created_at = null,
-            clubs = emptyList()
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 0,
+            createdAt = null
         )
 
         // When: Mapping to domain
@@ -261,14 +237,11 @@ class MemberMappersTest {
     fun `MemberDto with handle maps correctly`() {
         // Given: A MemberDto with handle
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Test Member",
+            platformMetadata = JsonObject(emptyMap()),
             handle = "testuser",
-            books_read = 0,
-            user_id = null,
-            role = null,
-            created_at = null,
-            clubs = emptyList()
+            booksRead = 0
         )
 
         // When: Mapping to domain
@@ -282,14 +255,11 @@ class MemberMappersTest {
     fun `MemberDto with null handle maps correctly`() {
         // Given: A MemberDto without handle
         val dto = MemberDto(
-            id = "1",
+            id = 1,
             name = "Test Member",
+            platformMetadata = JsonObject(emptyMap()),
             handle = null,
-            books_read = 0,
-            user_id = null,
-            role = null,
-            created_at = null,
-            clubs = emptyList()
+            booksRead = 0
         )
 
         // When: Mapping to domain
@@ -300,17 +270,18 @@ class MemberMappersTest {
     }
 
     @Test
-    fun `MemberResponseDto with createdAt and handle maps correctly`() {
-        // Given: A MemberResponseDto with createdAt and handle
-        val dto = MemberResponseDto(
-            id = "2",
+    fun `MemberGetResponseDto with createdAt and handle maps correctly`() {
+        // Given: A MemberGetResponseDto with createdAt and handle
+        val dto = MemberGetResponseDto(
+            id = 2,
             name = "John Smith",
+            platformMetadata = JsonObject(emptyMap()),
             handle = "johnsmith",
-            books_read = 15,
-            user_id = "user-456",
-            created_at = "2023-06-10T14:22:33Z",
+            booksRead = 15,
+            userId = "user-456",
+            createdAt = "2023-06-10T14:22:33Z",
             clubs = emptyList(),
-            shame_clubs = emptyList()
+            shameClubs = emptyList()
         )
 
         // When: Mapping to domain

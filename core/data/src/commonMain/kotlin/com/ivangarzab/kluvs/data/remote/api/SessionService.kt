@@ -1,12 +1,14 @@
 package com.ivangarzab.kluvs.data.remote.api
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.api.models.DeleteResponseDto
+import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
+import com.ivangarzab.kluvs.api.models.SessionCreateResponseDto
+import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionReadingLogResponseDto
+import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
+import com.ivangarzab.kluvs.api.models.UpdateSession200ResponseDto
 import com.ivangarzab.kluvs.network.utils.JsonHelper.getJsonForSupabaseService
-import com.ivangarzab.kluvs.data.remote.dtos.CreateSessionRequestDto
-import com.ivangarzab.kluvs.data.remote.dtos.DeleteResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.SessionSuccessResponseDto
-import com.ivangarzab.kluvs.data.remote.dtos.UpdateSessionRequestDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.ktor.client.call.body
@@ -14,22 +16,37 @@ import io.ktor.http.HttpMethod
 import io.ktor.utils.io.InternalAPI
 
 interface SessionService {
-    suspend fun get(sessionId: String): SessionResponseDto
-    suspend fun create(request: CreateSessionRequestDto): SessionSuccessResponseDto
-    suspend fun update(request: UpdateSessionRequestDto): SessionSuccessResponseDto
+    /**
+     * Fetches a single session by ID.
+     *
+     * GET /session is a two-mode endpoint (`oneOf` in the spec): without `id`, it
+     * returns a reading-log digest; with `id` (what this method always sends), it
+     * returns the full [SessionDto] shape — the same entity used for Club's
+     * `active_session`.
+     */
+    suspend fun get(sessionId: String): SessionDto
+
+    /**
+     * Fetches the authenticated member's reading log — all sessions they participate
+     * in, grouped by session status (active/finished). Member-scoped: requires a
+     * user session (bot callers are rejected).
+     */
+    suspend fun getReadingLog(): SessionReadingLogResponseDto
+    suspend fun create(request: SessionCreateRequestDto): SessionCreateResponseDto
+    suspend fun update(request: SessionUpdateRequestDto): UpdateSession200ResponseDto
     suspend fun delete(sessionId: String): DeleteResponseDto
 }
 
 @OptIn(InternalAPI::class)
 internal class SessionServiceImpl(private val supabase: SupabaseClient) : SessionService {
 
-    override suspend fun get(sessionId: String): SessionResponseDto {
+    override suspend fun get(sessionId: String): SessionDto {
         Bark.d("Fetching session (ID: $sessionId)")
         return try {
             val response = supabase.functions.invoke("session") {
                 method = HttpMethod.Get
                 url { parameters.append("id", sessionId) }
-            }.body<SessionResponseDto>()
+            }.body<SessionDto>()
             Bark.v("Session fetched successfully (ID: $sessionId)")
             response
         } catch (error: Exception) {
@@ -38,7 +55,22 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
         }
     }
 
-    override suspend fun create(request: CreateSessionRequestDto): SessionSuccessResponseDto {
+    override suspend fun getReadingLog(): SessionReadingLogResponseDto {
+        Bark.d("Fetching reading log")
+        return try {
+            val response = supabase.functions.invoke("session") {
+                method = HttpMethod.Get
+                url { parameters.append("reading_log", "true") }
+            }.body<SessionReadingLogResponseDto>()
+            Bark.v("Reading log fetched successfully")
+            response
+        } catch (error: Exception) {
+            Bark.e("Failed to fetch reading log. Check network/API status and retry.", error)
+            throw error
+        }
+    }
+
+    override suspend fun create(request: SessionCreateRequestDto): SessionCreateResponseDto {
         Bark.d("Creating session")
         return try {
             val json = getJsonForSupabaseService()
@@ -47,7 +79,7 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
             val response = supabase.functions.invoke("session") {
                 method = HttpMethod.Post
                 body = jsonString
-            }.body<SessionSuccessResponseDto>()
+            }.body<SessionCreateResponseDto>()
             Bark.v("Session created successfully")
             response
         } catch (error: Exception) {
@@ -56,7 +88,7 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
         }
     }
 
-    override suspend fun update(request: UpdateSessionRequestDto): SessionSuccessResponseDto {
+    override suspend fun update(request: SessionUpdateRequestDto): UpdateSession200ResponseDto {
         Bark.d("Updating session (ID: ${request.id})")
         return try {
             val json = getJsonForSupabaseService()
@@ -65,7 +97,7 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
             val response = supabase.functions.invoke("session") {
                 method = HttpMethod.Put
                 body = jsonString
-            }.body<SessionSuccessResponseDto>()
+            }.body<UpdateSession200ResponseDto>()
             Bark.v("Session updated successfully (ID: ${request.id})")
             response
         } catch (error: Exception) {

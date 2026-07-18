@@ -15,7 +15,7 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.MemberClubsInnerDto
+import com.ivangarzab.kluvs.api.models.ClubSummaryDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param id Internal member ID
  * @param name 
- * @param platformMetadata Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes).
+ * @param platformMetadata 
  * @param booksRead 
  * @param handle Discord handle or username
  * @param avatarPath 
@@ -35,7 +35,7 @@ import kotlinx.serialization.encoding.*
  * @param createdAt 
  * @param clubs Clubs this member belongs to, each with their per-club role.
  */
-@Serializable@Serializable
+@Serializable
 
 data class MemberDto (
 
@@ -44,8 +44,7 @@ data class MemberDto (
 
     @SerialName(value = "name") @Required val name: kotlin.String,
 
-    /* Flexible JSON object for platform-specific data (e.g., Discord Top.gg votes). */
-    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlin.collections.Map<kotlin.String, kotlin.Any>,
+    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlinx.serialization.json.JsonObject,
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
 
@@ -63,7 +62,7 @@ data class MemberDto (
     @SerialName(value = "created_at") val createdAt: kotlin.String? = null,
 
     /* Clubs this member belongs to, each with their per-club role. */
-    @SerialName(value = "clubs") val clubs: kotlin.collections.List<MemberClubsInnerDto>? = null
+    @SerialName(value = "clubs") val clubs: kotlin.collections.List<ClubSummaryDto>? = null
 
 ) {
 
