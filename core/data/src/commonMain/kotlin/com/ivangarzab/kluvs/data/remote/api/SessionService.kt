@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.api.models.DeleteResponseDto
 import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.SessionCreateResponseDto
 import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionReadingLogResponseDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.api.models.UpdateSession200ResponseDto
 import com.ivangarzab.kluvs.network.utils.JsonHelper.getJsonForSupabaseService
@@ -24,6 +25,13 @@ interface SessionService {
      * `active_session`.
      */
     suspend fun get(sessionId: String): SessionDto
+
+    /**
+     * Fetches the authenticated member's reading log — all sessions they participate
+     * in, grouped by session status (active/finished). Member-scoped: requires a
+     * user session (bot callers are rejected).
+     */
+    suspend fun getReadingLog(): SessionReadingLogResponseDto
     suspend fun create(request: SessionCreateRequestDto): SessionCreateResponseDto
     suspend fun update(request: SessionUpdateRequestDto): UpdateSession200ResponseDto
     suspend fun delete(sessionId: String): DeleteResponseDto
@@ -43,6 +51,21 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
             response
         } catch (error: Exception) {
             Bark.e("Failed to fetch session (ID: $sessionId). Check network/API status and retry.", error)
+            throw error
+        }
+    }
+
+    override suspend fun getReadingLog(): SessionReadingLogResponseDto {
+        Bark.d("Fetching reading log")
+        return try {
+            val response = supabase.functions.invoke("session") {
+                method = HttpMethod.Get
+                url { parameters.append("reading_log", "true") }
+            }.body<SessionReadingLogResponseDto>()
+            Bark.v("Reading log fetched successfully")
+            response
+        } catch (error: Exception) {
+            Bark.e("Failed to fetch reading log. Check network/API status and retry.", error)
             throw error
         }
     }

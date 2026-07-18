@@ -25,15 +25,18 @@ import kotlin.time.ExperimentalTime
  *
  * Test data is defined in /kluvs-backend/supabase/seed.sql:
  *
- * Books (seeded):
- * - 1: "The Republic" by Plato (ISBN: 978-0872207363, year: -380, pages: 416)
- * - 2: "Das Kapital" by Karl Marx (ISBN: 978-0140445688, year: 1867, pages: 1152)
- * - 3: "My Birth Day" by Ivan Garza Bermea (ISBN: 978-0618260300, year: 1992, pages: 32)
- * - 4: "Nicomachean Ethics" by Aristotle (ISBN: 978-0553293357, year: -2000, pages: 368)
- * - 5: "1984" by George Orwell (ISBN: 978-0062073488, year: 1948, pages: 328)
- * - 6: "Our First Day With Her" by Skye Garza Morales (ISBN: 978-0618640157, year: 2021, pages: 24)
- * - 7: "Dune" by Frank Herbert (ISBN: 978-0441013593, year: 1965, pages: 688)
- * - 8: "The Murder of Roger Ackroyd" by Agatha Christie (ISBN: 978-0062073563, year: 1926, pages: 288)
+ * Books (seeded — all sourced from Google Books with external_google_id set):
+ * - 1: "The Republic" by Plato (ISBN: 978-0140455113, year: -380, pages: 416)
+ * - 2: "Nicomachean Ethics" by Aristotle (ISBN: 978-0199213610, year: -350, pages: 304)
+ * - 3: "Capital" by Karl Marx (ISBN: 978-0140445688, year: 1867, pages: 1152)
+ * - 4: "1984" by George Orwell (ISBN: 978-0451524935, year: 1949, pages: 328)
+ * - 5: "Brave New World" by Aldous Huxley (ISBN: 978-0060850524, year: 1932, pages: 288)
+ * - 6: "The Prospect of a Humanitarian Artificial Intelligence" by Carlos Montemayor (ISBN: 978-1350348400, year: 2021, pages: 296)
+ * - 7: "Ficciones" by Jorge Luis Borges (ISBN: 978-8499089183, year: 1944, pages: 224)
+ * - 8: "Diarios de Motocicleta" by Ernesto "Che" Guevara (ISBN: 978-8408068523, year: 1993, pages: 163)
+ * - 9: "Meditations" by Marcus Aurelius (ISBN: 978-0140449334, year: 180, pages: 304)
+ *
+ * These tests create their own books via register() and do not depend on the seeded rows.
  *
  * NOTE: search() and lookupByIsbn() call the Google Books API and require
  * GOOGLE_BOOKS_API_KEY to be configured in the backend. These are NOT tested here

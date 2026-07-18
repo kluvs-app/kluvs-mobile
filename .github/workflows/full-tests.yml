@@ -34,9 +34,11 @@ jobs:
       - name: Checkout kluvs-backend
         uses: actions/checkout@v5
         with:
-          repository: ivangarzab/kluvs-backend
+          repository: kluvs-app/kluvs-backend
           path: kluvs-backend
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Backend is private; the default GITHUB_TOKEN is scoped to this repo
+          # only, so a fine-grained PAT (Contents: Read) is required
+          token: ${{ secrets.BACKEND_READ_TOKEN }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
