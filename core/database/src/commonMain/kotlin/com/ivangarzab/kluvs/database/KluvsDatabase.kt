@@ -6,17 +6,27 @@ import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import com.ivangarzab.kluvs.database.dao.BookDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
+import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
+import com.ivangarzab.kluvs.database.dao.DiscussionNoteDao
+import com.ivangarzab.kluvs.database.dao.LikeDao
 import com.ivangarzab.kluvs.database.dao.MemberDao
+import com.ivangarzab.kluvs.database.dao.ProgressDao
 import com.ivangarzab.kluvs.database.dao.ServerDao
 import com.ivangarzab.kluvs.database.dao.SessionDao
+import com.ivangarzab.kluvs.database.dao.ShelfDao
 import com.ivangarzab.kluvs.database.entities.BookEntity
 import com.ivangarzab.kluvs.database.entities.ClubEntity
 import com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef
+import com.ivangarzab.kluvs.database.entities.DiscussionAttendanceEntity
 import com.ivangarzab.kluvs.database.entities.DiscussionEntity
+import com.ivangarzab.kluvs.database.entities.DiscussionNoteEntity
+import com.ivangarzab.kluvs.database.entities.LikeEntity
 import com.ivangarzab.kluvs.database.entities.MemberEntity
+import com.ivangarzab.kluvs.database.entities.ProgressEntity
 import com.ivangarzab.kluvs.database.entities.ServerEntity
 import com.ivangarzab.kluvs.database.entities.SessionEntity
+import com.ivangarzab.kluvs.database.entities.ShelfEntity
 
 /**
  * Room Database interface for Kluvs app.
@@ -28,12 +38,18 @@ interface KluvsDatabase {
     fun bookDao(): BookDao
     fun discussionDao(): DiscussionDao
     fun serverDao(): ServerDao
+    fun shelfDao(): ShelfDao
+    fun likeDao(): LikeDao
+    fun progressDao(): ProgressDao
+    fun discussionNoteDao(): DiscussionNoteDao
+    fun discussionAttendanceDao(): DiscussionAttendanceDao
 }
 
 /**
  * Room Database implementation for Kluvs app.
  *
- * Stores cached data for servers, clubs, members, sessions, and books.
+ * Stores cached data for servers, clubs, members, sessions, books, shelf
+ * entries, likes, reading progress, discussion notes, and discussion attendance.
  */
 @Database(
     entities = [
@@ -43,9 +59,14 @@ interface KluvsDatabase {
         ClubMemberCrossRef::class,
         SessionEntity::class,
         BookEntity::class,
-        DiscussionEntity::class
+        DiscussionEntity::class,
+        ShelfEntity::class,
+        LikeEntity::class,
+        ProgressEntity::class,
+        DiscussionNoteEntity::class,
+        DiscussionAttendanceEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @ConstructedBy(KluvsDatabaseConstructor::class)
@@ -56,6 +77,11 @@ abstract class KluvsDatabaseImpl : RoomDatabase(), KluvsDatabase {
     abstract override fun sessionDao(): SessionDao
     abstract override fun bookDao(): BookDao
     abstract override fun discussionDao(): DiscussionDao
+    abstract override fun shelfDao(): ShelfDao
+    abstract override fun likeDao(): LikeDao
+    abstract override fun progressDao(): ProgressDao
+    abstract override fun discussionNoteDao(): DiscussionNoteDao
+    abstract override fun discussionAttendanceDao(): DiscussionAttendanceDao
 }
 
 /**

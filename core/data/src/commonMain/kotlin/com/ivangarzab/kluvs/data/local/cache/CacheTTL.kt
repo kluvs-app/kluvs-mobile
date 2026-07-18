@@ -38,4 +38,35 @@ object CacheTTL {
      * Book metadata is static (title, author, cover)
      */
     val BOOK: Duration = 7.days
+
+    /**
+     * Shelf data TTL: 1 hour
+     * Shelf assignments are user-authored and change often; mutations
+     * already reset freshness, so a short TTL keeps stale reads rare.
+     */
+    val SHELF: Duration = 1.hours
+
+    /**
+     * Like data TTL: 1 hour
+     * Like state is user-authored and toggled frequently.
+     */
+    val LIKE: Duration = 1.hours
+
+    /**
+     * Progress data TTL: 1 hour
+     * Reading progress updates frequently as the member reads.
+     */
+    val PROGRESS: Duration = 1.hours
+
+    /**
+     * Discussion note data TTL: 1 hour
+     * Notes are user-authored and edited often.
+     */
+    val DISCUSSION_NOTE: Duration = 1.hours
+
+    /**
+     * Discussion attendance data TTL: 1 hour
+     * RSVPs can change up until the discussion happens.
+     */
+    val DISCUSSION_ATTENDANCE: Duration = 1.hours
 }

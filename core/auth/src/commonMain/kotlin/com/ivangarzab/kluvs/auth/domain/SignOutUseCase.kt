@@ -30,6 +30,11 @@ class SignOutUseCase(
         database.sessionDao().deleteAll()
         database.bookDao().deleteAll()
         database.discussionDao().deleteAll()
+        database.shelfDao().deleteAll()
+        database.likeDao().deleteAll()
+        database.progressDao().deleteAll()
+        database.discussionNoteDao().deleteAll()
+        database.discussionAttendanceDao().deleteAll()
         Bark.d("Local database cleared")
     }
 }

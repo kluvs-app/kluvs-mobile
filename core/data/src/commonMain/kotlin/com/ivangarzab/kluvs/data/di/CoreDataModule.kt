@@ -5,12 +5,22 @@ import com.ivangarzab.kluvs.data.local.source.BookLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.BookLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.DiscussionAttendanceLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.DiscussionAttendanceLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.LikeLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.LikeLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.ProgressLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.ProgressLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.ServerLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.ServerLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.SessionLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.SessionLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.ShelfLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.ShelfLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.api.AvatarService
 import com.ivangarzab.kluvs.data.remote.api.AvatarServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.BookService
@@ -109,6 +119,11 @@ val coreDataModule = module {
     single<MemberLocalDataSource> { MemberLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<SessionLocalDataSource> { SessionLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<BookLocalDataSource> { BookLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<ShelfLocalDataSource> { ShelfLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<LikeLocalDataSource> { LikeLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<ProgressLocalDataSource> { ProgressLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<DiscussionNoteLocalDataSource> { DiscussionNoteLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<DiscussionAttendanceLocalDataSource> { DiscussionAttendanceLocalDataSourceImpl(get<KluvsDatabase>()) }
 
     // Services
     single<BookService> { BookServiceImpl(get<SupabaseClient>()) }
@@ -176,12 +191,41 @@ val coreDataModule = module {
             get<CachePolicy>()
         )
     }
-    single<ShelfRepository> { ShelfRepositoryImpl(get<ShelfRemoteDataSource>()) }
-    single<LikeRepository> { LikeRepositoryImpl(get<LikeRemoteDataSource>()) }
-    single<ProgressRepository> { ProgressRepositoryImpl(get<ProgressRemoteDataSource>()) }
+    single<ShelfRepository> {
+        ShelfRepositoryImpl(
+            get<ShelfRemoteDataSource>(),
+            get<ShelfLocalDataSource>(),
+            get<CachePolicy>()
+        )
+    }
+    single<LikeRepository> {
+        LikeRepositoryImpl(
+            get<LikeRemoteDataSource>(),
+            get<LikeLocalDataSource>(),
+            get<CachePolicy>()
+        )
+    }
+    single<ProgressRepository> {
+        ProgressRepositoryImpl(
+            get<ProgressRemoteDataSource>(),
+            get<ProgressLocalDataSource>(),
+            get<CachePolicy>()
+        )
+    }
     single<DiscussionRepository> { DiscussionRepositoryImpl(get<DiscussionRemoteDataSource>()) }
-    single<DiscussionNoteRepository> { DiscussionNoteRepositoryImpl(get<DiscussionNoteRemoteDataSource>()) }
-    single<DiscussionAttendanceRepository> { DiscussionAttendanceRepositoryImpl(get<DiscussionAttendanceRemoteDataSource>()) }
+    single<DiscussionNoteRepository> {
+        DiscussionNoteRepositoryImpl(
+            get<DiscussionNoteRemoteDataSource>(),
+            get<DiscussionNoteLocalDataSource>(),
+            get<CachePolicy>()
+        )
+    }
+    single<DiscussionAttendanceRepository> {
+        DiscussionAttendanceRepositoryImpl(
+            get<DiscussionAttendanceRemoteDataSource>(),
+            get<DiscussionAttendanceLocalDataSource>()
+        )
+    }
     single<JoinRepository> { JoinRepositoryImpl(get<JoinRemoteDataSource>()) }
 }
 

@@ -2,6 +2,9 @@ package com.ivangarzab.kluvs.data.repositories
 
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ShelfAssignRequestDto
+import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.CacheTTL
+import com.ivangarzab.kluvs.data.local.source.ShelfLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toDto
 import com.ivangarzab.kluvs.data.remote.source.ShelfRemoteDataSource
 import com.ivangarzab.kluvs.model.ShelfEntry
@@ -49,36 +52,100 @@ interface ShelfRepository {
     suspend fun removeFromShelf(bookId: String): Result<Unit>
 }
 
+/**
+ * Implementation of [ShelfRepository] with TTL-based caching.
+ *
+ * Implements a cache-aside pattern for reads. Mutations (assign/remove) can't
+ * write a full [ShelfEntry] back to the cache since the backend only returns
+ * the resulting [ShelfStatus] (not source/updatedAt/book), so they instead
+ * invalidate the cached entry, forcing the next read to refresh from remote.
+ */
 internal class ShelfRepositoryImpl(
-    private val shelfRemoteDataSource: ShelfRemoteDataSource
+    private val shelfRemoteDataSource: ShelfRemoteDataSource,
+    private val shelfLocalDataSource: ShelfLocalDataSource,
+    private val cachePolicy: CachePolicy
 ) : ShelfRepository {
 
     override suspend fun getShelf(): Result<List<ShelfEntry>> {
-        return shelfRemoteDataSource.getShelf()
+        val cachedShelf = shelfLocalDataSource.getShelf()
+        if (cachedShelf.isNotEmpty()) {
+            val lastFetchedAt = shelfLocalDataSource.getLastFetchedAt(cachedShelf.first().book.id)
+            if (!cachePolicy.isStale(lastFetchedAt, CacheTTL.SHELF)) {
+                Bark.d("Cache hit for shelf")
+                return Result.success(cachedShelf)
+            }
+        }
+        Bark.d("Cache miss for shelf")
+
+        val result = shelfRemoteDataSource.getShelf()
+
+        result.onSuccess { entries ->
+            Bark.v("Persisting shelf to cache (${entries.size} entries)")
+            try {
+                shelfLocalDataSource.insertShelfEntries(entries)
+                Bark.d("Shelf cached (${entries.size} entries)")
+            } catch (e: Exception) {
+                Bark.e("Shelf cache failed. Will use remote data on next fetch.", e)
+            }
+        }.onFailure { error ->
+            Bark.e("Failed to fetch shelf. Cached data may be unavailable.", error)
+        }
+
+        return result
     }
 
     override suspend fun getShelfStatus(bookId: String): Result<ShelfStatus?> {
         val bookIdInt = bookId.toIntOrNull()
             ?: return Result.failure(IllegalArgumentException("Invalid book ID: $bookId"))
-        return shelfRemoteDataSource.getShelfStatus(bookIdInt)
+
+        val cachedEntry = shelfLocalDataSource.getShelfEntry(bookId)
+        val lastFetchedAt = shelfLocalDataSource.getLastFetchedAt(bookId)
+
+        if (cachedEntry != null && !cachePolicy.isStale(lastFetchedAt, CacheTTL.SHELF)) {
+            Bark.d("Cache hit for shelf status (book ID: $bookId)")
+            return Result.success(cachedEntry.shelf)
+        }
+        Bark.d("Cache miss for shelf status (book ID: $bookId)")
+
+        val result = shelfRemoteDataSource.getShelfStatus(bookIdInt)
+
+        result.onFailure { error ->
+            Bark.e("Failed to fetch shelf status. Cached data may be unavailable.", error)
+        }
+
+        return result
     }
 
     override suspend fun assignShelf(bookId: String, shelf: ShelfStatus): Result<ShelfStatus> {
         val bookIdInt = bookId.toIntOrNull()
             ?: return Result.failure(IllegalArgumentException("Invalid book ID: $bookId"))
         Bark.d("Assigning book (ID: $bookId) to shelf: $shelf")
-        return shelfRemoteDataSource.assignShelf(
+        val result = shelfRemoteDataSource.assignShelf(
             ShelfAssignRequestDto(
                 bookId = bookIdInt,
                 shelf = shelf.toDto()
             )
         )
+
+        result.onSuccess {
+            Bark.v("Invalidating shelf cache (book ID: $bookId) after assignment")
+            shelfLocalDataSource.deleteShelfEntry(bookId)
+        }
+
+        return result
     }
 
     override suspend fun removeFromShelf(bookId: String): Result<Unit> {
         val bookIdInt = bookId.toIntOrNull()
             ?: return Result.failure(IllegalArgumentException("Invalid book ID: $bookId"))
         Bark.d("Removing book (ID: $bookId) from shelf")
-        return shelfRemoteDataSource.removeShelf(bookIdInt)
+        val result = shelfRemoteDataSource.removeShelf(bookIdInt)
+
+        result.onSuccess {
+            Bark.v("Removing shelf entry from cache (book ID: $bookId)")
+            shelfLocalDataSource.deleteShelfEntry(bookId)
+        }
+
+        return result
     }
 }
