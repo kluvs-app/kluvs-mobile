@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.data.remote.api.SessionService
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
+import com.ivangarzab.kluvs.model.ReadingLog
 import com.ivangarzab.kluvs.model.Session
 
 /**
@@ -50,6 +51,13 @@ interface SessionRemoteDataSource {
      * Returns success message on successful deletion.
      */
     suspend fun deleteSession(sessionId: String): Result<String>
+
+    /**
+     * Fetches the authenticated member's reading log — all their sessions
+     * grouped into active and finished. Requires a user session (bot callers
+     * are rejected by the backend).
+     */
+    suspend fun getReadingLog(): Result<ReadingLog>
 }
 
 class SessionRemoteDataSourceImpl(
@@ -105,6 +113,17 @@ class SessionRemoteDataSourceImpl(
             }
         } catch (e: Exception) {
             Bark.e("Failed to delete session (ID: $sessionId). Please retry.", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getReadingLog(): Result<ReadingLog> {
+        return try {
+            val readingLog = sessionService.getReadingLog().toDomain()
+            Bark.i("Fetched reading log (${readingLog.active.size} active, ${readingLog.finished.size} finished)")
+            Result.success(readingLog)
+        } catch (e: Exception) {
+            Bark.e("Failed to fetch reading log. Please retry.", e)
             Result.failure(e)
         }
     }

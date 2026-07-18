@@ -10,6 +10,7 @@ import com.ivangarzab.kluvs.data.remote.mappers.toDto
 import com.ivangarzab.kluvs.data.remote.source.SessionRemoteDataSource
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Discussion
+import com.ivangarzab.kluvs.model.ReadingLog
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.bark.Bark
 import kotlinx.datetime.LocalDateTime
@@ -86,6 +87,14 @@ interface SessionRepository {
      * @return Result containing success message if deletion was successful, or an error if the operation failed
      */
     suspend fun deleteSession(sessionId: String): Result<String>
+
+    /**
+     * Retrieves the authenticated member's reading log — all their sessions
+     * grouped into active and finished. Requires a signed-in user session.
+     *
+     * @return Result containing the [ReadingLog] if successful, or an error if the operation failed
+     */
+    suspend fun getReadingLog(): Result<ReadingLog>
 }
 
 /**
@@ -221,5 +230,10 @@ internal class SessionRepositoryImpl(
         }
 
         return result
+    }
+
+    override suspend fun getReadingLog(): Result<ReadingLog> {
+        Bark.d("Fetching reading log from remote")
+        return sessionRemoteDataSource.getReadingLog()
     }
 }
