@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -47,12 +45,12 @@ import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.NoTabData
-import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 import kotlinx.datetime.LocalDateTime
 
 /**
- * Overview tab: club masthead, active-session summary (book, participation, own
- * progress), and an "up next" discussion teaser. Mirrors web's mobile Overview tab.
+ * Overview tab: active-session summary (book, participation, own progress) and an
+ * "up next" discussion teaser. Mirrors web's mobile Overview tab. The club masthead
+ * (name, meta row) lives above the tab row in [ClubsScreenContent], not here.
  * The full discussion timeline and end-session flow stay on the Discussions tab.
  */
 @Composable
@@ -62,8 +60,6 @@ fun OverviewTab(
     sessionDetails: ActiveSessionDetails? = null,
     ownProgress: OwnProgressInfo? = null,
     userRole: Role? = null,
-    onEditClub: () -> Unit = {},
-    onDeleteClub: () -> Unit = {},
     onEditSession: () -> Unit = {},
     onEndSession: () -> Unit = {},
     onUpdateProgress: () -> Unit = {},
@@ -76,49 +72,13 @@ fun OverviewTab(
         return
     }
 
-    val isOwner = userRole == Role.OWNER
     val isAdminOrAbove = userRole == Role.OWNER || userRole == Role.ADMIN
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Masthead
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.club_eyebrow).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = clubDetails.clubName,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.height(12.dp))
-                ClubMetaRow(
-                    userRole = userRole,
-                    foundedYear = clubDetails.foundedYear,
-                    memberCount = clubDetails.memberCount
-                )
-            }
-
-            if (isOwner) {
-                ClubOverflowMenu(
-                    onEdit = onEditClub,
-                    onDelete = onDeleteClub
-                )
-            }
-        }
-
         if (sessionDetails != null) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             SessionSummary(
                 sessionDetails = sessionDetails,
                 ownProgress = ownProgress,
@@ -268,89 +228,6 @@ private fun UpNextTeaser(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary
         )
-    }
-}
-
-@Composable
-private fun ClubMetaRow(
-    userRole: Role?,
-    foundedYear: String?,
-    memberCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        userRole?.let { role ->
-            RoleEyebrow(role = role)
-            MetaDot()
-        }
-        if (foundedYear != null) {
-            Text(
-                text = stringResource(R.string.founded_x, foundedYear).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            MetaDot()
-        }
-        Text(
-            text = stringResource(R.string.x_members, memberCount).uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun MetaDot() {
-    Box(
-        modifier = Modifier
-            .size(3.dp)
-            .background(color = MaterialTheme.colorScheme.onSurfaceVariant, shape = CircleShape)
-    )
-}
-
-@Composable
-private fun ClubOverflowMenu(
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Club options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("Edit") },
-                onClick = {
-                    expanded = false
-                    onEdit()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = "Delete",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                },
-                onClick = {
-                    expanded = false
-                    onDelete()
-                }
-            )
-        }
     }
 }
 

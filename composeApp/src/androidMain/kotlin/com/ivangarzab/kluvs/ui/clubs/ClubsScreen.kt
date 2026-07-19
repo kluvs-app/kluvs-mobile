@@ -9,14 +9,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -25,6 +32,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +63,7 @@ import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
+import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -250,7 +260,9 @@ fun ClubsScreenContent(
                     stringResource(R.string.members)
                 )
 
-                Column(modifier = modifier) {
+                Column(
+                    modifier = modifier.background(color = MaterialTheme.colorScheme.background)
+                ) {
                     // Operation in-progress indicator
                     if (state.isOperationInProgress) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -269,15 +281,62 @@ fun ClubsScreenContent(
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
+                        Text(
+                            text = stringResource(R.string.club_eyebrow).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    state.currentClubDetails?.let { clubDetails ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = clubDetails.clubName,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                ClubMetaRow(
+                                    userRole = state.userRole,
+                                    foundedYear = clubDetails.foundedYear,
+                                    memberCount = clubDetails.memberCount
+                                )
+                            }
+                            if (state.userRole == Role.OWNER) {
+                                ClubOverflowMenu(
+                                    onEdit = { showEditClubSheet = true },
+                                    onDelete = { showDeleteClubDialog = true }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
                     }
 
                     TabRow(
                         selectedTabIndex = pagerState.currentPage,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        indicator = { tabPositions ->
+                            if (pagerState.currentPage < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     ) {
                         tabs.forEachIndexed { index, title ->
+                            val selected = pagerState.currentPage == index
                             Tab(
-                                selected = pagerState.currentPage == index,
+                                selected = selected,
                                 onClick = {
                                     scope.launch {
                                         pagerState.animateScrollToPage(index)
@@ -286,7 +345,12 @@ fun ClubsScreenContent(
                                 text = {
                                     Text(
                                         text = title,
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = if (selected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                 }
                             )
@@ -302,7 +366,7 @@ fun ClubsScreenContent(
                         }
                     } else {
                         val tabModifier = Modifier
-                            .background(color = MaterialTheme.colorScheme.surface)
+                            .background(color = MaterialTheme.colorScheme.background)
                             .fillMaxSize()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
 
@@ -318,8 +382,6 @@ fun ClubsScreenContent(
                                     sessionDetails = state.activeSession,
                                     ownProgress = state.ownProgress,
                                     userRole = state.userRole,
-                                    onEditClub = { showEditClubSheet = true },
-                                    onDeleteClub = { showDeleteClubDialog = true },
                                     onEditSession = { showEditSessionSheet = true },
                                     onEndSession = { showEndSessionDialog = true },
                                     onUpdateProgress = { showProgressSheet = true }
@@ -509,6 +571,89 @@ fun ClubsScreenContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ClubMetaRow(
+    userRole: Role?,
+    foundedYear: String?,
+    memberCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        userRole?.let { role ->
+            RoleEyebrow(role = role)
+            MetaDot()
+        }
+        if (foundedYear != null) {
+            Text(
+                text = stringResource(R.string.founded_x, foundedYear).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            MetaDot()
+        }
+        Text(
+            text = stringResource(R.string.x_members, memberCount).uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun MetaDot() {
+    Box(
+        modifier = Modifier
+            .size(3.dp)
+            .background(color = MaterialTheme.colorScheme.onSurfaceVariant, shape = CircleShape)
+    )
+}
+
+@Composable
+private fun ClubOverflowMenu(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Club options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                onClick = {
+                    expanded = false
+                    onEdit()
+                }
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                }
+            )
         }
     }
 }
