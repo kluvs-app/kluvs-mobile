@@ -4,14 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow Preferences
 
-**IMPORTANT: Do NOT execute expensive Gradle commands.** Gradle builds and test runs consume excessive tokens due to verbose output. Instead:
+Git operations are fine for commits, branching, staging, etc. — but use caution on dangerous operations (force push, hard reset, etc.) and only when there's a clear reason. Default to safe, reversible actions.
 
-- Make code changes and let the user build/test locally
-- The user will report any compilation errors or test failures
-- If a build or test run is absolutely necessary, ask the user to run it manually
-- This keeps the human-in-the-loop for verification and saves significant tokens
-
-**Do NOT** Do git operations for the user either.
+For Gradle commands: execute them as needed, but minimize token usage by suppressing verbose output. Use flags like `--quiet` or `--console=plain`, or redirect output to `/dev/null` when only error status matters. Be mindful of token cost when running expensive tasks.
 
 ## Planning Preferences
 
@@ -19,11 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **New KMP features** follow a strict 4-phase approach. Use the `new-kmp-feature` skill — it owns the file map, coding conventions, and phase gate rules.
 
-**Plans and agents must NOT run builds or tests.** When a plan includes verification steps:
-- List the test files to create/update
-- Describe what the tests should verify
-- End with "The user will run tests manually" or similar
-- Never include `./gradlew` commands in agent execution steps
+When including build or test steps in plans or agent execution, use `--quiet` flag to suppress verbose output and keep token usage reasonable.
 
 ## Project Overview
 
