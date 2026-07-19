@@ -69,6 +69,14 @@ interface AuthService {
     suspend fun signInWithAppleIdToken(idToken: String): UserSession
 
     /**
+     * Sends a password reset email to the given address.
+     *
+     * @param email User's email address
+     * @throws Exception if the request fails (e.g., invalid email, rate limited)
+     */
+    suspend fun resetPasswordForEmail(email: String)
+
+    /**
      * Signs out the current user.
      *
      * Invalidates the current session on the server.

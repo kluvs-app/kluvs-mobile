@@ -8,7 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -23,6 +22,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.app.AppCoordinator
 import com.ivangarzab.kluvs.app.NavigationState
 import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.ui.auth.ForgotPasswordScreen
 import com.ivangarzab.kluvs.ui.auth.LoginScreen
 import com.ivangarzab.kluvs.ui.auth.SignupScreen
 import com.ivangarzab.kluvs.ui.settings.SettingsScreen
@@ -125,7 +125,9 @@ fun MainNavHost(
             )
         }
         composable(NavDestinations.FORGOT_PASSWORD) {
-            Text("Coming Soon...")
+            ForgotPasswordScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(NavDestinations.MAIN) {
             val userId = (navState as? NavigationState.Authenticated)?.userId

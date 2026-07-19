@@ -26,6 +26,9 @@ class AuthViewModel(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    private val _forgotPasswordState = MutableStateFlow(ForgotPasswordUiState())
+    val forgotPasswordState: StateFlow<ForgotPasswordUiState> = _forgotPasswordState.asStateFlow()
+
     init {
         Bark.d("AuthViewModel initializing")
         viewModelScope.launch {
@@ -143,6 +146,46 @@ class AuthViewModel(
                 AuthState.Error(error as? AuthError ?: AuthError.UnexpectedError)
             }
         }
+    }
+
+    fun onForgotPasswordEmailChanged(value: String) {
+        _forgotPasswordState.update { it.copy(emailField = value, emailError = null, generalError = null) }
+    }
+
+    fun sendPasswordResetEmail() {
+        val emailError = when {
+            _forgotPasswordState.value.emailField.isBlank() -> "Email is required"
+            !_forgotPasswordState.value.emailField.contains("@") -> "Please enter a valid email"
+            else -> null
+        }
+
+        if (emailError != null) {
+            _forgotPasswordState.update { it.copy(emailError = emailError) }
+            return
+        }
+
+        viewModelScope.launch {
+            Bark.d("Password reset email requested")
+            _forgotPasswordState.update { it.copy(isLoading = true, generalError = null) }
+            authRepository.resetPasswordForEmail(_forgotPasswordState.value.emailField)
+                .onSuccess {
+                    Bark.i("Password reset email sent")
+                    _forgotPasswordState.update { it.copy(isLoading = false, isEmailSent = true) }
+                }
+                .onFailure { error ->
+                    Bark.e("Password reset email failed to send. User may need to retry.", error)
+                    _forgotPasswordState.update {
+                        it.copy(
+                            isLoading = false,
+                            generalError = error as? AuthError ?: AuthError.UnexpectedError
+                        )
+                    }
+                }
+        }
+    }
+
+    fun resetForgotPasswordState() {
+        _forgotPasswordState.update { ForgotPasswordUiState() }
     }
 
     fun signOut() = viewModelScope.launch {

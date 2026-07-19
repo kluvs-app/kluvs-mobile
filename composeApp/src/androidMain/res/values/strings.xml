@@ -54,6 +54,15 @@
     <string name="dont_have_an_account">Don\'t have an account?</string>
     <string name="already_have_an_account">Already have an account?</string>
 
+    <!-- Forgot Password Screen -->
+    <string name="forgot_it">Forgot it?</string>
+    <string name="reset_password_subhead">Drop your email — we\'ll send a link to set a new password.</string>
+    <string name="send_reset_link">Send reset link</string>
+    <string name="sending">Sending…</string>
+    <string name="reset_link_sent_to">Reset link sent to</string>
+    <string name="reset_link_sent_body">Open the link from your email to choose a new password.</string>
+    <string name="back_to_sign_in">Back to sign in</string>
+
     <!-- Auth Error Messages -->
     <string name="error_invalid_credentials">Invalid email or password</string>
     <string name="error_email_not_confirmed">Please verify your email address</string>

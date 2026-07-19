@@ -21,6 +21,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -415,6 +416,91 @@ class AuthViewModelTest {
         // Then
         assertIs<AuthState.Error>(viewModel.state.value)
         assertEquals(AuthError.NoConnection, (viewModel.state.value as AuthState.Error).error)
+    }
+
+    // ========== Forgot Password Tests ==========
+
+    @Test
+    fun `onForgotPasswordEmailChanged updates email field and clears errors`() {
+        // Given - Set an initial error
+        viewModel.sendPasswordResetEmail() // Will set emailError (blank email)
+
+        // When
+        viewModel.onForgotPasswordEmailChanged("test@example.com")
+
+        // Then
+        assertEquals("test@example.com", viewModel.forgotPasswordState.value.emailField)
+        assertNull(viewModel.forgotPasswordState.value.emailError)
+    }
+
+    @Test
+    fun `sendPasswordResetEmail with empty email shows error`() {
+        // Given
+        viewModel.onForgotPasswordEmailChanged("")
+
+        // When
+        viewModel.sendPasswordResetEmail()
+
+        // Then
+        assertEquals("Email is required", viewModel.forgotPasswordState.value.emailError)
+        assertFalse(viewModel.forgotPasswordState.value.isEmailSent)
+    }
+
+    @Test
+    fun `sendPasswordResetEmail with invalid email shows error`() {
+        // Given
+        viewModel.onForgotPasswordEmailChanged("invalid-email")
+
+        // When
+        viewModel.sendPasswordResetEmail()
+
+        // Then
+        assertEquals("Please enter a valid email", viewModel.forgotPasswordState.value.emailError)
+        assertFalse(viewModel.forgotPasswordState.value.isEmailSent)
+    }
+
+    @Test
+    fun `sendPasswordResetEmail success updates state to email sent`() = runTest {
+        // Given
+        viewModel.onForgotPasswordEmailChanged("test@example.com")
+        everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
+
+        // When
+        viewModel.sendPasswordResetEmail()
+
+        // Then
+        assertTrue(viewModel.forgotPasswordState.value.isEmailSent)
+        assertFalse(viewModel.forgotPasswordState.value.isLoading)
+        verifySuspend { authRepository.resetPasswordForEmail("test@example.com") }
+    }
+
+    @Test
+    fun `sendPasswordResetEmail failure updates general error`() = runTest {
+        // Given
+        viewModel.onForgotPasswordEmailChanged("test@example.com")
+        everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.failure(AuthError.UserNotFound)
+
+        // When
+        viewModel.sendPasswordResetEmail()
+
+        // Then
+        assertFalse(viewModel.forgotPasswordState.value.isEmailSent)
+        assertFalse(viewModel.forgotPasswordState.value.isLoading)
+        assertEquals(AuthError.UserNotFound, viewModel.forgotPasswordState.value.generalError)
+    }
+
+    @Test
+    fun `resetForgotPasswordState clears state back to default`() = runTest {
+        // Given
+        viewModel.onForgotPasswordEmailChanged("test@example.com")
+        everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
+        viewModel.sendPasswordResetEmail()
+
+        // When
+        viewModel.resetForgotPasswordState()
+
+        // Then
+        assertEquals(ForgotPasswordUiState(), viewModel.forgotPasswordState.value)
     }
 
     // ========== Edge Cases ==========
