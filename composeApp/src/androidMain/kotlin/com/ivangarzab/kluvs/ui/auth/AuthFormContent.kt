@@ -44,10 +44,10 @@ import com.ivangarzab.kluvs.auth.presentation.AuthUiState
 import com.ivangarzab.kluvs.auth.presentation.LoginNavigation
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.bgSignInDiscord
-import com.ivangarzab.kluvs.theme.bgSignInGoogle
-import com.ivangarzab.kluvs.theme.textSignInGoogle
-import com.ivangarzab.kluvs.theme.white
+import com.ivangarzab.kluvs.theme.contentDarkPrimary
+import com.ivangarzab.kluvs.theme.providerDiscordBg
+import com.ivangarzab.kluvs.theme.providerGoogleBg
+import com.ivangarzab.kluvs.theme.providerGoogleText
 import com.ivangarzab.kluvs.ui.components.InputField
 import com.ivangarzab.kluvs.ui.components.SocialButton
 import com.ivangarzab.kluvs.ui.components.TextDivider
@@ -124,8 +124,8 @@ fun AuthFormContent(
                 text = stringResource(R.string.continue_with_discord),
                 icon = painterResource(R.drawable.ic_discord),
                 iconSize = 20.dp,
-                backgroundColor = bgSignInDiscord,
-                textColor = white,
+                backgroundColor = providerDiscordBg,
+                textColor = contentDarkPrimary,
                 onClick = { onOAuthSignIn(AuthProvider.DISCORD) }
             )
 
@@ -135,8 +135,8 @@ fun AuthFormContent(
                 text = stringResource(R.string.continue_with_google),
                 icon = painterResource(R.drawable.ic_google),
                 iconSize = 20.dp,
-                backgroundColor = bgSignInGoogle,
-                textColor = textSignInGoogle,
+                backgroundColor = providerGoogleBg,
+                textColor = providerGoogleText,
                 onClick = { onOAuthSignIn(AuthProvider.GOOGLE) }
             )
 

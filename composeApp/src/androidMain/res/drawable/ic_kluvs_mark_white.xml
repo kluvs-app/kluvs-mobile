@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="98dp"
+    android:viewportWidth="394.41"
+    android:viewportHeight="402.02">
+    <!-- Kluvs brand mark — white. See design-system/assets/kluvs-mark-white.svg -->
+    <path
+        android:pathData="M11,68.51 L110.6,11 L197.21,61 L283.81,11 L383.41,68.51 L383.41,183.52 L296.81,233.52 L296.81,333.52 L197.21,391.02 L97.6,333.52 L97.6,233.52 L11,183.52 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="14"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M191.58,79.26 L191.58,172.76 L110.6,219.51 L29.63,172.76 L29.63,79.26 L110.6,32.51 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M364.78,79.26 L364.78,172.76 L283.81,219.51 L202.83,172.76 L202.83,79.26 L283.81,32.51 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M278.18,229.26 L278.18,322.76 L197.21,369.51 L116.23,322.76 L116.23,229.26 L197.21,182.51 Z"
+        android:fillColor="#FFFFFF" />
+</vector>

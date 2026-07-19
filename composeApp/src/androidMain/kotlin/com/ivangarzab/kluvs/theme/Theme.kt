@@ -8,30 +8,66 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 
+// Dark-by-default product surfaces — warm near-black scale from design-system/tokens.json.
 private val DarkColorScheme = darkColorScheme(
-    primary = orange,
-    secondary = green,
-    tertiary = blue
+    primary = brandPrimary,
+    onPrimary = brandOnPrimary,
+    primaryContainer = warmDarkAccentFill,
+    onPrimaryContainer = brandPrimary,
+    secondary = brandSecondary,
+    onSecondary = contentDarkPrimary,
+    tertiary = brandTertiary,
+    onTertiary = contentDarkPrimary,
+    background = warmDarkBase,
+    onBackground = contentDarkPrimary,
+    surface = warmDarkCard,
+    onSurface = contentDarkPrimary,
+    surfaceVariant = warmDarkCard2,
+    onSurfaceVariant = foregroundWarmTertiary,
+    inverseSurface = lightPage,
+    inverseOnSurface = foregroundWarmTertiary,
+    error = statusDanger,
+    onError = contentDarkPrimary,
+    outline = warmDarkCard2,
+    outlineVariant = warmDarkCard2,
 )
 
+// Auth / marketing surfaces — cream scale, inverse of the warm-dark stack.
 private val LightColorScheme = lightColorScheme(
-    primary = orange,
-    secondary = green,
-    tertiary = blue
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = brandPrimary,
+    onPrimary = brandOnPrimary,
+    primaryContainer = lightDeep,
+    onPrimaryContainer = brandPrimary,
+    secondary = brandSecondary,
+    onSecondary = foregroundLightPrimary,
+    tertiary = brandTertiary,
+    onTertiary = foregroundLightPrimary,
+    background = lightPage,
+    onBackground = foregroundLightPrimary,
+    surface = lightCard,
+    onSurface = foregroundLightPrimary,
+    surfaceVariant = lightDeep,
+    onSurfaceVariant = foregroundLightTertiary,
+    inverseSurface = warmDarkBase,
+    inverseOnSurface = foregroundLightSecondary,
+    error = statusDanger,
+    onError = foregroundLightPrimary,
+    outline = lightDivider,
+    outlineVariant = lightDivider,
 )
 
+
+/**
+ * Cream on dark / dark-chocolate on light — the "label/variant/accent" role for wordmark,
+ * avatar initials, role labels, and input labels (design-system foreground-warm.primary /
+ * foreground-light.label-variant). Distinct from [MaterialTheme.colorScheme.onSurfaceVariant],
+ * which carries meta/supporting text instead.
+ */
+val LocalKluvsLabelColor = compositionLocalOf { foregroundWarmPrimary }
 
 @Composable
 fun KluvsTheme(
@@ -49,10 +85,13 @@ fun KluvsTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    val labelColor = if (darkTheme) foregroundWarmPrimary else foregroundLightLabelVariant
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalKluvsLabelColor provides labelColor) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

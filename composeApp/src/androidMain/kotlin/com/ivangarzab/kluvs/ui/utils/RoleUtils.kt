@@ -3,8 +3,8 @@ package com.ivangarzab.kluvs.ui.utils
 import androidx.compose.ui.graphics.Color
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.theme.blue
-import com.ivangarzab.kluvs.theme.gold
+import com.ivangarzab.kluvs.theme.roleAdmin
+import com.ivangarzab.kluvs.theme.roleOwner
 
 /**
  * Gets the rim color for a member's role badge.
@@ -13,8 +13,8 @@ import com.ivangarzab.kluvs.theme.gold
  * @return Color for the role's rim, or null if no rim should be shown
  */
 fun getRoleRimColor(role: Role): Color? = when (role) {
-    Role.OWNER -> gold
-    Role.ADMIN -> blue
+    Role.OWNER -> roleOwner
+    Role.ADMIN -> roleAdmin
     Role.MEMBER -> null
 }
 

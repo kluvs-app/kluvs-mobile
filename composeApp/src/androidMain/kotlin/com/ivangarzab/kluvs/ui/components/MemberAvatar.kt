@@ -30,7 +30,7 @@ import com.ivangarzab.kluvs.ui.utils.getRoleRimColor
 /**
  * Displays a member's avatar image with fallback to placeholder.
  *
- * Shows a colored rim and role icon overlay for OWNER (gold crown) and ADMIN (blue shield).
+ * Shows a colored rim and role icon overlay for OWNER (mustard crown) and ADMIN (teal shield).
  *
  * @param avatarUrl The URL of the avatar image, or null for placeholder
  * @param size The diameter of the circular avatar
@@ -141,13 +141,13 @@ fun Preview_MemberAvatar() = KluvsTheme {
                 size = 60.dp,
                 role = Role.MEMBER
             )
-            // Admin with blue rim and shield
+            // Admin with teal rim and shield
             MemberAvatar(
                 avatarUrl = null,
                 size = 60.dp,
                 role = Role.ADMIN
             )
-            // Owner with gold rim and crown
+            // Owner with mustard rim and crown
             MemberAvatar(
                 avatarUrl = null,
                 size = 60.dp,
