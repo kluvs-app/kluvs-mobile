@@ -15,6 +15,7 @@ import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
+import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
@@ -46,6 +47,7 @@ val clubsFeatureModule = module {
     factoryOf(::RemoveMemberUseCase)
     factoryOf(::SaveProgressUseCase)
     factoryOf(::FinishSessionUseCase)
+    factoryOf(::ToggleSessionParticipationUseCase)
 
     // ViewModels
     factoryOf(::ClubDetailsViewModel)

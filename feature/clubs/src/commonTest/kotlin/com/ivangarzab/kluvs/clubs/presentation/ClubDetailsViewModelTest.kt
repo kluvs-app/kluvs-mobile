@@ -14,6 +14,7 @@ import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
@@ -83,6 +84,7 @@ class ClubDetailsViewModelTest {
     private lateinit var getSessionProgressUseCase: GetSessionProgressUseCase
     private lateinit var saveProgressUseCase: SaveProgressUseCase
     private lateinit var finishSessionUseCase: FinishSessionUseCase
+    private lateinit var toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase
     private lateinit var viewModel: ClubDetailsViewModel
 
     private val formatDateTime = FormatDateTimeUseCase()
@@ -116,6 +118,7 @@ class ClubDetailsViewModelTest {
         getSessionProgressUseCase = GetSessionProgressUseCase(progressRepository)
         saveProgressUseCase = SaveProgressUseCase(progressRepository)
         finishSessionUseCase = FinishSessionUseCase(sessionRepository)
+        toggleSessionParticipationUseCase = ToggleSessionParticipationUseCase(sessionRepository)
 
         viewModel = ClubDetailsViewModel(
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
@@ -124,7 +127,8 @@ class ClubDetailsViewModelTest {
             updateSessionUseCase, deleteSessionUseCase, createDiscussionUseCase,
             updateDiscussionUseCase, deleteDiscussionUseCase,
             updateMemberRoleUseCase, removeMemberUseCase,
-            getSessionProgressUseCase, saveProgressUseCase, finishSessionUseCase
+            getSessionProgressUseCase, saveProgressUseCase, finishSessionUseCase,
+            toggleSessionParticipationUseCase
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null

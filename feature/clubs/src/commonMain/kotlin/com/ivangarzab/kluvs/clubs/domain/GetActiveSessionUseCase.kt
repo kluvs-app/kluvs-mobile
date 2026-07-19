@@ -63,7 +63,8 @@ class GetActiveSessionUseCase(
                         title = session.book.title,
                         author = session.book.author,
                         year = session.book.year?.toString(),
-                        pageCount = session.book.pageCount
+                        pageCount = session.book.pageCount,
+                        imageUrl = session.book.imageUrl
                     ),
                     bookId = session.book.id,
                     participants = session.members.map { member ->

@@ -110,7 +110,8 @@ data class BookInfo(
     val title: String,
     val author: String,
     val year: String?,
-    val pageCount: Int?
+    val pageCount: Int?,
+    val imageUrl: String? = null
 )
 
 /**

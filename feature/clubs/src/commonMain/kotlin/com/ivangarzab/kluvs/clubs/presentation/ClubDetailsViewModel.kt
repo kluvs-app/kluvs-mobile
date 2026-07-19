@@ -17,6 +17,7 @@ import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
@@ -53,7 +54,8 @@ class ClubDetailsViewModel(
     private val removeMemberUseCase: RemoveMemberUseCase,
     private val getSessionProgressUseCase: GetSessionProgressUseCase,
     private val saveProgressUseCase: SaveProgressUseCase,
-    private val finishSessionUseCase: FinishSessionUseCase
+    private val finishSessionUseCase: FinishSessionUseCase,
+    private val toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ClubDetailsState())
@@ -343,6 +345,20 @@ class ClubDetailsViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    /**
+     * Opts the given member in/out of the active session's reading ("Join this
+     * Read" / "Opt out" on the Overview tab). Self-serve — any member may call
+     * this for themselves.
+     */
+    fun onToggleParticipation(memberId: String, isReading: Boolean) {
+        val sessionId = _state.value.activeSession?.sessionId ?: return
+        launchMutation(if (isReading) "Joined this read" else "Opted out") {
+            toggleSessionParticipationUseCase(
+                ToggleSessionParticipationUseCase.Params(sessionId, memberId, isReading)
+            )
         }
     }
 

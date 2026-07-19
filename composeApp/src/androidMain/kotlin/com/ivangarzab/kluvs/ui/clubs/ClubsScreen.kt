@@ -156,6 +156,7 @@ fun ClubsScreen(
                     onCreateSession = viewModel::onCreateSession,
                     onUpdateSession = viewModel::onUpdateSession,
                     onEndSession = viewModel::onEndSession,
+                    onToggleParticipation = viewModel::onToggleParticipation,
                     onSaveProgress = viewModel::onSaveProgress,
                     onCreateDiscussion = viewModel::onCreateDiscussion,
                     onUpdateDiscussion = viewModel::onUpdateDiscussion,
@@ -191,6 +192,7 @@ fun ClubsScreenContent(
     onCreateSession: (Book, LocalDateTime?) -> Unit = { _, _ -> },
     onUpdateSession: (Book?, LocalDateTime?) -> Unit = { _, _ -> },
     onEndSession: () -> Unit = {},
+    onToggleParticipation: (memberId: String, isReading: Boolean) -> Unit = { _, _ -> },
     onSaveProgress: (ProgressType, Int?, Float?, Boolean) -> Unit = { _, _, _, _ -> },
     onCreateDiscussion: (String, String, LocalDateTime) -> Unit = { _, _, _ -> },
     onUpdateDiscussion: (String, String?, String?, LocalDateTime?) -> Unit = { _, _, _, _ -> },
@@ -368,7 +370,7 @@ fun ClubsScreenContent(
                         val tabModifier = Modifier
                             .background(color = MaterialTheme.colorScheme.background)
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
 
                         // Swipeable tab content
                         HorizontalPager(
@@ -382,9 +384,17 @@ fun ClubsScreenContent(
                                     sessionDetails = state.activeSession,
                                     ownProgress = state.ownProgress,
                                     userRole = state.userRole,
+                                    members = state.members,
+                                    currentUserId = currentUserId,
                                     onEditSession = { showEditSessionSheet = true },
                                     onEndSession = { showEndSessionDialog = true },
-                                    onUpdateProgress = { showProgressSheet = true }
+                                    onUpdateProgress = { showProgressSheet = true },
+                                    onCreateSession = { showCreateSessionSheet = true },
+                                    onToggleParticipation = { isReading ->
+                                        val currentMemberId = state.members.find { it.userId == currentUserId }?.memberId
+                                            ?: return@OverviewTab
+                                        onToggleParticipation(currentMemberId, isReading)
+                                    }
                                 )
                                 1 -> ActiveSessionTab(
                                     modifier = tabModifier,
