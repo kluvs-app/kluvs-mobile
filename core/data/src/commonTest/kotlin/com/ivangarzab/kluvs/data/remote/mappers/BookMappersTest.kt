@@ -64,4 +64,21 @@ class BookMappersTest {
         assertNull(domain.imageUrl)
         assertNull(domain.externalGoogleId)
     }
+
+    @Test
+    fun `toDomain falls back to externalGoogleId when id is absent`() {
+        // Given: A BookDto as returned by a Google Books search (no local DB id yet)
+        val dto = BookDto(
+            id = null,
+            title = "Some Book",
+            author = "Some Author",
+            externalGoogleId = "goog-456"
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: The Google volume id is used as a stable fallback id
+        assertEquals("goog-456", domain.id)
+    }
 }

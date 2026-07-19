@@ -21,8 +21,9 @@ class AppCoordinatorWrapper: ObservableObject {
 
     private func startObserving() {
         cancellable = helper.observeNavigationState { [weak self] state in
-            DispatchQueue.main.async {
-                self?.navigationState = NavigationStateWrapper.from(state)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.navigationState = NavigationStateWrapper.from(state)
             }
         }
     }

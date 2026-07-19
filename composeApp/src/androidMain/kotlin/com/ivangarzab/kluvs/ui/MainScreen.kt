@@ -32,6 +32,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.ui.books.BooksScreen
 import com.ivangarzab.kluvs.ui.clubs.ClubsScreen
 import com.ivangarzab.kluvs.ui.me.MeScreen
 import kotlinx.coroutines.launch
@@ -59,35 +60,15 @@ fun MainScreenContent(
     val scope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
-        pageCount = { 2 },
+        pageCount = { 3 },
         initialPage = 0
-    )
-
-    val titles = listOf(
-        stringResource(R.string.clubs),
-        stringResource(R.string.me)
     )
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    AnimatedContent(
-                        targetState = pagerState.currentPage,
-                        transitionSpec = {
-                            slideInVertically { -it } togetherWith slideOutVertically { it }
-                        },
-                        label = "title_animation"
-                    ) { page ->
-                        Text(titles[page])
-                    }
-                }
-            )
-        },
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.background
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 val itemColors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
@@ -96,36 +77,8 @@ fun MainScreenContent(
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 )
-                val clubScale by animateFloatAsState(
-                    targetValue = if (pagerState.currentPage == 0) 1f else 0.85f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    label = "tab_club"
-                )
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .scale(clubScale),
-                            painter = painterResource(R.drawable.ic_club),
-                            contentDescription = null
-                        )
-                    },
-                    label = { Text(stringResource(R.string.clubs)) },
-                    selected = pagerState.currentPage == 0,
-                    colors = itemColors,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(0)
-                        }
-                    }
-                )
-
                 val meScale by animateFloatAsState(
-                    targetValue = if (pagerState.currentPage == 1) 1f else 0.85f,
+                    targetValue = if (pagerState.currentPage == 0) 1f else 0.85f,
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessLow
@@ -143,11 +96,67 @@ fun MainScreenContent(
                         )
                     },
                     label = { Text(stringResource(R.string.me)) },
+                    selected = pagerState.currentPage == 0,
+                    colors = itemColors,
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(0)
+                        }
+                    }
+                )
+
+                val clubScale by animateFloatAsState(
+                    targetValue = if (pagerState.currentPage == 1) 1f else 0.85f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    label = "tab_club"
+                )
+                NavigationBarItem(
+                    icon = {
+                        Icon(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .scale(clubScale),
+                            painter = painterResource(R.drawable.ic_club),
+                            contentDescription = null
+                        )
+                    },
+                    label = { Text(stringResource(R.string.clubs)) },
                     selected = pagerState.currentPage == 1,
                     colors = itemColors,
                     onClick = {
                         scope.launch {
                             pagerState.animateScrollToPage(1)
+                        }
+                    }
+                )
+
+                val booksScale by animateFloatAsState(
+                    targetValue = if (pagerState.currentPage == 2) 1f else 0.85f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    label = "tab_books"
+                )
+                NavigationBarItem(
+                    icon = {
+                        Icon(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .scale(booksScale),
+                            painter = painterResource(R.drawable.ic_book),
+                            contentDescription = null
+                        )
+                    },
+                    label = { Text(stringResource(R.string.books)) },
+                    selected = pagerState.currentPage == 2,
+                    colors = itemColors,
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(2)
                         }
                     }
                 )
@@ -164,15 +173,17 @@ fun MainScreenContent(
             val contentModifier = Modifier
                 .fillMaxSize()
             when (page) {
-                0 -> ClubsScreen(
-                    modifier = contentModifier,
-                    userId = userId,
-                )
-                1 -> /*HomeScreen(contentModifier)
-                2 ->*/ MeScreen(
+                0 -> MeScreen(
                     modifier = contentModifier,
                     userId = userId,
                     onNavigateToSettings = onNavigateToSettings,
+                )
+                1 -> ClubsScreen(
+                    modifier = contentModifier,
+                    userId = userId,
+                )
+                2 -> BooksScreen(
+                    modifier = contentModifier,
                 )
             }
         }

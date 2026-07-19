@@ -6,21 +6,28 @@ struct MainView: View {
 
     private let titles = [
         String(localized: "tab_clubs"),
-        String(localized: "tab_me")
+        String(localized: "tab_me"),
+        String(localized: "tab_books")
     ]
 
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                // Custom Material-style TopAppBar
-                MaterialTopBar(title: titles[selectedTab])
+                // Books owns its own top bar/search UI (see BooksTopBar), so the shared
+                // Material-style TopAppBar is skipped for that tab — this starts the trend
+                // Clubs/Me are expected to follow.
+                if selectedTab != 2 {
+                    MaterialTopBar(title: titles[selectedTab])
+                }
 
                 // Content area
                 Group {
                     if selectedTab == 0 {
                         ClubsView(userId: userId)
-                    } else {
+                    } else if selectedTab == 1 {
                         MeView(userId: userId)
+                    } else {
+                        BooksView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

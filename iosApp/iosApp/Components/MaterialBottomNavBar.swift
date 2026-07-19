@@ -18,6 +18,13 @@ struct MaterialBottomNavBar: View {
                 isSelected: selectedTab == 1,
                 action: { selectedTab = 1 }
             )
+
+            MaterialNavBarItem(
+                icon: .book,
+                label: String(localized: "tab_books"),
+                isSelected: selectedTab == 2,
+                action: { selectedTab = 2 }
+            )
         }
         .frame(height: 80)
         .background(Color(UIColor.systemBackground))

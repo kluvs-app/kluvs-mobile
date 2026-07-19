@@ -40,21 +40,23 @@ class AuthViewModelWrapper: ObservableObject {
     private func startObserving() {
         // Observe auth state
         let stateCancellable = helper.observeState { [weak self] state in
-            DispatchQueue.main.async {
-                self?.authState = AuthStateWrapper.from(state)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.authState = AuthStateWrapper.from(state)
             }
         }
         cancellables.append(stateCancellable)
 
         // Observe UI state
         let uiStateCancellable = helper.observeUiState { [weak self] uiState in
-            DispatchQueue.main.async {
-                self?.emailField = uiState.emailField
-                self?.passwordField = uiState.passwordField
-                self?.confirmPasswordField = uiState.confirmPasswordField
-                self?.emailError = uiState.emailError
-                self?.passwordError = uiState.passwordError
-                self?.confirmPasswordError = uiState.confirmPasswordError
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.emailField = uiState.emailField
+                self.passwordField = uiState.passwordField
+                self.confirmPasswordField = uiState.confirmPasswordField
+                self.emailError = uiState.emailError
+                self.passwordError = uiState.passwordError
+                self.confirmPasswordError = uiState.confirmPasswordError
             }
         }
         cancellables.append(uiStateCancellable)

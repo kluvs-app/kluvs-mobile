@@ -39,23 +39,24 @@ class ClubDetailsViewModelWrapper: ObservableObject {
 
     private func startObserving() {
         let stateCancellable = helper.observeState { [weak self] state in
-            DispatchQueue.main.async {
-                self?.screenState = {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.screenState = {
                     if !state.availableClubs.isEmpty { return .content }
                     if state.isLoading { return .loading }
                     if let error = state.error { return .error(error) }
                     return .empty
                 }()
-                self?.isLoading = state.isLoading
-                self?.availableClubs = state.availableClubs
-                self?.selectedClubId = state.selectedClubId
-                self?.clubDetails = state.currentClubDetails
-                self?.activeSession = state.activeSession
-                self?.members = state.members
-                self?.userRole = state.userRole
-                self?.isOperationInProgress = state.isOperationInProgress
-                self?.operationMessage = self?.helper.operationResultMessage(result: state.operationResult)
-                self?.sessionDueDateIso = self?.helper.localDateTimeToIso(dateTime: state.activeSession?.rawDueDate)
+                self.isLoading = state.isLoading
+                self.availableClubs = state.availableClubs
+                self.selectedClubId = state.selectedClubId
+                self.clubDetails = state.currentClubDetails
+                self.activeSession = state.activeSession
+                self.members = state.members
+                self.userRole = state.userRole
+                self.isOperationInProgress = state.isOperationInProgress
+                self.operationMessage = self.helper.operationResultMessage(result: state.operationResult)
+                self.sessionDueDateIso = self.helper.localDateTimeToIso(dateTime: state.activeSession?.rawDueDate)
             }
         }
         cancellables.append(stateCancellable)

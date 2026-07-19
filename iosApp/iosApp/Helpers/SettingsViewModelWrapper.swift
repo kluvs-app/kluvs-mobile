@@ -27,15 +27,16 @@ class SettingsViewModelWrapper: ObservableObject {
 
     private func startObserving() {
         let stateCancellable = helper.observeState { [weak self] state in
-            DispatchQueue.main.async {
-                self?.isLoading = state.isLoading
-                self?.error = state.error
-                self?.editedName = state.editedName
-                self?.editedHandle = state.editedHandle
-                self?.isSaving = state.isSaving
-                self?.saveError = state.saveError
-                self?.saveSuccess = state.saveSuccess
-                self?.hasChanges = state.hasChanges
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.isLoading = state.isLoading
+                self.error = state.error
+                self.editedName = state.editedName
+                self.editedHandle = state.editedHandle
+                self.isSaving = state.isSaving
+                self.saveError = state.saveError
+                self.saveSuccess = state.saveSuccess
+                self.hasChanges = state.hasChanges
             }
         }
         cancellables.append(stateCancellable)
