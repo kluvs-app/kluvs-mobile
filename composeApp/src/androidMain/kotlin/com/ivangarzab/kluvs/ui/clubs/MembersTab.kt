@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.MemberListItemInfo
+import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.MemberAvatar
@@ -48,11 +49,14 @@ import com.ivangarzab.kluvs.ui.components.NoTabData
 fun MembersTab(
     modifier: Modifier = Modifier,
     members: List<MemberListItemInfo>,
+    participants: List<SessionParticipantInfo> = emptyList(),
     currentUserId: String? = null,
     userRole: Role? = null,
     onChangeRole: (memberId: String) -> Unit = {},
     onRemoveMember: (memberId: String) -> Unit = {},
 ) {
+    // Session participation lookup for the reading/skipping indicator
+    val readingByMemberId = participants.associate { it.memberId to it.isReading }
     if (members.isEmpty()) {
         NoTabData(
             modifier = modifier,
@@ -107,6 +111,7 @@ fun MembersTab(
                         handle = member.handle,
                         avatarUrl = member.avatarUrl,
                         role = member.role,
+                        isReading = readingByMemberId[member.memberId],
                         showAdminActions = isAdminOrAbove && !isSelf,
                         showRemove = isOwner && !isSelf && member.role != Role.OWNER,
                         onChangeRole = { onChangeRole(member.memberId) },
@@ -195,6 +200,7 @@ private fun MemberListItem(
     handle: String,
     avatarUrl: String? = null,
     role: Role,
+    isReading: Boolean? = null,
     showAdminActions: Boolean = false,
     showRemove: Boolean = false,
     onChangeRole: () -> Unit = {},
@@ -230,6 +236,19 @@ private fun MemberListItem(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
+
+        // Session participation indicator (mirrors the web members list)
+        isReading?.let { reading ->
+            Text(
+                text = if (reading) "Reading" else "Skipping",
+                color = if (reading) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                style = MaterialTheme.typography.labelMedium
+            )
         }
 
         if (showAdminActions || showRemove) {

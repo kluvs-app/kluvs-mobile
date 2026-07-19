@@ -58,7 +58,11 @@ class ClubLocalDataSourceImpl(
                 val bookId = sessionEntity.bookId ?: return@let null
                 val bookEntity = bookDao.getBook(bookId) ?: return@let null
                 val discussions = discussionDao.getDiscussionsForSession(sessionEntity.id).map { it.toDomain() }
-                sessionEntity.toDomain(bookEntity.toDomain()).copy(discussions = discussions)
+                val sessionMembers = sessionDao.getSessionMembers(sessionEntity.id).map { it.toDomain() }
+                sessionEntity.toDomain(bookEntity.toDomain()).copy(
+                    discussions = discussions,
+                    members = sessionMembers
+                )
             }
 
             clubEntity.toDomain().copy(
@@ -117,6 +121,16 @@ class ClubLocalDataSourceImpl(
                     sessionDao.insertSession(session.toEntity())
                 } catch (e: Exception) {
                     Bark.e("Failed to cache session (ID: ${session.id}). Retry on next sync.", e)
+                }
+
+                // Cache the participation list (replace so removed members drop out)
+                try {
+                    sessionDao.deleteSessionMembers(session.id)
+                    if (session.members.isNotEmpty()) {
+                        sessionDao.insertSessionMembers(session.members.map { it.toEntity(session.id) })
+                    }
+                } catch (e: Exception) {
+                    Bark.e("Failed to cache session members (Session ID: ${session.id}). Retry on next sync.", e)
                 }
 
                 // Cache discussions

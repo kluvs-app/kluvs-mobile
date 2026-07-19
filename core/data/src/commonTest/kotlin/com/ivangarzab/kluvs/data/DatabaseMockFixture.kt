@@ -82,6 +82,9 @@ class DatabaseMockFixture {
         everySuspend { sessionDao.insertSessions(any()) } returns Unit
         everySuspend { sessionDao.deleteSession(any()) } returns Unit
         everySuspend { sessionDao.deleteAll() } returns Unit
+        everySuspend { sessionDao.insertSessionMembers(any()) } returns Unit
+        everySuspend { sessionDao.deleteSessionMembers(any()) } returns Unit
+        everySuspend { sessionDao.deleteAllSessionMembers() } returns Unit
 
         everySuspend { bookDao.insertBook(any()) } returns Unit
         everySuspend { bookDao.insertBooks(any()) } returns Unit
@@ -126,6 +129,7 @@ class DatabaseMockFixture {
         everySuspend { memberDao.getClubsForMember(any()) } returns emptyList()
         everySuspend { sessionDao.getSession(any()) } returns null
         everySuspend { sessionDao.getSessionsForClub(any()) } returns emptyList()
+        everySuspend { sessionDao.getSessionMembers(any()) } returns emptyList()
         everySuspend { bookDao.getBook(any()) } returns null
         everySuspend { bookDao.getAllBooks() } returns emptyList()
         everySuspend { serverDao.getServer(any()) } returns null

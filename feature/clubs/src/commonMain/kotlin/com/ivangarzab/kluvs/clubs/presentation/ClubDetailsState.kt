@@ -9,6 +9,7 @@ data class ClubDetailsState(
     val selectedClubId: String? = null,
     val currentClubDetails: ClubDetails? = null,
     val activeSession: ActiveSessionDetails? = null,
+    val ownProgress: OwnProgressInfo? = null,
     val members: List<MemberListItemInfo> = emptyList(),
     val userRole: Role? = null,
     val isOperationInProgress: Boolean = false,

@@ -428,4 +428,36 @@ class SessionRepositoryTest {
         assertTrue(result.isFailure)
         verifySuspend { remoteDataSource.deleteSession(sessionId) }
     }
+
+    // ========================================
+    // FINISH SESSION
+    // ========================================
+
+    @Test
+    fun `finishSession success returns credited count and evicts cached session`() = runTest {
+        val sessionId = "session-123"
+        everySuspend { remoteDataSource.finishSession(sessionId) } returns Result.success(2)
+
+        val result = repository.finishSession(sessionId)
+
+        assertTrue(result.isSuccess)
+        assertEquals(2, result.getOrNull())
+        verifySuspend { remoteDataSource.finishSession(sessionId) }
+        verifySuspend { localDataSource.deleteSession(sessionId) }
+    }
+
+    @Test
+    fun `finishSession failure returns Result failure and keeps cache`() = runTest {
+        val sessionId = "session-123"
+        val exception = Exception("Session already finished")
+        everySuspend { remoteDataSource.finishSession(sessionId) } returns Result.failure(exception)
+
+        val result = repository.finishSession(sessionId)
+
+        assertTrue(result.isFailure)
+        assertEquals(exception, result.exceptionOrNull())
+        verifySuspend(mode = dev.mokkery.verify.VerifyMode.exactly(0)) {
+            localDataSource.deleteSession(any())
+        }
+    }
 }

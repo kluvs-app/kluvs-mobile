@@ -46,6 +46,16 @@ interface SessionRemoteDataSource {
     suspend fun updateSession(request: SessionUpdateRequestDto): Result<Unit>
 
     /**
+     * Finishes an active session via `PUT /session` with `finish: true`.
+     *
+     * The backend marks the session finished, increments `books_read` for all
+     * session members with `is_reading = true`, and moves their book to the
+     * "read" shelf. Returns the number of members credited (null if the
+     * backend omits it).
+     */
+    suspend fun finishSession(sessionId: String): Result<Int?>
+
+    /**
      * Deletes a session by ID.
      *
      * Returns success message on successful deletion.
@@ -98,6 +108,22 @@ class SessionRemoteDataSourceImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Bark.e("Failed to update session (ID: ${request.id}). Please retry.", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun finishSession(sessionId: String): Result<Int?> {
+        return try {
+            val response = sessionService.update(
+                SessionUpdateRequestDto(id = sessionId, finish = true)
+            )
+            if (response.success == false) {
+                throw Exception("Finish failed: ${response.message}")
+            }
+            Bark.i("Session finished (ID: $sessionId, members credited: ${response.membersCredited})")
+            Result.success(response.membersCredited)
+        } catch (e: Exception) {
+            Bark.e("Failed to finish session (ID: $sessionId). Please retry.", e)
             Result.failure(e)
         }
     }

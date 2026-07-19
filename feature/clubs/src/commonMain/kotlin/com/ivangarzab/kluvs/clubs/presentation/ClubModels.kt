@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.datetime.LocalDateTime
 
@@ -40,7 +41,38 @@ data class ActiveSessionDetails(
     val book: BookInfo,
     val dueDate: String,
     val rawDueDate: LocalDateTime?,
-    val discussions: List<DiscussionTimelineItemInfo>
+    val discussions: List<DiscussionTimelineItemInfo>,
+    /** ID of the session's book — needed to create a progress entry against it. */
+    val bookId: String = "",
+    /** Per-member participation list; empty when the API response omits it. */
+    val participants: List<SessionParticipantInfo> = emptyList()
+)
+
+/**
+ * UI model for a member's participation in the active session.
+ *
+ * Powers the reading/skipping indicator in MembersTab and the
+ * credited-readers preview in the end-session confirmation.
+ */
+data class SessionParticipantInfo(
+    val memberId: String,
+    val isReading: Boolean
+)
+
+/**
+ * UI model for the signed-in member's own reading progress on the active session.
+ *
+ * [percent] and [label] are pre-computed for direct display, mirroring the
+ * web app's ProgressRow ("X of Y pages", "N% complete", "Finished").
+ */
+data class OwnProgressInfo(
+    val progressId: String,
+    val type: ProgressType,
+    val currentPage: Int?,
+    val percentComplete: Float?,
+    val isCompleted: Boolean,
+    val percent: Int,
+    val label: String
 )
 
 /**

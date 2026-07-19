@@ -81,6 +81,19 @@ interface SessionRepository {
     ): Result<Session>
 
     /**
+     * Finishes an active session.
+     *
+     * The backend marks the session as finished, credits `books_read` for all
+     * session members with `is_reading = true`, and moves their book to the
+     * "read" shelf. Requires owner/admin role (enforced server-side).
+     *
+     * @param sessionId The ID of the session to finish
+     * @return Result containing the number of members credited (null if the
+     *         backend omits it), or an error if the operation failed
+     */
+    suspend fun finishSession(sessionId: String): Result<Int?>
+
+    /**
      * Deletes a session by its ID.
      *
      * @param sessionId The ID of the session to delete
@@ -212,6 +225,21 @@ internal class SessionRepositoryImpl(
             }
         }.onFailure { error ->
             Bark.e("Session updated, but re-fetching fresh data failed.", error)
+        }
+
+        return result
+    }
+
+    override suspend fun finishSession(sessionId: String): Result<Int?> {
+        Bark.d("Finishing session (ID: $sessionId)")
+        val result = sessionRemoteDataSource.finishSession(sessionId)
+
+        result.onSuccess { membersCredited ->
+            Bark.v("Removing finished session from cache (ID: $sessionId)")
+            sessionLocalDataSource.deleteSession(sessionId)
+            Bark.i("Session finished (ID: $sessionId, members credited: $membersCredited)")
+        }.onFailure { error ->
+            Bark.e("Session finish failed. Verify session is still active and retry.", error)
         }
 
         return result

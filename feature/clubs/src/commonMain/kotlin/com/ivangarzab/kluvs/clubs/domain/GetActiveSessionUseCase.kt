@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.clubs.presentation.ActiveSessionDetails
 import com.ivangarzab.kluvs.clubs.presentation.BookInfo
 import com.ivangarzab.kluvs.clubs.presentation.ClubListItem
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionTimelineItemInfo
+import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Club
@@ -60,6 +61,13 @@ class GetActiveSessionUseCase(
                         year = session.book.year?.toString(),
                         pageCount = session.book.pageCount
                     ),
+                    bookId = session.book.id,
+                    participants = session.members.map { member ->
+                        SessionParticipantInfo(
+                            memberId = member.memberId,
+                            isReading = member.isReading
+                        )
+                    },
                     dueDate = session.dueDate?.let { formatDateTime(it, DateTimeFormat.DATE_ONLY) } ?: "No due date",
                     rawDueDate = session.dueDate,
                     discussions = sortedDiscussions.mapIndexed { index, discussion ->

@@ -186,6 +186,65 @@ class SessionRemoteDataSourceTest {
     }
 
     @Test
+    fun `finishSession success returns members credited count`() = runTest {
+        // Given: Service returns the finish branch response
+        val responseDto = UpdateSession200ResponseDto(
+            success = true,
+            message = "Session finished",
+            membersCredited = 3
+        )
+
+        everySuspend {
+            sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true))
+        } returns responseDto
+
+        // When: Finishing session
+        val result = dataSource.finishSession("session-1")
+
+        // Then: Result is success with credited count
+        assertTrue(result.isSuccess)
+        assertEquals(3, result.getOrNull())
+
+        verifySuspend { sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true)) }
+    }
+
+    @Test
+    fun `finishSession with success false returns failure`() = runTest {
+        // Given: Service returns a failure-flagged response (idempotent guard)
+        val responseDto = UpdateSession200ResponseDto(
+            success = false,
+            message = "Session already finished"
+        )
+
+        everySuspend {
+            sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true))
+        } returns responseDto
+
+        // When: Finishing session
+        val result = dataSource.finishSession("session-1")
+
+        // Then: Result is failure
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Session already finished") == true)
+    }
+
+    @Test
+    fun `finishSession service exception returns failure`() = runTest {
+        // Given: Service throws exception
+        val exception = Exception("Network error")
+        everySuspend {
+            sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true))
+        } throws exception
+
+        // When: Finishing session
+        val result = dataSource.finishSession("session-1")
+
+        // Then: Result is failure
+        assertTrue(result.isFailure)
+        assertEquals(exception, result.exceptionOrNull())
+    }
+
+    @Test
     fun `deleteSession success returns success message`() = runTest {
         // Given: Service returns success response
         val response = DeleteResponseDto(

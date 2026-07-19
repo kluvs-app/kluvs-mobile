@@ -39,11 +39,13 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
 import com.ivangarzab.kluvs.clubs.presentation.OperationResult
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
+import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -92,6 +94,8 @@ fun ClubsScreen(
             onDeleteClub = viewModel::onDeleteClub,
             onCreateSession = viewModel::onCreateSession,
             onUpdateSession = viewModel::onUpdateSession,
+            onEndSession = viewModel::onEndSession,
+            onSaveProgress = viewModel::onSaveProgress,
             onCreateDiscussion = viewModel::onCreateDiscussion,
             onUpdateDiscussion = viewModel::onUpdateDiscussion,
             onDeleteDiscussion = viewModel::onDeleteDiscussion,
@@ -123,6 +127,8 @@ fun ClubsScreenContent(
     onDeleteClub: () -> Unit = {},
     onCreateSession: (Book, LocalDateTime?) -> Unit = { _, _ -> },
     onUpdateSession: (Book?, LocalDateTime?) -> Unit = { _, _ -> },
+    onEndSession: () -> Unit = {},
+    onSaveProgress: (ProgressType, Int?, Float?, Boolean) -> Unit = { _, _, _, _ -> },
     onCreateDiscussion: (String, String, LocalDateTime) -> Unit = { _, _, _ -> },
     onUpdateDiscussion: (String, String?, String?, LocalDateTime?) -> Unit = { _, _, _, _ -> },
     onDeleteDiscussion: (String) -> Unit = {},
@@ -136,6 +142,8 @@ fun ClubsScreenContent(
     var showDeleteClubDialog by remember { mutableStateOf(false) }
     var showCreateSessionSheet by remember { mutableStateOf(false) }
     var showEditSessionSheet by remember { mutableStateOf(false) }
+    var showEndSessionDialog by remember { mutableStateOf(false) }
+    var showProgressSheet by remember { mutableStateOf(false) }
     var showCreateDiscussionSheet by remember { mutableStateOf(false) }
     var editingDiscussionId by remember { mutableStateOf<String?>(null) }
     var deletingDiscussionId by remember { mutableStateOf<String?>(null) }
@@ -249,9 +257,12 @@ fun ClubsScreenContent(
                                 1 -> ActiveSessionTab(
                                     modifier = tabModifier,
                                     sessionDetails = state.activeSession,
+                                    ownProgress = state.ownProgress,
                                     userRole = state.userRole,
                                     onCreateSession = { showCreateSessionSheet = true },
                                     onEditSession = { showEditSessionSheet = true },
+                                    onEndSession = { showEndSessionDialog = true },
+                                    onUpdateProgress = { showProgressSheet = true },
                                     onCreateDiscussion = { showCreateDiscussionSheet = true },
                                     onEditDiscussion = { id -> editingDiscussionId = id },
                                     onDeleteDiscussion = { id -> deletingDiscussionId = id }
@@ -259,6 +270,7 @@ fun ClubsScreenContent(
                                 2 -> MembersTab(
                                     modifier = tabModifier,
                                     members = state.members,
+                                    participants = state.activeSession?.participants ?: emptyList(),
                                     currentUserId = currentUserId,
                                     userRole = state.userRole,
                                     onChangeRole = { memberId -> changingRoleMemberId = memberId },
@@ -332,6 +344,44 @@ fun ClubsScreenContent(
                         },
                         onDismiss = { showEditSessionSheet = false }
                     )
+                }
+
+                if (showEndSessionDialog) {
+                    val readingCount = state.activeSession?.participants?.count { it.isReading } ?: 0
+                    val creditMessage = if (readingCount > 0) {
+                        "$readingCount member${if (readingCount != 1) "s" else ""} will receive credit."
+                    } else {
+                        "No members are marked as reading — no credit will be awarded."
+                    }
+                    ConfirmationDialog(
+                        title = "End Session",
+                        message = "Are you sure you want to end the current reading session for " +
+                            "\"${state.activeSession?.book?.title}\"?\n\n$creditMessage",
+                        confirmLabel = "Confirm End",
+                        onConfirm = {
+                            onEndSession()
+                            showEndSessionDialog = false
+                        },
+                        onDismiss = { showEndSessionDialog = false }
+                    )
+                }
+
+                if (showProgressSheet) {
+                    state.activeSession?.let { session ->
+                        ReadingProgressBottomSheet(
+                            bookTitle = session.book.title,
+                            pageCount = session.book.pageCount,
+                            initialType = state.ownProgress?.type ?: ProgressType.PAGE,
+                            initialCurrentPage = state.ownProgress?.currentPage,
+                            initialPercentComplete = state.ownProgress?.percentComplete,
+                            initialMarkFinished = state.ownProgress?.isCompleted ?: false,
+                            onSave = { type, currentPage, percentComplete, markFinished ->
+                                onSaveProgress(type, currentPage, percentComplete, markFinished)
+                                showProgressSheet = false
+                            },
+                            onDismiss = { showProgressSheet = false }
+                        )
+                    }
                 }
 
                 // ---- Discussion sheets / dialogs ----

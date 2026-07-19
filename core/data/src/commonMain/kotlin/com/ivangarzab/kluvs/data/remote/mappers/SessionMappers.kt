@@ -1,7 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionParticipantDto
 import com.ivangarzab.kluvs.model.Session
+import com.ivangarzab.kluvs.model.SessionMember
 
 /**
  * Maps a [SessionDto] from the API to a [Session] domain model.
@@ -15,6 +17,19 @@ fun SessionDto.toDomain(): Session {
         clubId = clubId,
         book = book?.toDomain() ?: error("SessionDto missing required book data"),
         dueDate = dueDate?.parseDateString(),
-        discussions = discussions?.map { it.toDomain() } ?: emptyList()
+        discussions = discussions?.map { it.toDomain() } ?: emptyList(),
+        members = members?.map { it.toDomain() } ?: emptyList()
+    )
+}
+
+/**
+ * Maps a [SessionParticipantDto] from the club response's `active_session.members`
+ * list to a [SessionMember] domain model.
+ */
+fun SessionParticipantDto.toDomain(): SessionMember {
+    return SessionMember(
+        memberId = memberId.toString(),
+        memberName = memberName,
+        isReading = isReading
     )
 }
