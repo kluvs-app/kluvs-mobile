@@ -8,7 +8,9 @@ import com.ivangarzab.kluvs.model.Book
  */
 fun BookDto.toDomain(): Book {
     return Book(
-        id = id.toString(),
+        // Google Books search results have no local DB id yet; fall back to the Google volume id
+        // so the row still has a stable key. `Book.isRegistered` reflects which case this is.
+        id = id?.toString() ?: externalGoogleId.orEmpty(),
         title = title,
         author = author,
         edition = edition,
