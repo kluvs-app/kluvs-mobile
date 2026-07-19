@@ -269,8 +269,6 @@ internal class SessionRepositoryImpl(
         )
 
         result.onSuccess {
-            Bark.v("Removing session from cache after participation update (ID: $sessionId)")
-            sessionLocalDataSource.deleteSession(sessionId)
             Bark.i("Session participation updated (ID: $sessionId, Member ID: $memberId, isReading: $isReading)")
         }.onFailure { error ->
             Bark.e("Session participation update failed. Verify input and retry.", error)

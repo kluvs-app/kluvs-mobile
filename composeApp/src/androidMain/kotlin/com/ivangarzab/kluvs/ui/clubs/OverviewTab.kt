@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -26,9 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +56,7 @@ import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
+import com.ivangarzab.kluvs.ui.components.GhostButton
 import com.ivangarzab.kluvs.ui.components.NoTabData
 import kotlinx.datetime.LocalDateTime
 
@@ -234,20 +232,10 @@ private fun SessionSummary(
             }
 
             if (canToggleParticipation) {
-                OutlinedButton(
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(
-                        vertical = 8.dp,
-                        horizontal = 8.dp,
-                    ),
+                GhostButton(
+                    text = stringResource(if (isOwnReading) R.string.opt_out else R.string.join_this_read),
                     onClick = { onToggleParticipation(!isOwnReading) }
-                ) {
-                    Text(
-                        text = stringResource(if (isOwnReading) R.string.opt_out else R.string.join_this_read),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
+                )
             }
         }
 
@@ -277,20 +265,10 @@ private fun OwnProgressRow(
                 progress = { (ownProgress?.percent ?: 0) / 100f },
                 modifier = Modifier.weight(1f)
             )
-            OutlinedButton(
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(
-                    vertical = 8.dp,
-                    horizontal = 8.dp,
-                ),
+            GhostButton(
+                text = "Update",
                 onClick = onUpdateProgress
-            ) {
-                Text(
-                    text = "Update",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
+            )
         }
         ownProgress?.let {
             Text(

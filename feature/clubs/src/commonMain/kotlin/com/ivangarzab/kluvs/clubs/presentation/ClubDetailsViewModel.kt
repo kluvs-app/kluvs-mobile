@@ -352,13 +352,44 @@ class ClubDetailsViewModel(
      * Opts the given member in/out of the active session's reading ("Join this
      * Read" / "Opt out" on the Overview tab). Self-serve — any member may call
      * this for themselves.
+     *
+     * Unlike the other session mutations, this does not trigger a full club
+     * refresh — [launchMutation]'s reload resets [ClubDetailsState.isLoading],
+     * which tears down and rebuilds the whole tab pager, causing a visible
+     * flash/limbo state for what should be a lightweight, frequent toggle.
+     * Instead, the participant list is patched directly, same as [onSaveProgress].
      */
     fun onToggleParticipation(memberId: String, isReading: Boolean) {
-        val sessionId = _state.value.activeSession?.sessionId ?: return
-        launchMutation(if (isReading) "Joined this read" else "Opted out") {
+        val session = _state.value.activeSession ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isOperationInProgress = true) }
             toggleSessionParticipationUseCase(
-                ToggleSessionParticipationUseCase.Params(sessionId, memberId, isReading)
+                ToggleSessionParticipationUseCase.Params(session.sessionId, memberId, isReading)
             )
+                .onSuccess {
+                    val updatedParticipants = session.participants.filterNot { it.memberId == memberId } +
+                        SessionParticipantInfo(memberId, isReading)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            activeSession = it.activeSession?.copy(participants = updatedParticipants),
+                            operationResult = OperationResult.Success(
+                                if (isReading) "Joined this read" else "Opted out"
+                            )
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Toggle participation. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
         }
     }
 
