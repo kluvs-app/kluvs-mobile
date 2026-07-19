@@ -64,32 +64,11 @@ fun MainScreenContent(
         initialPage = 0
     )
 
-    val titles = listOf(
-        stringResource(R.string.me),
-        stringResource(R.string.clubs),
-        stringResource(R.string.books)
-    )
-
     Scaffold(
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    AnimatedContent(
-                        targetState = pagerState.currentPage,
-                        transitionSpec = {
-                            slideInVertically { -it } togetherWith slideOutVertically { it }
-                        },
-                        label = "title_animation"
-                    ) { page ->
-                        Text(titles[page])
-                    }
-                }
-            )
-        },
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.background
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 val itemColors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
