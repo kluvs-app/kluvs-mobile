@@ -1,7 +1,7 @@
 # 📚 Kluvs 🎬🍽️
 
-[![Full Tests](https://github.com/ivangarzab/kluvs-mobile/actions/workflows/full-tests.yml/badge.svg)](https://github.com/ivangarzab/kluvs-mobile/actions/workflows/full-tests.yml)
-[![codecov](https://codecov.io/gh/ivangarzab/kluvs-mobile/branch/main/graph/badge.svg)](https://codecov.io/gh/ivangarzab/kluvs-mobile)
+[![Full Tests](https://github.com/kluvs-app/kluvs-mobile/actions/workflows/full-tests.yml/badge.svg)](https://github.com/kluvs-app/kluvs-mobile/actions/workflows/full-tests.yml)
+[![codecov](https://codecov.io/gh/kluvs-app/kluvs-mobile/branch/main/graph/badge.svg)](https://codecov.io/gh/kluvs-app/kluvs-mobile)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 
 <p align="center">
