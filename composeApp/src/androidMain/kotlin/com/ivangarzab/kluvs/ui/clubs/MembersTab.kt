@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +43,7 @@ import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.Avatar
+import com.ivangarzab.kluvs.ui.components.GhostButton
 import com.ivangarzab.kluvs.ui.components.NoTabData
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
@@ -52,6 +56,7 @@ fun MembersTab(
     userRole: Role? = null,
     onChangeRole: (memberId: String) -> Unit = {},
     onRemoveMember: (memberId: String) -> Unit = {},
+    onInviteMember: () -> Unit = {},
 ) {
     // Session participation lookup for the reading/skipping indicator
     val readingByMemberId = participants.associate { it.memberId to it.isReading }
@@ -67,15 +72,27 @@ fun MembersTab(
     val isOwner = userRole == Role.OWNER
 
     Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.x_members, members.size),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                fontStyle = FontStyle.Italic
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.x_members, members.size),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontStyle = FontStyle.Italic
+                )
             )
-        )
+            if (isAdminOrAbove) {
+                GhostButton(
+                    text = stringResource(R.string.invite),
+                    onClick = onInviteMember
+                )
+            }
+        }
 
         Spacer(Modifier.height(12.dp))
 
@@ -91,13 +108,32 @@ fun MembersTab(
                     role = member.role,
                     isSelf = isSelf,
                     isReading = readingByMemberId[member.memberId],
-                    showAdminActions = isAdminOrAbove && !isSelf,
+                    showAdminActions = isAdminOrAbove && (!isSelf || isOwner),
                     showRemove = isOwner && !isSelf && member.role != Role.OWNER,
                     onChangeRole = { onChangeRole(member.memberId) },
                     onRemove = { onRemoveMember(member.memberId) }
                 )
                 if (index < members.size - 1) {
                     MemberDivider()
+                }
+            }
+        }
+
+        if (members.size <= 1 && isAdminOrAbove) {
+            Spacer(Modifier.height(20.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.invite_others_cta),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontStyle = FontStyle.Italic),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onInviteMember) {
+                    Text(stringResource(R.string.invite_members))
                 }
             }
         }
@@ -205,11 +241,15 @@ private fun MemberOverflowMenu(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        IconButton(onClick = { expanded = true }) {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.size(20.dp)
+        ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "Member options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
             )
         }
         DropdownMenu(

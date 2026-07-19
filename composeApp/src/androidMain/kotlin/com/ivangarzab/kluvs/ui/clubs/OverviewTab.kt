@@ -243,6 +243,8 @@ private fun SessionSummary(
             Spacer(Modifier.height(12.dp))
             OwnProgressRow(
                 ownProgress = ownProgress,
+                discussionsCompleted = sessionDetails.discussions.count { it.isPast },
+                discussionsTotal = sessionDetails.discussions.size,
                 onUpdateProgress = onUpdateProgress
             )
         }
@@ -252,6 +254,8 @@ private fun SessionSummary(
 @Composable
 private fun OwnProgressRow(
     ownProgress: OwnProgressInfo?,
+    discussionsCompleted: Int,
+    discussionsTotal: Int,
     onUpdateProgress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -270,12 +274,24 @@ private fun OwnProgressRow(
                 onClick = onUpdateProgress
             )
         }
-        ownProgress?.let {
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = it.label,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodySmall
+                text = stringResource(R.string.x_of_y_discussions, discussionsCompleted, discussionsTotal),
+                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            ownProgress?.let {
+                Text(
+                    text = it.label,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
