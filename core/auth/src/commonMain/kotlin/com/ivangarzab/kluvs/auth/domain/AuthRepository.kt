@@ -95,6 +95,14 @@ interface AuthRepository {
     suspend fun signInWithAppleNative(idToken: String): Result<User>
 
     /**
+     * Sends a password reset email to the given address.
+     *
+     * @param email User's email address
+     * @return Result with success or error
+     */
+    suspend fun resetPasswordForEmail(email: String): Result<Unit>
+
+    /**
      * Signs out the current user.
      *
      * - Clears session on server

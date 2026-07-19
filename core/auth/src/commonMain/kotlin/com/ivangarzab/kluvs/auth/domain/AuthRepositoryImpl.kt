@@ -184,6 +184,19 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun resetPasswordForEmail(email: String): Result<Unit> {
+        Bark.v("Password reset email requested")
+
+        return try {
+            authService.resetPasswordForEmail(email)
+            Bark.i("Password reset email sent")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Bark.e("Password reset email failed to send. User may need to retry.", e)
+            Result.failure(e.toAuthError())
+        }
+    }
+
     override suspend fun signOut(): Result<Unit> {
         Bark.v("Sign out initiated")
 

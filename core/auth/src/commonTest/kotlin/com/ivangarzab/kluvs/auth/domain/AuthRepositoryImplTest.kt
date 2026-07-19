@@ -223,6 +223,36 @@ class AuthRepositoryImplTest {
         verify { secureStorage.remove(SecureStorage.KEY_USER_ID) }
     }
 
+    // ========== Reset Password Tests ==========
+
+    @Test
+    fun `resetPasswordForEmail succeeds`() = runTest {
+        // Given
+        val email = "test@example.com"
+        everySuspend { authService.resetPasswordForEmail(email) } returns Unit
+
+        // When
+        val result = repository.resetPasswordForEmail(email)
+
+        // Then
+        assertTrue(result.isSuccess)
+        verifySuspend { authService.resetPasswordForEmail(email) }
+    }
+
+    @Test
+    fun `resetPasswordForEmail fails and returns user not found error`() = runTest {
+        // Given
+        val email = "unknown@example.com"
+        everySuspend { authService.resetPasswordForEmail(email) } throws Exception("User not found")
+
+        // When
+        val result = repository.resetPasswordForEmail(email)
+
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals(AuthError.UserNotFound, result.exceptionOrNull())
+    }
+
     // ========== Refresh Session Tests ==========
 
     @Test

@@ -194,6 +194,105 @@ class AuthViewModelHelperTest {
     }
 
     @Test
+    fun `observeForgotPasswordState immediately calls callback with current state`() = runTest {
+        // Given
+        var callbackInvoked = false
+        var receivedState: ForgotPasswordUiState? = null
+
+        // When
+        val closeable = helper.observeForgotPasswordState { state ->
+            callbackInvoked = true
+            receivedState = state
+        }
+
+        // Then
+        assertTrue(callbackInvoked, "Callback should be invoked immediately")
+        assertNotNull(receivedState)
+        assertEquals("", receivedState!!.emailField)
+        assertNull(receivedState!!.emailError)
+
+        closeable.close()
+    }
+
+    @Test
+    fun `onForgotPasswordEmailChanged updates forgot password state`() = runTest {
+        // Given
+        val receivedStates = mutableListOf<ForgotPasswordUiState>()
+        val closeable = helper.observeForgotPasswordState { state ->
+            receivedStates.add(state)
+        }
+
+        // When
+        helper.onForgotPasswordEmailChanged("test@example.com")
+
+        // Then
+        assertTrue(receivedStates.size >= 2, "Should receive initial state + update")
+        assertEquals("test@example.com", receivedStates.last().emailField)
+
+        closeable.close()
+    }
+
+    @Test
+    fun `sendPasswordResetEmail with invalid email sets error in state`() = runTest {
+        // Given
+        val receivedStates = mutableListOf<ForgotPasswordUiState>()
+        val closeable = helper.observeForgotPasswordState { state ->
+            receivedStates.add(state)
+        }
+
+        helper.onForgotPasswordEmailChanged("invalid-email")
+
+        // When
+        helper.sendPasswordResetEmail()
+
+        // Then
+        val lastState = receivedStates.last()
+        assertNotNull(lastState.emailError, "Should have email error")
+
+        closeable.close()
+    }
+
+    @Test
+    fun `sendPasswordResetEmail with valid email calls repository`() = runTest {
+        // Given
+        everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
+        val receivedStates = mutableListOf<ForgotPasswordUiState>()
+        val closeable = helper.observeForgotPasswordState { state ->
+            receivedStates.add(state)
+        }
+
+        helper.onForgotPasswordEmailChanged("test@example.com")
+
+        // When
+        helper.sendPasswordResetEmail()
+
+        // Then
+        assertTrue(receivedStates.last().isEmailSent)
+
+        closeable.close()
+    }
+
+    @Test
+    fun `resetForgotPasswordState clears state`() = runTest {
+        // Given
+        everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
+        helper.onForgotPasswordEmailChanged("test@example.com")
+        helper.sendPasswordResetEmail()
+
+        // When
+        helper.resetForgotPasswordState()
+        val receivedStates = mutableListOf<ForgotPasswordUiState>()
+        val closeable = helper.observeForgotPasswordState { state ->
+            receivedStates.add(state)
+        }
+
+        // Then
+        assertEquals(ForgotPasswordUiState(), receivedStates.first())
+
+        closeable.close()
+    }
+
+    @Test
     fun `signOut calls repository signOut`() = runTest {
         // Given
         everySuspend { authRepository.signOut() } returns Result.success(Unit)
