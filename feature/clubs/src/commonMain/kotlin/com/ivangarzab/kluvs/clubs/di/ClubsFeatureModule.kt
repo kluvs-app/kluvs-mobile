@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.di
 
+import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
@@ -32,6 +33,7 @@ val clubsFeatureModule = module {
     factoryOf(::SearchBooksUseCase)
 
     // Use Cases — write (admin operations)
+    factoryOf(::CreateClubUseCase)
     factoryOf(::UpdateClubUseCase)
     factoryOf(::DeleteClubUseCase)
     factoryOf(::CreateSessionUseCase)

@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
@@ -67,6 +68,7 @@ class ClubDetailsViewModelTest {
     private lateinit var getActiveSession: GetActiveSessionUseCase
     private lateinit var getClubMembers: GetClubMembersUseCase
     private lateinit var getMemberClubs: GetMemberClubsUseCase
+    private lateinit var createClubUseCase: CreateClubUseCase
     private lateinit var updateClubUseCase: UpdateClubUseCase
     private lateinit var deleteClubUseCase: DeleteClubUseCase
     private lateinit var createSessionUseCase: CreateSessionUseCase
@@ -99,7 +101,8 @@ class ClubDetailsViewModelTest {
         getClubDetails = GetClubDetailsUseCase(clubRepository, formatDateTime)
         getActiveSession = GetActiveSessionUseCase(clubRepository, formatDateTime)
         getClubMembers = GetClubMembersUseCase(clubRepository, avatarRepository)
-        getMemberClubs = GetMemberClubsUseCase(memberRepository)
+        getMemberClubs = GetMemberClubsUseCase(memberRepository, clubRepository, avatarRepository)
+        createClubUseCase = CreateClubUseCase(clubRepository, memberRepository)
         updateClubUseCase = UpdateClubUseCase(clubRepository)
         deleteClubUseCase = DeleteClubUseCase(clubRepository)
         createSessionUseCase = CreateSessionUseCase(sessionRepository)
@@ -116,6 +119,7 @@ class ClubDetailsViewModelTest {
 
         viewModel = ClubDetailsViewModel(
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
+            createClubUseCase,
             updateClubUseCase, deleteClubUseCase, createSessionUseCase,
             updateSessionUseCase, deleteSessionUseCase, createDiscussionUseCase,
             updateDiscussionUseCase, deleteDiscussionUseCase,

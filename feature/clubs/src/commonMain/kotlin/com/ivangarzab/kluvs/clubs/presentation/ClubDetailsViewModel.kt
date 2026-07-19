@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.clubs.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
@@ -39,6 +40,7 @@ class ClubDetailsViewModel(
     private val getActiveSession: GetActiveSessionUseCase,
     private val getClubMembers: GetClubMembersUseCase,
     private val getMemberClubsUseCase: GetMemberClubsUseCase,
+    private val createClubUseCase: CreateClubUseCase,
     private val updateClubUseCase: UpdateClubUseCase,
     private val deleteClubUseCase: DeleteClubUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
@@ -167,6 +169,43 @@ class ClubDetailsViewModel(
     fun refresh(forceRefresh: Boolean = false) {
         Bark.d("Refreshing club data (forceRefresh=$forceRefresh)")
         currentClubId?.let { loadClubData(it, forceRefresh) }
+    }
+
+    /**
+     * Creates a new club and adds it to [ClubDetailsState.availableClubs]. Sets
+     * [ClubDetailsState.createdClubId] so the UI can navigate into it — the caller
+     * must consume it via [onConsumeCreatedClubId] once handled.
+     */
+    fun onCreateClub(userId: String, name: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isOperationInProgress = true) }
+            createClubUseCase(CreateClubUseCase.Params(userId, name))
+                .onSuccess { newClub ->
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            availableClubs = it.availableClubs + newClub,
+                            createdClubId = newClub.id,
+                            operationResult = OperationResult.Success("Club created")
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Create club. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onConsumeCreatedClubId() {
+        _state.update { it.copy(createdClubId = null) }
     }
 
     // -------------------------------------------------------------------------

@@ -95,12 +95,22 @@ fun ClubsScreen(
         }
     }
 
+    // Navigate into a just-created club, then consume the signal
+    LaunchedEffect(state.createdClubId) {
+        state.createdClubId?.let { clubId ->
+            navController.navigate("detail/$clubId")
+            viewModel.onConsumeCreatedClubId()
+        }
+    }
+
     Box(modifier = modifier) {
         NavHost(
             navController = navController,
             startDestination = "list"
         ) {
             composable("list") {
+                var showCreateClubSheet by remember { mutableStateOf(false) }
+
                 ClubsListScreen(
                     modifier = Modifier.fillMaxSize(),
                     state = state,
@@ -109,8 +119,19 @@ fun ClubsScreen(
                     onClubSelected = { clubId ->
                         viewModel.selectClub(clubId)
                         navController.navigate("detail/$clubId")
-                    }
+                    },
+                    onAddClub = { showCreateClubSheet = true }
                 )
+
+                if (showCreateClubSheet) {
+                    CreateClubBottomSheet(
+                        onCreate = { name ->
+                            viewModel.onCreateClub(userId, name)
+                            showCreateClubSheet = false
+                        },
+                        onDismiss = { showCreateClubSheet = false }
+                    )
+                }
             }
             composable("detail/{clubId}") {
                 ClubsScreenContent(

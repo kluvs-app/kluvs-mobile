@@ -39,7 +39,7 @@ import com.ivangarzab.kluvs.clubs.presentation.MemberListItemInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.components.MemberAvatar
+import com.ivangarzab.kluvs.ui.components.Avatar
 import com.ivangarzab.kluvs.ui.components.NoTabData
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
@@ -84,6 +84,7 @@ fun MembersTab(
                 //TODO: Consider creating an ext function: Member.isMe(Member or Member.id)
                 val isSelf = member.userId != null && member.userId == currentUserId
                 MemberListItem(
+                    memberId = member.memberId,
                     name = member.name,
                     handle = member.handle,
                     avatarUrl = member.avatarUrl,
@@ -106,6 +107,7 @@ fun MembersTab(
 @Composable
 private fun MemberListItem(
     modifier: Modifier = Modifier,
+    memberId: String,
     name: String,
     handle: String,
     avatarUrl: String? = null,
@@ -124,9 +126,12 @@ private fun MemberListItem(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.Top
     ) {
-        MemberAvatar(
+        Avatar(
+            name = name,
+            memberId = memberId,
             avatarUrl = avatarUrl,
             size = 40.dp,
+            isOwn = isSelf,
             contentDescription = stringResource(R.string.avatar_of_x, name)
         )
 

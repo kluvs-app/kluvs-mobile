@@ -107,7 +107,7 @@ class ClubRepositoryTest {
         )
         everySuspend { remoteDataSource.createClub(any()) } returns Result.success(expectedClub)
 
-        val result = repository.createClub(clubName, serverId, discordChannel)
+        val result = repository.createClub(clubName, "member-1", "Creator", 0, serverId, discordChannel)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedClub, result.getOrNull())
@@ -128,7 +128,7 @@ class ClubRepositoryTest {
         )
         everySuspend { remoteDataSource.createClub(any()) } returns Result.success(expectedClub)
 
-        val result = repository.createClub(clubName, serverId, null)
+        val result = repository.createClub(clubName, "member-1", "Creator", 0, serverId, null)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedClub, result.getOrNull())
@@ -142,7 +142,7 @@ class ClubRepositoryTest {
         val exception = Exception("Failed to create club")
         everySuspend { remoteDataSource.createClub(any()) } returns Result.failure(exception)
 
-        val result = repository.createClub("New Club", "server-456", null)
+        val result = repository.createClub("New Club", "member-1", "Creator", 0, "server-456", null)
 
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())

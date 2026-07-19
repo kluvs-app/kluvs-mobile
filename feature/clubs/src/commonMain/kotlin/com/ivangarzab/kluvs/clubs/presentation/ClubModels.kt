@@ -5,16 +5,27 @@ import com.ivangarzab.kluvs.model.Role
 import kotlinx.datetime.LocalDateTime
 
 /**
- * Lightweight UI model for club selection/listing.
+ * UI model for a row in the clubs list screen (mirrors web's `/clubs` page).
  *
- * Contains minimal data needed to display and select clubs.
- * Used for multi-club support where user can switch between clubs.
- * [role] is the current user's role in this club, populated from the member's clubs list.
+ * [bookTitle], [memberAvatarUrls], and [memberCount] are enriched via a per-club
+ * detail fetch (mirroring web's `ClubsPage` per-row enrichment) and may be absent
+ * if that fetch fails — the row still renders with [name] and [role].
  */
 data class ClubListItem(
     val id: String,
     val name: String,
-    val role: Role? = null
+    val role: Role? = null,
+    val bookTitle: String? = null,
+    val bookCoverUrl: String? = null,
+    val memberAvatarUrls: List<MemberAvatarInfo> = emptyList(),
+    val memberCount: Int = 0
+)
+
+/** Minimal member identity needed to render an [AvatarStackMember]-equivalent row. */
+data class MemberAvatarInfo(
+    val memberId: String,
+    val name: String,
+    val avatarUrl: String?
 )
 
 /**

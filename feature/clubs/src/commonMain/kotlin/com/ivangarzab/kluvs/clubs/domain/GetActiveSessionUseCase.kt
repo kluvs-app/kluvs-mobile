@@ -5,12 +5,16 @@ import com.ivangarzab.kluvs.clubs.presentation.ActiveSessionDetails
 import com.ivangarzab.kluvs.clubs.presentation.BookInfo
 import com.ivangarzab.kluvs.clubs.presentation.ClubListItem
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionTimelineItemInfo
+import com.ivangarzab.kluvs.clubs.presentation.MemberAvatarInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
+import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.presentation.state.DateTimeFormat
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock.System.now
@@ -98,14 +102,21 @@ class GetActiveSessionUseCase(
 }
 
 /**
- * UseCase for fetching the current user's [Club] list for the MainScreen.
+ * UseCase for fetching the current user's [Club] list for the clubs list screen.
  *
- * Extract list of clubs form the Member model into a UI-friendly list.
+ * Extracts the lightweight club list from the Member model, then enriches each
+ * row in parallel with its active-session book title and member avatars
+ * (mirrors web's `ClubsPage` per-club detail fetch). A row's enrichment failing
+ * is non-fatal — it just falls back to name + role only.
  *
  * @param memberRepository Repository for member data
+ * @param clubRepository Repository for per-club detail data
+ * @param avatarRepository Repository for avatar URL resolution
  */
 class GetMemberClubsUseCase(
-    private val memberRepository: MemberRepository
+    private val memberRepository: MemberRepository,
+    private val clubRepository: ClubRepository,
+    private val avatarRepository: AvatarRepository
 ) {
     /**
      * Fetches all clubs for a member by their user ID.
@@ -116,13 +127,10 @@ class GetMemberClubsUseCase(
     suspend operator fun invoke(userId: String): Result<List<ClubListItem>> {
         Bark.d("Fetching member clubs (User ID: $userId)")
         return memberRepository.getMemberByUserId(userId).map { member ->
-            val clubItems = member.clubs?.map { club ->
-                ClubListItem(
-                    id = club.id,
-                    name = club.name,
-                    role = club.role
-                )
-            } ?: emptyList()
+            val clubs = member.clubs ?: emptyList()
+            val clubItems = coroutineScope {
+                clubs.map { club -> async { enrichClubListItem(club) } }.map { it.await() }
+            }
             Bark.i("Loaded member clubs (Count: ${clubItems.size})")
             clubItems
         }.onFailure { error ->
@@ -130,4 +138,25 @@ class GetMemberClubsUseCase(
         }
     }
 
+    private suspend fun enrichClubListItem(club: Club): ClubListItem {
+        val fullClub = clubRepository.getClub(club.id).getOrElse {
+            Bark.d("Failed to enrich club row (Club ID: ${club.id}); falling back to name + role only")
+            null
+        }
+        return ClubListItem(
+            id = club.id,
+            name = club.name,
+            role = club.role,
+            bookTitle = fullClub?.activeSession?.book?.title,
+            bookCoverUrl = fullClub?.activeSession?.book?.imageUrl,
+            memberAvatarUrls = fullClub?.members.orEmpty().map { clubMember ->
+                MemberAvatarInfo(
+                    memberId = clubMember.member.id,
+                    name = clubMember.member.name,
+                    avatarUrl = avatarRepository.getAvatarUrl(clubMember.member.avatarPath)
+                )
+            },
+            memberCount = fullClub?.members?.size ?: 0
+        )
+    }
 }
