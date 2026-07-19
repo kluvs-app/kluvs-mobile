@@ -43,6 +43,22 @@ class AuthViewModelHelper : KoinComponent {
 
     fun onConfirmPasswordFieldChanged(value: String) = viewModel.onConfirmPasswordFieldChanged(value)
 
+    /**
+     * iOS-friendly observation method for forgot-password UI state.
+     *
+     * Returns a [com.ivangarzab.kluvs.presentation.Closeable] that can be used to cancel the observation.
+     */
+    fun observeForgotPasswordState(callback: (ForgotPasswordUiState) -> Unit): Closeable {
+        val job = viewModel.forgotPasswordState.onEach { callback(it) }.launchIn(coroutineScope)
+        return Closeable { job.cancel() }
+    }
+
+    fun onForgotPasswordEmailChanged(value: String) = viewModel.onForgotPasswordEmailChanged(value)
+
+    fun sendPasswordResetEmail() = viewModel.sendPasswordResetEmail()
+
+    fun resetForgotPasswordState() = viewModel.resetForgotPasswordState()
+
     fun validateAndSignIn() = viewModel.validateAndSignIn()
 
     fun validateAndSignUp() = viewModel.validateAndSignUp()
