@@ -29,15 +29,16 @@ class MeViewModelWrapper: ObservableObject {
 
     private func startObserving() {
         let stateCancellable = helper.observeState { [weak self] state in
-            DispatchQueue.main.async {
-                self?.isLoading = state.isLoading
-                self?.error = state.error
-                self?.profile = state.profile
-                self?.statistics = state.statistics
-                self?.currentlyReading = state.currentlyReading
-                self?.showLogoutConfirmation = state.showLogoutConfirmation
-                self?.snackbarError = state.snackbarError
-                self?.isUploadingAvatar = state.isUploadingAvatar
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.isLoading = state.isLoading
+                self.error = state.error
+                self.profile = state.profile
+                self.statistics = state.statistics
+                self.currentlyReading = state.currentlyReading
+                self.showLogoutConfirmation = state.showLogoutConfirmation
+                self.snackbarError = state.snackbarError
+                self.isUploadingAvatar = state.isUploadingAvatar
             }
         }
         cancellables.append(stateCancellable)
