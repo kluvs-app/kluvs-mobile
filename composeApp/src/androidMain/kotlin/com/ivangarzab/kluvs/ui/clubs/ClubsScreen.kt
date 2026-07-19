@@ -8,12 +8,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -34,6 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
@@ -50,6 +58,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
+/**
+ * Entry point for the Clubs tab: owns the list → detail navigation (mirrors web's
+ * `/clubs` → `/clubs/:id`) and the single [ClubDetailsViewModel] shared across both.
+ */
 @Composable
 fun ClubsScreen(
     modifier: Modifier = Modifier,
@@ -58,6 +70,7 @@ fun ClubsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val navController = rememberNavController()
 
     val screenState = when {
         state.availableClubs.isNotEmpty() -> ScreenState.Content
@@ -83,31 +96,50 @@ fun ClubsScreen(
     }
 
     Box(modifier = modifier) {
-        ClubsScreenContent(
-            modifier = Modifier.fillMaxSize(),
-            state = state,
-            screenState = screenState,
-            userId = userId,
-            onRetry = viewModel::refresh,
-            onClubSelected = viewModel::selectClub,
-            onUpdateClubName = viewModel::onUpdateClubName,
-            onDeleteClub = viewModel::onDeleteClub,
-            onCreateSession = viewModel::onCreateSession,
-            onUpdateSession = viewModel::onUpdateSession,
-            onEndSession = viewModel::onEndSession,
-            onSaveProgress = viewModel::onSaveProgress,
-            onCreateDiscussion = viewModel::onCreateDiscussion,
-            onUpdateDiscussion = viewModel::onUpdateDiscussion,
-            onDeleteDiscussion = viewModel::onDeleteDiscussion,
-            onUpdateMemberRole = { memberId, newRole ->
-                val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
-                viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)
-            },
-            onRemoveMember = { memberId ->
-                val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
-                viewModel.onRemoveMember(memberId, currentMemberId)
+        NavHost(
+            navController = navController,
+            startDestination = "list"
+        ) {
+            composable("list") {
+                ClubsListScreen(
+                    modifier = Modifier.fillMaxSize(),
+                    state = state,
+                    screenState = screenState,
+                    onRetry = viewModel::refresh,
+                    onClubSelected = { clubId ->
+                        viewModel.selectClub(clubId)
+                        navController.navigate("detail/$clubId")
+                    }
+                )
             }
-        )
+            composable("detail/{clubId}") {
+                ClubsScreenContent(
+                    modifier = Modifier.fillMaxSize(),
+                    state = state,
+                    screenState = screenState,
+                    userId = userId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onRetry = viewModel::refresh,
+                    onUpdateClubName = viewModel::onUpdateClubName,
+                    onDeleteClub = viewModel::onDeleteClub,
+                    onCreateSession = viewModel::onCreateSession,
+                    onUpdateSession = viewModel::onUpdateSession,
+                    onEndSession = viewModel::onEndSession,
+                    onSaveProgress = viewModel::onSaveProgress,
+                    onCreateDiscussion = viewModel::onCreateDiscussion,
+                    onUpdateDiscussion = viewModel::onUpdateDiscussion,
+                    onDeleteDiscussion = viewModel::onDeleteDiscussion,
+                    onUpdateMemberRole = { memberId, newRole ->
+                        val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
+                        viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)
+                    },
+                    onRemoveMember = { memberId ->
+                        val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
+                        viewModel.onRemoveMember(memberId, currentMemberId)
+                    }
+                )
+            }
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
@@ -122,7 +154,7 @@ fun ClubsScreenContent(
     screenState: ScreenState,
     userId: String = "",
     onRetry: () -> Unit,
-    onClubSelected: (String) -> Unit = {},
+    onNavigateBack: () -> Unit = {},
     onUpdateClubName: (String) -> Unit = {},
     onDeleteClub: () -> Unit = {},
     onCreateSession: (Book, LocalDateTime?) -> Unit = { _, _ -> },
@@ -135,8 +167,6 @@ fun ClubsScreenContent(
     onUpdateMemberRole: (memberId: String, newRole: Role) -> Unit = { _, _ -> },
     onRemoveMember: (memberId: String) -> Unit = {},
 ) {
-    var showBottomSheet by remember { mutableStateOf(false) }
-
     // Sheet / dialog visibility state
     var showEditClubSheet by remember { mutableStateOf(false) }
     var showDeleteClubDialog by remember { mutableStateOf(false) }
@@ -205,11 +235,20 @@ fun ClubsScreenContent(
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
 
-                    ClubSelectorRow(
-                        clubName = state.currentClubDetails?.clubName ?: "",
-                        hasMultipleClubs = state.availableClubs.size > 1,
-                        onSelectorClick = { showBottomSheet = true }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.navigate_back),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
 
                     TabRow(
                         selectedTabIndex = pagerState.currentPage,
@@ -223,7 +262,12 @@ fun ClubsScreenContent(
                                         pagerState.animateScrollToPage(index)
                                     }
                                 },
-                                text = { Text(title) }
+                                text = {
+                                    Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             )
                         }
                     }
@@ -247,12 +291,17 @@ fun ClubsScreenContent(
                             modifier = Modifier.fillMaxSize()
                         ) { page ->
                             when (page) {
-                                0 -> GeneralTab(
+                                0 -> OverviewTab(
                                     modifier = tabModifier,
                                     clubDetails = state.currentClubDetails,
+                                    sessionDetails = state.activeSession,
+                                    ownProgress = state.ownProgress,
                                     userRole = state.userRole,
                                     onEditClub = { showEditClubSheet = true },
-                                    onDeleteClub = { showDeleteClubDialog = true }
+                                    onDeleteClub = { showDeleteClubDialog = true },
+                                    onEditSession = { showEditSessionSheet = true },
+                                    onEndSession = { showEndSessionDialog = true },
+                                    onUpdateProgress = { showProgressSheet = true }
                                 )
                                 1 -> ActiveSessionTab(
                                     modifier = tabModifier,
@@ -279,19 +328,6 @@ fun ClubsScreenContent(
                             }
                         }
                     }
-                }
-
-                // Club selector sheet
-                if (showBottomSheet) {
-                    ClubSelectorBottomSheet(
-                        clubs = state.availableClubs,
-                        selectedClubId = state.selectedClubId,
-                        onClubSelected = { clubId ->
-                            onClubSelected(clubId)
-                            showBottomSheet = false
-                        },
-                        onDismiss = { showBottomSheet = false }
-                    )
                 }
 
                 // TODO: Everything underneath there is screaming for a ViewModel, with side effect handling

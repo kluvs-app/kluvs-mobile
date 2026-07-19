@@ -10,14 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -25,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,10 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.MemberListItemInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
@@ -44,6 +41,7 @@ import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.MemberAvatar
 import com.ivangarzab.kluvs.ui.components.NoTabData
+import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
 @Composable
 fun MembersTab(
@@ -65,130 +63,42 @@ fun MembersTab(
         return
     }
 
-    var showRoleInfoDialog by remember { mutableStateOf(false) }
-
     val isAdminOrAbove = userRole == Role.OWNER || userRole == Role.ADMIN
     val isOwner = userRole == Role.OWNER
 
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.x_members, members.size),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                fontStyle = FontStyle.Italic
+            )
         )
-    ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.members_x, members.size),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium
+
+        Spacer(Modifier.height(12.dp))
+
+        LazyColumn {
+            itemsIndexed(members) { index, member ->
+                //TODO: Consider creating an ext function: Member.isMe(Member or Member.id)
+                val isSelf = member.userId != null && member.userId == currentUserId
+                MemberListItem(
+                    name = member.name,
+                    handle = member.handle,
+                    avatarUrl = member.avatarUrl,
+                    role = member.role,
+                    isSelf = isSelf,
+                    isReading = readingByMemberId[member.memberId],
+                    showAdminActions = isAdminOrAbove && !isSelf,
+                    showRemove = isOwner && !isSelf && member.role != Role.OWNER,
+                    onChangeRole = { onChangeRole(member.memberId) },
+                    onRemove = { onRemoveMember(member.memberId) }
                 )
-                IconButton(
-                    onClick = { showRoleInfoDialog = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_info),
-                        contentDescription = "Role information",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (index < members.size - 1) {
+                    MemberDivider()
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
-
-            LazyColumn {
-                itemsIndexed(members) { index, member ->
-                    //TODO: Consider creating an ext function: Member.isMe(Member or Member.id)
-                    val isSelf = member.userId != null && member.userId == currentUserId
-                    MemberListItem(
-                        name = member.name,
-                        handle = member.handle,
-                        avatarUrl = member.avatarUrl,
-                        role = member.role,
-                        isReading = readingByMemberId[member.memberId],
-                        showAdminActions = isAdminOrAbove && !isSelf,
-                        showRemove = isOwner && !isSelf && member.role != Role.OWNER,
-                        onChangeRole = { onChangeRole(member.memberId) },
-                        onRemove = { onRemoveMember(member.memberId) }
-                    )
-                    if (index < members.size - 1) {
-                        MemberDivider()
-                    }
-                }
-            }
-        }
-    }
-
-    // Role information dialog
-    if (showRoleInfoDialog) {
-        RoleInfoDialog(
-            onDismiss = { showRoleInfoDialog = false }
-        )
-    }
-}
-
-@Composable
-private fun RoleInfoDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Member Roles",
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                RoleInfoItem(
-                    role = Role.OWNER,
-                    description = "Club owner with full control and permissions"
-                )
-                RoleInfoItem(
-                    role = Role.ADMIN,
-                    description = "Club administrator with elevated permissions"
-                )
-                RoleInfoItem(
-                    role = Role.MEMBER,
-                    description = "Regular club member"
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Got it")
-            }
-        }
-    )
-}
-
-@Composable
-private fun RoleInfoItem(role: Role, description: String) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        MemberAvatar(
-            avatarUrl = null,
-            size = 40.dp,
-            role = role
-        )
-        Column {
-            Text(
-                text = role.name.lowercase().replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -200,6 +110,7 @@ private fun MemberListItem(
     handle: String,
     avatarUrl: String? = null,
     role: Role,
+    isSelf: Boolean = false,
     isReading: Boolean? = null,
     showAdminActions: Boolean = false,
     showRemove: Boolean = false,
@@ -210,54 +121,71 @@ private fun MemberListItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            MemberAvatar(
-                avatarUrl = avatarUrl,
-                size = 40.dp,
-                role = role,
-                contentDescription = stringResource(R.string.avatar_of_x, name)
-            )
-            Column {
+        MemberAvatar(
+            avatarUrl = avatarUrl,
+            size = 40.dp,
+            contentDescription = stringResource(R.string.avatar_of_x, name)
+        )
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     text = name,
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyLarge
                 )
+                if (isSelf) {
+                    Text(
+                        text = stringResource(R.string.you).uppercase(),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            Text(
+                text = handle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RoleEyebrow(role = role)
+                if (showAdminActions || showRemove) {
+                    MemberOverflowMenu(
+                        showChangeRole = showAdminActions,
+                        showRemove = showRemove,
+                        onChangeRole = onChangeRole,
+                        onRemove = onRemove
+                    )
+                }
+            }
+
+            // Session participation indicator (mirrors the web members list)
+            isReading?.let { reading ->
                 Text(
-                    text = handle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
+                    text = if (reading) "Reading" else "Skipping",
+                    color = if (reading) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
-        }
-
-        // Session participation indicator (mirrors the web members list)
-        isReading?.let { reading ->
-            Text(
-                text = if (reading) "Reading" else "Skipping",
-                color = if (reading) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-
-        if (showAdminActions || showRemove) {
-            MemberOverflowMenu(
-                showChangeRole = showAdminActions,
-                showRemove = showRemove,
-                onChangeRole = onChangeRole,
-                onRemove = onRemove
-            )
         }
     }
 }

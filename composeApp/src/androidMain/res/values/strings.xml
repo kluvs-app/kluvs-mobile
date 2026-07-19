@@ -6,7 +6,13 @@
     <string name="clubs">Kluvs</string>
     <string name="me">Me</string>
     <string name="books">Books</string>
-    <string name="general">General</string>
+    <string name="general">Overview</string>
+    <string name="club_eyebrow">Club</string>
+    <string name="your_eyebrow">Your</string>
+    <string name="active_session_eyebrow">Active Session</string>
+    <string name="up_next_eyebrow">Up Next</string>
+    <string name="founded_x">Founded %s</string>
+    <string name="you">You</string>
     <string name="settings">Settings</string>
     <string name="help_and_support">Help &amp; Support</string>
     <string name="email">Email</string>
@@ -14,9 +20,8 @@
     <string name="sign_in">Sign In</string>
     <string name="sign_up">Sign Up</string>
     <string name="sign_out">Sign Out</string>
-    <string name="active_session">Active Session</string>
+    <string name="active_session">Discussions</string>
     <string name="members">Members</string>
-    <string name="members_x">Members (%s)</string>
     <string name="x_points">%s pts.</string>
     <string name="sessions_book">Session\'s Book</string>
     <string name="by_author">by %s</string>
@@ -24,11 +29,6 @@
     <string name="discussion_timeline">Discussion Timeline</string>
     <string name="club_name">Club Name</string>
     <string name="x_members">%s members</string>
-    <string name="founded_in_x">Founded in %s</string>
-    <string name="current_book">Current Book</string>
-    <string name="vertical_separator">•</string>
-    <string name="x_pages">%s pages</string>
-    <string name="next_discussion">Next Discussion</string>
     <string name="member_since_x">Member since %s</string>
     <string name="your_statistics">Your Statistics</string>
     <string name="books_read">Books Read</string>
@@ -36,8 +36,6 @@
     <string name="no_of_clubs">Number of Clubs</string>
     <string name="currently_reading">Currently Reading</string>
     <string name="version_x">Version: %s</string>
-    <string name="no_book_data">Not currently reading a book</string>
-    <string name="no_upcoming_discussion">No upcoming discussion</string>
     <string name="no_club_details">No club details available</string>
     <string name="no_session_details">No session details available</string>
     <string name="no_members_in_club">No members in club</string>
