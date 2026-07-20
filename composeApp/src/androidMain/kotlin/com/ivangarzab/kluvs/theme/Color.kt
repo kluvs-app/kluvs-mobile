@@ -62,6 +62,20 @@ val roleAdminOnDark = Color(0xFF7BA8B8)
 /** Member role label text — cream on dark. */
 val roleMemberLabel = Color(0xFFF2EDE5)
 
+// --- Avatar hue palette — deterministic per-user background for initials avatars ---
+val avatarHuesDark = listOf(
+    Color(0xFF331F17), Color(0xFF38271A), Color(0xFF2B231D), Color(0xFF42251A),
+    Color(0xFF261A14), Color(0xFF3D2E24), Color(0xFF4A2E1F), Color(0xFF2E2218),
+    Color(0xFF3A1E16), Color(0xFF453325), Color(0xFF302018), Color(0xFF3D2115),
+)
+val avatarHuesLight = listOf(
+    Color(0xFFF9EDE6), Color(0xFFF4EBD9), Color(0xFFEBE6E0), Color(0xFFF8E3D8),
+    Color(0xFFF1EBE6), Color(0xFFF5E8DF), Color(0xFFF9E6D5), Color(0xFFEBE8D8),
+    Color(0xFFF6E2DD), Color(0xFFEFE4D6), Color(0xFFEFE1D2), Color(0xFFF2E1DC),
+)
+/** Overflow-chip background for [AvatarStack] — matches web's hardcoded OVERFLOW_BG. */
+val avatarStackOverflowBg = foregroundWarmDisabled
+
 // --- Status ---
 /** AA on dark (5.06:1). Known exception on light (3.76:1) — always paired with an "Error:" prefix. */
 val statusDanger = Color(0xFFEF4444)

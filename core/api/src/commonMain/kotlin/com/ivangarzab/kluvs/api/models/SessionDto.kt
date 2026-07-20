@@ -50,7 +50,12 @@ data class SessionDto (
 
     @SerialName(value = "due_date") val dueDate: kotlin.String? = null,
 
-    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null
+    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null,
+
+    /* HAND-EDITED: the club GET response embeds `active_session.members[]`, but the
+       OpenAPI spec's Session schema does not declare it yet, so regeneration omits
+       this field. Re-apply this edit (or fix the spec) if models are regenerated. */
+    @SerialName(value = "members") val members: kotlin.collections.List<SessionParticipantDto>? = null
 
 ) {
 

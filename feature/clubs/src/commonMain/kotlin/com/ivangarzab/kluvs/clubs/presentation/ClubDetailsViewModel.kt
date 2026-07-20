@@ -3,21 +3,27 @@ package com.ivangarzab.kluvs.clubs.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +41,7 @@ class ClubDetailsViewModel(
     private val getActiveSession: GetActiveSessionUseCase,
     private val getClubMembers: GetClubMembersUseCase,
     private val getMemberClubsUseCase: GetMemberClubsUseCase,
+    private val createClubUseCase: CreateClubUseCase,
     private val updateClubUseCase: UpdateClubUseCase,
     private val deleteClubUseCase: DeleteClubUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
@@ -44,7 +51,11 @@ class ClubDetailsViewModel(
     private val updateDiscussionUseCase: UpdateDiscussionUseCase,
     private val deleteDiscussionUseCase: DeleteDiscussionUseCase,
     private val updateMemberRoleUseCase: UpdateMemberRoleUseCase,
-    private val removeMemberUseCase: RemoveMemberUseCase
+    private val removeMemberUseCase: RemoveMemberUseCase,
+    private val getSessionProgressUseCase: GetSessionProgressUseCase,
+    private val saveProgressUseCase: SaveProgressUseCase,
+    private val finishSessionUseCase: FinishSessionUseCase,
+    private val toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ClubDetailsState())
@@ -106,6 +117,7 @@ class ClubDetailsViewModel(
                     error = null,
                     currentClubDetails = null,
                     activeSession = null,
+                    ownProgress = null,
                     members = emptyList()
                 )
             }
@@ -119,6 +131,12 @@ class ClubDetailsViewModel(
             val detailsResult = deferredDetails.await()
             val sessionResult = deferredSession.await()
             val membersResult = deferredMembers.await()
+
+            // Own progress depends on the session being known; failures are
+            // non-blocking (the progress row simply stays empty, like the web app)
+            val ownProgress = sessionResult.getOrNull()?.let { session ->
+                getSessionProgressUseCase(session.sessionId, session.book.pageCount).getOrNull()
+            }
 
             // Aggregate errors
             val errors = listOfNotNull(
@@ -143,6 +161,7 @@ class ClubDetailsViewModel(
                     selectedClubId = clubId,
                     currentClubDetails = detailsResult.getOrNull(),
                     activeSession = sessionResult.getOrNull(),
+                    ownProgress = ownProgress,
                     members = membersResult.getOrNull() ?: emptyList()
                 )
             }
@@ -152,6 +171,43 @@ class ClubDetailsViewModel(
     fun refresh(forceRefresh: Boolean = false) {
         Bark.d("Refreshing club data (forceRefresh=$forceRefresh)")
         currentClubId?.let { loadClubData(it, forceRefresh) }
+    }
+
+    /**
+     * Creates a new club and adds it to [ClubDetailsState.availableClubs]. Sets
+     * [ClubDetailsState.createdClubId] so the UI can navigate into it — the caller
+     * must consume it via [onConsumeCreatedClubId] once handled.
+     */
+    fun onCreateClub(userId: String, name: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isOperationInProgress = true) }
+            createClubUseCase(CreateClubUseCase.Params(userId, name))
+                .onSuccess { newClub ->
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            availableClubs = it.availableClubs + newClub,
+                            createdClubId = newClub.id,
+                            operationResult = OperationResult.Success("Club created")
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Create club. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onConsumeCreatedClubId() {
+        _state.update { it.copy(createdClubId = null) }
     }
 
     // -------------------------------------------------------------------------
@@ -199,6 +255,141 @@ class ClubDetailsViewModel(
         val sessionId = _state.value.activeSession?.sessionId ?: return
         launchMutation("Session deleted") {
             deleteSessionUseCase(DeleteSessionUseCase.Params(sessionId), role)
+        }
+    }
+
+    /**
+     * Saves the signed-in member's own reading progress on the active session.
+     *
+     * Unlike the other mutations, this does not refresh the whole club — the
+     * saved progress is applied to state immediately (progress is not part of
+     * the club payload).
+     */
+    fun onSaveProgress(
+        type: ProgressType,
+        currentPage: Int?,
+        percentComplete: Float?,
+        markFinished: Boolean
+    ) {
+        val session = _state.value.activeSession ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isOperationInProgress = true) }
+            saveProgressUseCase(
+                SaveProgressUseCase.Params(
+                    progressId = _state.value.ownProgress?.progressId,
+                    bookId = session.bookId,
+                    sessionId = session.sessionId,
+                    pageCount = session.book.pageCount,
+                    type = type,
+                    currentPage = currentPage,
+                    percentComplete = percentComplete,
+                    markFinished = markFinished
+                )
+            )
+                .onSuccess { updated ->
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            ownProgress = updated,
+                            operationResult = OperationResult.Success("Progress updated")
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Progress update. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Ends the active session (admin/owner only). Surfaces the number of
+     * credited readers in the success message and refreshes the club into
+     * its no-active-session state.
+     */
+    fun onEndSession() {
+        val role = _state.value.userRole ?: return
+        val sessionId = _state.value.activeSession?.sessionId ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isOperationInProgress = true) }
+            finishSessionUseCase(FinishSessionUseCase.Params(sessionId), role)
+                .onSuccess { credited ->
+                    val message = when (credited) {
+                        null -> "Session ended"
+                        1 -> "Session ended — 1 member credited"
+                        else -> "Session ended — $credited members credited"
+                    }
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Success(message)
+                        )
+                    }
+                    refresh(forceRefresh = true)
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: End session. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Opts the given member in/out of the active session's reading ("Join this
+     * Read" / "Opt out" on the Overview tab). Self-serve — any member may call
+     * this for themselves.
+     *
+     * Unlike the other session mutations, this does not trigger a full club
+     * refresh — [launchMutation]'s reload resets [ClubDetailsState.isLoading],
+     * which tears down and rebuilds the whole tab pager, causing a visible
+     * flash/limbo state for what should be a lightweight, frequent toggle.
+     * Instead, the participant list is patched directly, same as [onSaveProgress].
+     */
+    fun onToggleParticipation(memberId: String, isReading: Boolean) {
+        val session = _state.value.activeSession ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isOperationInProgress = true) }
+            toggleSessionParticipationUseCase(
+                ToggleSessionParticipationUseCase.Params(session.sessionId, memberId, isReading)
+            )
+                .onSuccess {
+                    val updatedParticipants = session.participants.filterNot { it.memberId == memberId } +
+                        SessionParticipantInfo(memberId, isReading)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            activeSession = it.activeSession?.copy(participants = updatedParticipants),
+                            operationResult = OperationResult.Success(
+                                if (isReading) "Joined this read" else "Opted out"
+                            )
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Toggle participation. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            isOperationInProgress = false,
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
         }
     }
 

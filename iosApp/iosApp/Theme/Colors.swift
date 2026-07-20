@@ -61,6 +61,31 @@ extension Color {
     /// Member role label text — cream on dark.
     static let roleMemberLabel = Color(hex: 0xF2EDE5)
 
+    // MARK: - Avatar hue palette — deterministic per-user background for initials avatars
+    static let avatarHuesDark: [Color] = [
+        Color(hex: 0x331F17), Color(hex: 0x38271A), Color(hex: 0x2B231D), Color(hex: 0x42251A),
+        Color(hex: 0x261A14), Color(hex: 0x3D2E24), Color(hex: 0x4A2E1F), Color(hex: 0x2E2218),
+        Color(hex: 0x3A1E16), Color(hex: 0x453325), Color(hex: 0x302018), Color(hex: 0x3D2115),
+    ]
+    static let avatarHuesLight: [Color] = [
+        Color(hex: 0xF9EDE6), Color(hex: 0xF4EBD9), Color(hex: 0xEBE6E0), Color(hex: 0xF8E3D8),
+        Color(hex: 0xF1EBE6), Color(hex: 0xF5E8DF), Color(hex: 0xF9E6D5), Color(hex: 0xEBE8D8),
+        Color(hex: 0xF6E2DD), Color(hex: 0xEFE4D6), Color(hex: 0xEFE1D2), Color(hex: 0xF2E1DC),
+    ]
+    /// Overflow-chip background for `AvatarStack` — matches web's hardcoded OVERFLOW_BG.
+    static let avatarStackOverflowBg = Color(hex: 0x4D4033)
+
+    // MARK: - Adaptive screen surfaces (mirrors Android's MaterialTheme.colorScheme.background/surface)
+    /// Screen background — warmDarkBase on dark, lightPage (cream) on light. Use this instead of
+    /// the stock `Color(uiColor: .systemBackground)`, which ignores the Kluvs warm palette entirely.
+    static var kluvsBackground: Color {
+        Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(Color.warmDarkBase) : UIColor(Color.lightPage) })
+    }
+    /// Card/elevated surface — warmDarkCard on dark, lightCard on light.
+    static var kluvsSurface: Color {
+        Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(Color.warmDarkCard) : UIColor(Color.lightCard) })
+    }
+
     // MARK: - Status
     /// AA on dark (5.06:1). Known exception on light (3.76:1) — always paired with an "Error:" prefix.
     static let statusDanger = Color(hex: 0xEF4444)

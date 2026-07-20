@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.data.repositories
 
 import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.SessionBookPatchInputDto
+import com.ivangarzab.kluvs.api.models.SessionMemberFlagInputDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
@@ -79,6 +80,32 @@ interface SessionRepository {
         discussions: List<Discussion>? = null,
         discussionIdsToDelete: List<String>? = null
     ): Result<Session>
+
+    /**
+     * Finishes an active session.
+     *
+     * The backend marks the session as finished, credits `books_read` for all
+     * session members with `is_reading = true`, and moves their book to the
+     * "read" shelf. Requires owner/admin role (enforced server-side).
+     *
+     * @param sessionId The ID of the session to finish
+     * @return Result containing the number of members credited (null if the
+     *         backend omits it), or an error if the operation failed
+     */
+    suspend fun finishSession(sessionId: String): Result<Int?>
+
+    /**
+     * Updates a single member's participation flag (opt in/out of reading) on a session.
+     *
+     * Any club member may call this for themselves; acting on another member
+     * requires owner/admin (enforced server-side).
+     *
+     * @param sessionId The ID of the session to update
+     * @param memberId The ID of the member whose participation flag is being set
+     * @param isReading Whether the member is opting in (true) or out (false)
+     * @return Result indicating success, or an error if the operation failed
+     */
+    suspend fun updateParticipation(sessionId: String, memberId: String, isReading: Boolean): Result<Unit>
 
     /**
      * Deletes a session by its ID.
@@ -212,6 +239,39 @@ internal class SessionRepositoryImpl(
             }
         }.onFailure { error ->
             Bark.e("Session updated, but re-fetching fresh data failed.", error)
+        }
+
+        return result
+    }
+
+    override suspend fun finishSession(sessionId: String): Result<Int?> {
+        Bark.d("Finishing session (ID: $sessionId)")
+        val result = sessionRemoteDataSource.finishSession(sessionId)
+
+        result.onSuccess { membersCredited ->
+            Bark.v("Removing finished session from cache (ID: $sessionId)")
+            sessionLocalDataSource.deleteSession(sessionId)
+            Bark.i("Session finished (ID: $sessionId, members credited: $membersCredited)")
+        }.onFailure { error ->
+            Bark.e("Session finish failed. Verify session is still active and retry.", error)
+        }
+
+        return result
+    }
+
+    override suspend fun updateParticipation(sessionId: String, memberId: String, isReading: Boolean): Result<Unit> {
+        Bark.d("Updating session participation (ID: $sessionId, Member ID: $memberId, isReading: $isReading)")
+        val result = sessionRemoteDataSource.updateSession(
+            SessionUpdateRequestDto(
+                id = sessionId,
+                sessionMembers = listOf(SessionMemberFlagInputDto(memberId.toInt(), isReading))
+            )
+        )
+
+        result.onSuccess {
+            Bark.i("Session participation updated (ID: $sessionId, Member ID: $memberId, isReading: $isReading)")
+        }.onFailure { error ->
+            Bark.e("Session participation update failed. Verify input and retry.", error)
         }
 
         return result

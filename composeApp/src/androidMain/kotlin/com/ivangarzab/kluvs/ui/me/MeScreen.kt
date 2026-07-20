@@ -54,7 +54,7 @@ import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
-import com.ivangarzab.kluvs.ui.components.MemberAvatar
+import com.ivangarzab.kluvs.ui.components.Avatar
 import com.ivangarzab.kluvs.ui.utils.compressImage
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -240,9 +240,11 @@ private fun ProfileSection(
         ) {
             // Avatar with edit button overlay
             Box {
-                MemberAvatar(
+                Avatar(
+                    name = name,
                     avatarUrl = avatarUrl,
                     size = 60.dp,
+                    isOwn = true,
                     contentDescription = stringResource(R.string.profile_picture),
                     onClick = onAvatarClick,
                     isLoading = isUploadingAvatar

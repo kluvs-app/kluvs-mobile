@@ -2,8 +2,10 @@ package com.ivangarzab.kluvs.data.local.mappers
 
 import com.ivangarzab.kluvs.data.remote.mappers.parseDateString
 import com.ivangarzab.kluvs.database.entities.SessionEntity
+import com.ivangarzab.kluvs.database.entities.SessionMemberEntity
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Session
+import com.ivangarzab.kluvs.model.SessionMember
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -34,5 +36,28 @@ fun Session.toEntity(): SessionEntity {
         bookId = book.id,
         dueDate = dueDate?.toString(),
         lastFetchedAt = Clock.System.now().toEpochMilliseconds()
+    )
+}
+
+/**
+ * Maps a [SessionMemberEntity] from the local database to a [SessionMember] domain model.
+ */
+fun SessionMemberEntity.toDomain(): SessionMember {
+    return SessionMember(
+        memberId = memberId,
+        memberName = memberName,
+        isReading = isReading
+    )
+}
+
+/**
+ * Maps a [SessionMember] domain model to a [SessionMemberEntity] for local database storage.
+ */
+fun SessionMember.toEntity(sessionId: String): SessionMemberEntity {
+    return SessionMemberEntity(
+        sessionId = sessionId,
+        memberId = memberId,
+        memberName = memberName,
+        isReading = isReading
     )
 }

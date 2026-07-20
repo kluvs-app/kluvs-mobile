@@ -46,11 +46,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.TextButton
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.ActiveSessionDetails
 import com.ivangarzab.kluvs.clubs.presentation.BookInfo
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionTimelineItemInfo
+import com.ivangarzab.kluvs.clubs.presentation.OwnProgressInfo
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.NoTabData
 import kotlinx.datetime.LocalDateTime
@@ -59,9 +64,12 @@ import kotlinx.datetime.LocalDateTime
 fun ActiveSessionTab(
     modifier: Modifier = Modifier,
     sessionDetails: ActiveSessionDetails?,
+    ownProgress: OwnProgressInfo? = null,
     userRole: Role? = null,
     onCreateSession: () -> Unit = {},
     onEditSession: () -> Unit = {},
+    onEndSession: () -> Unit = {},
+    onUpdateProgress: () -> Unit = {},
     onCreateDiscussion: () -> Unit = {},
     onEditDiscussion: (discussionId: String) -> Unit = {},
     onDeleteDiscussion: (discussionId: String) -> Unit = {},
@@ -151,7 +159,17 @@ fun ActiveSessionTab(
                             )
                         }
                     }
+                    if (isAdminOrAbove) {
+                        SessionOverflowMenu(onEndSession = onEndSession)
+                    }
                 }
+
+                // Own reading progress (mirrors the web app's ProgressRow)
+                Spacer(Modifier.height(12.dp))
+                OwnProgressRow(
+                    ownProgress = ownProgress,
+                    onUpdateProgress = onUpdateProgress
+                )
             }
         }
 
@@ -208,6 +226,86 @@ fun ActiveSessionTab(
                 }
                 Spacer(Modifier.height(8.dp))
             }
+        }
+    }
+}
+
+/**
+ * The signed-in member's progress on the session book: thin bar, status label,
+ * and the entry point to the progress edit sheet.
+ */
+@Composable
+private fun OwnProgressRow(
+    ownProgress: OwnProgressInfo?,
+    onUpdateProgress: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            LinearProgressIndicator(
+                progress = { (ownProgress?.percent ?: 0) / 100f },
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onUpdateProgress) {
+                Text(
+                    text = if (ownProgress != null) "Update" else "Track Progress",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Your progress",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = ownProgress?.label ?: "Not started",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun SessionOverflowMenu(
+    onEndSession: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Session options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "End Session",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onEndSession()
+                }
+            )
         }
     }
 }
@@ -398,9 +496,23 @@ fun Preview_ActiveSessionTab() = KluvsTheme {
             .background(color = MaterialTheme.colorScheme.surface)
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 8.dp),
+        ownProgress = OwnProgressInfo(
+            progressId = "p0",
+            type = ProgressType.PAGE,
+            currentPage = 42,
+            percentComplete = null,
+            isCompleted = false,
+            percent = 25,
+            label = "42 of 169 pages"
+        ),
         sessionDetails = ActiveSessionDetails(
             sessionId = "0",
             book = BookInfo(title = "1984", author = "George Orwell", year = "1948", pageCount = null),
+            bookId = "b0",
+            participants = listOf(
+                SessionParticipantInfo(memberId = "0", isReading = true),
+                SessionParticipantInfo(memberId = "1", isReading = false)
+            ),
             dueDate = "January 1st, 2030",
             rawDueDate = null,
             discussions = listOf(

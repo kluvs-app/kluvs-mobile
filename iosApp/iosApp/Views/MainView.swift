@@ -13,10 +13,10 @@ struct MainView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                // Books owns its own top bar/search UI (see BooksTopBar), so the shared
-                // Material-style TopAppBar is skipped for that tab — this starts the trend
-                // Clubs/Me are expected to follow.
-                if selectedTab != 2 {
+                // Clubs and Books each own their own top bar/heading UI (ClubsListView's
+                // masthead, BooksTopBar), so the shared Material-style TopAppBar is skipped
+                // for those tabs — Me is expected to follow.
+                if selectedTab == 1 {
                     MaterialTopBar(title: titles[selectedTab])
                 }
 
@@ -31,9 +31,11 @@ struct MainView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.kluvsBackground)
 
                 MaterialBottomNavBar(selectedTab: $selectedTab)
             }
+            .background(Color.kluvsBackground)
             .ignoresSafeArea(edges: .bottom)
         }
     }
@@ -63,7 +65,7 @@ struct MaterialTopBar: View {
             .frame(height: 56)
             .padding(.horizontal, 16)
             .padding(.top, safeAreaInsets.top)
-            .background(Color(UIColor.systemBackground))
+            .background(Color.kluvsBackground)
             .animation(.easeInOut(duration: 0.3), value: title)
         }
         .background(Color(UIColor.systemBackground))

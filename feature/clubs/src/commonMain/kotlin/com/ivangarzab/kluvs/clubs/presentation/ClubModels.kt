@@ -1,19 +1,31 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.datetime.LocalDateTime
 
 /**
- * Lightweight UI model for club selection/listing.
+ * UI model for a row in the clubs list screen (mirrors web's `/clubs` page).
  *
- * Contains minimal data needed to display and select clubs.
- * Used for multi-club support where user can switch between clubs.
- * [role] is the current user's role in this club, populated from the member's clubs list.
+ * [bookTitle], [memberAvatarUrls], and [memberCount] are enriched via a per-club
+ * detail fetch (mirroring web's `ClubsPage` per-row enrichment) and may be absent
+ * if that fetch fails — the row still renders with [name] and [role].
  */
 data class ClubListItem(
     val id: String,
     val name: String,
-    val role: Role? = null
+    val role: Role? = null,
+    val bookTitle: String? = null,
+    val bookCoverUrl: String? = null,
+    val memberAvatarUrls: List<MemberAvatarInfo> = emptyList(),
+    val memberCount: Int = 0
+)
+
+/** Minimal member identity needed to render an [AvatarStackMember]-equivalent row. */
+data class MemberAvatarInfo(
+    val memberId: String,
+    val name: String,
+    val avatarUrl: String?
 )
 
 /**
@@ -40,7 +52,38 @@ data class ActiveSessionDetails(
     val book: BookInfo,
     val dueDate: String,
     val rawDueDate: LocalDateTime?,
-    val discussions: List<DiscussionTimelineItemInfo>
+    val discussions: List<DiscussionTimelineItemInfo>,
+    /** ID of the session's book — needed to create a progress entry against it. */
+    val bookId: String = "",
+    /** Per-member participation list; empty when the API response omits it. */
+    val participants: List<SessionParticipantInfo> = emptyList()
+)
+
+/**
+ * UI model for a member's participation in the active session.
+ *
+ * Powers the reading/skipping indicator in MembersTab and the
+ * credited-readers preview in the end-session confirmation.
+ */
+data class SessionParticipantInfo(
+    val memberId: String,
+    val isReading: Boolean
+)
+
+/**
+ * UI model for the signed-in member's own reading progress on the active session.
+ *
+ * [percent] and [label] are pre-computed for direct display, mirroring the
+ * web app's ProgressRow ("X of Y pages", "N% complete", "Finished").
+ */
+data class OwnProgressInfo(
+    val progressId: String,
+    val type: ProgressType,
+    val currentPage: Int?,
+    val percentComplete: Float?,
+    val isCompleted: Boolean,
+    val percent: Int,
+    val label: String
 )
 
 /**
@@ -67,7 +110,8 @@ data class BookInfo(
     val title: String,
     val author: String,
     val year: String?,
-    val pageCount: Int?
+    val pageCount: Int?,
+    val imageUrl: String? = null
 )
 
 /**

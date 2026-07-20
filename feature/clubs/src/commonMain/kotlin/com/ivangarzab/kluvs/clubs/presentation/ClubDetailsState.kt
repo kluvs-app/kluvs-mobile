@@ -9,8 +9,11 @@ data class ClubDetailsState(
     val selectedClubId: String? = null,
     val currentClubDetails: ClubDetails? = null,
     val activeSession: ActiveSessionDetails? = null,
+    val ownProgress: OwnProgressInfo? = null,
     val members: List<MemberListItemInfo> = emptyList(),
     val userRole: Role? = null,
     val isOperationInProgress: Boolean = false,
-    val operationResult: OperationResult? = null
+    val operationResult: OperationResult? = null,
+    /** ID of a just-created club, consumed by the UI to trigger navigation into it. */
+    val createdClubId: String? = null
 )

@@ -26,6 +26,7 @@ import com.ivangarzab.kluvs.database.entities.MemberEntity
 import com.ivangarzab.kluvs.database.entities.ProgressEntity
 import com.ivangarzab.kluvs.database.entities.ServerEntity
 import com.ivangarzab.kluvs.database.entities.SessionEntity
+import com.ivangarzab.kluvs.database.entities.SessionMemberEntity
 import com.ivangarzab.kluvs.database.entities.ShelfEntity
 
 /**
@@ -58,6 +59,7 @@ interface KluvsDatabase {
         MemberEntity::class,
         ClubMemberCrossRef::class,
         SessionEntity::class,
+        SessionMemberEntity::class,
         BookEntity::class,
         DiscussionEntity::class,
         ShelfEntity::class,
@@ -66,7 +68,7 @@ interface KluvsDatabase {
         DiscussionNoteEntity::class,
         DiscussionAttendanceEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @ConstructedBy(KluvsDatabaseConstructor::class)

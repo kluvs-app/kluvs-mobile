@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.remote.mappers
 import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.api.models.DiscussionDto
 import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionParticipantDto
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -72,6 +73,51 @@ class SessionMappersTest {
         assertEquals("session-2", domain.id)
         assertNull(domain.dueDate)
         assertTrue(domain.discussions.isEmpty())
+    }
+
+    @Test
+    fun `SessionDto toDomain maps members participation list`() {
+        // Given: A SessionDto with an active_session-style members list
+        val dto = SessionDto(
+            id = "session-3",
+            clubId = "club-3",
+            status = SessionDto.Status.active,
+            book = BookDto(id = 3, title = "Book", author = "Author"),
+            members = listOf(
+                SessionParticipantDto(memberId = 7, memberName = "Ana", isReading = true),
+                SessionParticipantDto(memberId = 8, memberName = null, isReading = false)
+            )
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Members are mapped with String IDs and reading flags preserved
+        assertEquals(2, domain.members.size)
+        assertEquals("7", domain.members[0].memberId)
+        assertEquals("Ana", domain.members[0].memberName)
+        assertTrue(domain.members[0].isReading)
+        assertEquals("8", domain.members[1].memberId)
+        assertNull(domain.members[1].memberName)
+        assertTrue(!domain.members[1].isReading)
+    }
+
+    @Test
+    fun `SessionDto toDomain handles null members list`() {
+        // Given: A SessionDto without members (e.g. GET /session?id= response)
+        val dto = SessionDto(
+            id = "session-4",
+            clubId = "club-4",
+            status = SessionDto.Status.active,
+            book = BookDto(id = 4, title = "Book", author = "Author"),
+            members = null
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Members defaults to empty
+        assertTrue(domain.members.isEmpty())
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.local.source
 import com.ivangarzab.kluvs.data.DatabaseMockFixture
 import com.ivangarzab.kluvs.database.entities.BookEntity
 import com.ivangarzab.kluvs.database.entities.SessionEntity
+import com.ivangarzab.kluvs.database.entities.SessionMemberEntity
 import com.ivangarzab.kluvs.data.local.mappers.toDomain
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Session
@@ -37,6 +38,29 @@ class SessionLocalDataSourceTest {
         val result = dataSource.getSession(sessionId)
 
         assertEquals(sessionEntity.toDomain(bookEntity.toDomain()), result)
+    }
+
+    @Test
+    fun `getSession includes cached session members`() = runTest {
+        setup()
+        val sessionId = "session-1"
+        val bookId = "book-1"
+        val bookEntity = BookEntity(bookId, "The Hobbit", "Tolkien", null, 1937, null, null, null, null, 0)
+        val sessionEntity = SessionEntity(sessionId, "club-1", bookId, "2026-03-15", 0)
+
+        everySuspend { fixture.sessionDao.getSession(sessionId) } returns sessionEntity
+        everySuspend { fixture.bookDao.getBook(bookId) } returns bookEntity
+        everySuspend { fixture.sessionDao.getSessionMembers(sessionId) } returns listOf(
+            SessionMemberEntity(sessionId, "7", "Ana", true),
+            SessionMemberEntity(sessionId, "8", null, false)
+        )
+
+        val result = dataSource.getSession(sessionId)
+
+        assertEquals(2, result?.members?.size)
+        assertEquals("7", result?.members?.get(0)?.memberId)
+        assertEquals(true, result?.members?.get(0)?.isReading)
+        assertEquals(false, result?.members?.get(1)?.isReading)
     }
 
     @Test
