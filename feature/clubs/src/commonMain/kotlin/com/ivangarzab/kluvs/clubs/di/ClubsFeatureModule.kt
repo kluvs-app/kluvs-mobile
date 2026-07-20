@@ -8,12 +8,10 @@ import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
-import com.ivangarzab.kluvs.clubs.domain.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
-import com.ivangarzab.kluvs.clubs.domain.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
@@ -30,7 +28,6 @@ val clubsFeatureModule = module {
     factoryOf(::GetClubDetailsUseCase)
     factoryOf(::GetClubMembersUseCase)
     factoryOf(::GetMemberClubsUseCase)
-    factoryOf(::GetSessionProgressUseCase)
     factoryOf(::SearchBooksUseCase)
 
     // Use Cases — write (admin operations)
@@ -45,7 +42,6 @@ val clubsFeatureModule = module {
     factoryOf(::DeleteDiscussionUseCase)
     factoryOf(::UpdateMemberRoleUseCase)
     factoryOf(::RemoveMemberUseCase)
-    factoryOf(::SaveProgressUseCase)
     factoryOf(::FinishSessionUseCase)
     factoryOf(::ToggleSessionParticipationUseCase)
 

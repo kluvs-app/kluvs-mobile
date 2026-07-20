@@ -1,6 +1,5 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
-import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.datetime.LocalDateTime
 
@@ -68,22 +67,6 @@ data class ActiveSessionDetails(
 data class SessionParticipantInfo(
     val memberId: String,
     val isReading: Boolean
-)
-
-/**
- * UI model for the signed-in member's own reading progress on the active session.
- *
- * [percent] and [label] are pre-computed for direct display, mirroring the
- * web app's ProgressRow ("X of Y pages", "N% complete", "Finished").
- */
-data class OwnProgressInfo(
-    val progressId: String,
-    val type: ProgressType,
-    val currentPage: Int?,
-    val percentComplete: Float?,
-    val isCompleted: Boolean,
-    val percent: Int,
-    val label: String
 )
 
 /**

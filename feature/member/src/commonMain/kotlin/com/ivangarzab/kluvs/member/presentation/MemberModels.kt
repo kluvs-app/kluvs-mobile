@@ -1,5 +1,7 @@
 package com.ivangarzab.kluvs.member.presentation
 
+import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
+
 /**
  * UI model for current user's profile displayed in MeScreen header.
  */
@@ -22,13 +24,20 @@ data class UserStatistics(
 )
 
 /**
- * UI model for a book the user is currently reading.
+ * UI model for a row in MeScreen's "On Your Shelf" section: the active-session
+ * book for one of the member's clubs, with their own reading progress.
  *
- * Displayed in MeScreen CurrentlyReadingSection with progress indicator.
+ * Mirrors web's ProfilePage `ShelfRow`.
  */
-data class CurrentlyReadingBook(
+data class ShelfItem(
+    val sessionId: String,
+    val bookId: String,
     val bookTitle: String,
+    val bookAuthor: String,
+    val bookCoverUrl: String?,
+    val bookPageCount: Int?,
+    val clubId: String,
     val clubName: String,
-    val progress: Float, // 0.0 to 1.0
-    val dueDate: String?
+    val nextDiscussionDate: String?,
+    val ownProgress: OwnProgressInfo?
 )
