@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,42 +32,35 @@ fun ShelfSection(
     shelf: List<ShelfItem>,
     onUpdateProgress: (sessionId: String) -> Unit,
 ) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = stringResource(R.string.on_your_shelf).uppercase(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall
+            )
+            if (shelf.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.on_your_shelf),
+                    text = stringResource(R.string.books_in_progress_x, shelf.size),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = FontStyle.Italic
                 )
-                if (shelf.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.books_in_progress_x, shelf.size),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontStyle = FontStyle.Italic
-                    )
-                }
             }
+        }
 
-            Spacer(Modifier.padding(8.dp))
+        Spacer(Modifier.padding(8.dp))
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                shelf.forEach { item ->
-                    ShelfRow(item = item, onUpdateProgress = onUpdateProgress)
-                }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            shelf.forEach { item ->
+                ShelfRow(item = item, onUpdateProgress = onUpdateProgress)
             }
         }
     }

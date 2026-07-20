@@ -95,7 +95,7 @@ private fun ReadingLogSection(
         Text(
             text = title.uppercase(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelSmall
         )
         if (entries.isEmpty()) {
             Text(

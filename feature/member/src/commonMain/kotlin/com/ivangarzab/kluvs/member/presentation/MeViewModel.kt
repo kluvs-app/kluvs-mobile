@@ -68,13 +68,15 @@ class MeViewModel(
             } ?: Bark.i("Successfully loaded member details (ID: $userId)")
 
             // Update state with all results
+            val onYourShelf = shelfResult.getOrNull()
             _state.update {
                 it.copy(
                     isLoading = false,
                     error = error,
                     profile = profileResult.getOrNull(),
                     statistics = statsResult.getOrNull(),
-                    shelf = shelfResult.getOrNull() ?: emptyList()
+                    shelf = onYourShelf?.shelf ?: emptyList(),
+                    upNext = onYourShelf?.upNext
                 )
             }
         }

@@ -52,7 +52,8 @@ class GetOnYourShelfUseCaseTest {
         val result = useCase(userId)
 
         assertTrue(result.isSuccess)
-        assertTrue(result.getOrNull()!!.isEmpty())
+        assertTrue(result.getOrNull()!!.shelf.isEmpty())
+        assertNull(result.getOrNull()!!.upNext)
         verifySuspend { memberRepository.getMemberByUserId(userId) }
     }
 
@@ -89,7 +90,7 @@ class GetOnYourShelfUseCaseTest {
         val result = useCase(userId)
 
         assertTrue(result.isSuccess)
-        val items = result.getOrNull()!!
+        val items = result.getOrNull()!!.shelf
         assertEquals(2, items.size)
 
         assertEquals("Dune", items[0].bookTitle)
@@ -134,7 +135,7 @@ class GetOnYourShelfUseCaseTest {
 
         val result = useCase(userId)
 
-        val ownProgress = result.getOrNull()!![0].ownProgress
+        val ownProgress = result.getOrNull()!!.shelf[0].ownProgress
         assertEquals("p1", ownProgress?.progressId)
         assertEquals("50 of 200 pages", ownProgress?.label)
         verifySuspend { progressRepository.getProgress(any(), any(), any()) }
@@ -168,9 +169,14 @@ class GetOnYourShelfUseCaseTest {
 
         val result = useCase(userId)
 
-        val nextDate = result.getOrNull()!![0].nextDiscussionDate
+        val nextDate = result.getOrNull()!!.shelf[0].nextDiscussionDate
         assertTrue(nextDate!!.contains("March"))
         assertTrue(nextDate.contains("2099"))
+
+        val upNext = result.getOrNull()!!.upNext
+        assertEquals("Future 1", upNext?.title)
+        assertEquals("Book Club", upNext?.clubName)
+        assertTrue(upNext?.date?.contains("March") == true)
     }
 
     @Test
@@ -192,7 +198,8 @@ class GetOnYourShelfUseCaseTest {
 
         val result = useCase(userId)
 
-        assertNull(result.getOrNull()!![0].nextDiscussionDate)
+        assertNull(result.getOrNull()!!.shelf[0].nextDiscussionDate)
+        assertNull(result.getOrNull()!!.upNext)
     }
 
     @Test
@@ -217,7 +224,7 @@ class GetOnYourShelfUseCaseTest {
 
         val result = useCase(userId)
 
-        val items = result.getOrNull()!!
+        val items = result.getOrNull()!!.shelf
         assertEquals(1, items.size)
         assertEquals("Active Book", items[0].bookTitle)
     }

@@ -8,6 +8,7 @@ data class MeState(
     val profile: UserProfile? = null,
     val statistics: UserStatistics? = null,
     val shelf: List<ShelfItem> = emptyList(),
+    val upNext: UpNextItem? = null,
     val showLogoutConfirmation: Boolean = false,
     val snackbarError: String? = null,
     val isUploadingAvatar: Boolean = false,

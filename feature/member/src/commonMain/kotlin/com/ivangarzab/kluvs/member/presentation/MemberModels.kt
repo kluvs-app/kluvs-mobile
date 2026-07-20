@@ -41,3 +41,21 @@ data class ShelfItem(
     val nextDiscussionDate: String?,
     val ownProgress: OwnProgressInfo?
 )
+
+/**
+ * UI model for the nearest upcoming discussion across all of the member's
+ * clubs, shown in MeScreen's "Up Next" card. Mirrors web's ProfilePage
+ * "Up Next" band (read-only here — attendance/RSVP is a separate ticket).
+ */
+data class UpNextItem(
+    val title: String,
+    val clubName: String,
+    val location: String?,
+    val date: String
+)
+
+/** Combined result of [com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase]. */
+data class OnYourShelfResult(
+    val shelf: List<ShelfItem>,
+    val upNext: UpNextItem?
+)
