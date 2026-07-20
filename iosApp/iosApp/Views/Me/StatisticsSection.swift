@@ -7,57 +7,57 @@
 import SwiftUI
 import Shared
 
+/// "Your Statistics" section: a 3-column stat strip (Clubs / Books / Since),
+/// separated by hairline dividers. Mirrors web's ProfilePage stats row.
 struct StatisticsSection: View {
     let statistics: Shared.UserStatistics
+    let joinDate: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("section_your_statistics")
-                .font(.headline)
-                .foregroundColor(.secondary)
-
-            StatisticsItem(
-                icon: .clubs,
-                label: String(localized: "stat_number_of_clubs"),
-                value: statistics.clubsCount > 0 ? "\(statistics.clubsCount)" : String(localized: "label_not_available")
+        HStack(spacing: 0) {
+            StatColumn(
+                value: statistics.clubsCount > 0 ? "\(statistics.clubsCount)" : String(localized: "label_not_available"),
+                label: String(localized: "stat_number_of_clubs")
             )
-
-            StatisticsItem(
-                icon: .book,
-                label: String(localized: "stat_books_read"),
-                value: statistics.booksRead > 0 ? "\(statistics.booksRead)" : String(localized: "label_not_available")
+            statDivider
+            StatColumn(
+                value: statistics.booksRead > 0 ? "\(statistics.booksRead)" : String(localized: "label_not_available"),
+                label: String(localized: "stat_books_read")
+            )
+            statDivider
+            StatColumn(
+                value: (joinDate?.isEmpty == false ? joinDate! : String(localized: "label_not_available")),
+                label: String(localized: "stat_since")
             )
         }
-        .padding()
+    }
+
+    private var statDivider: some View {
+        Rectangle()
+            .fill(Color.secondary.opacity(0.3))
+            .frame(width: 1, height: 40)
     }
 }
 
-struct StatisticsItem: View {
-    let icon: CustomIcon
-    let label: String
+private struct StatColumn: View {
     let value: String
-    
-    var iconSize = 28.0
+    let label: String
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image.custom(icon)
-                .resizable()
-                .scaledToFit()
-                .foregroundColor(.brandOrange)
-                .frame(width: iconSize, height: iconSize)
-
-            VStack(alignment: .leading, spacing: 0) {
-                Text(label)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Text(value)
-                    .font(.body)
-                    .fontWeight(.medium)
-            }
-
-            Spacer()
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.kluvsCardHeading)
+            Text(label.uppercased())
+                .font(.kluvsEyebrow)
+                .foregroundColor(.secondary)
         }
+        .frame(maxWidth: .infinity)
     }
+}
+
+#Preview {
+    StatisticsSection(
+        statistics: Shared.UserStatistics(clubsCount: 3, booksRead: 3),
+        joinDate: "2025"
+    )
 }

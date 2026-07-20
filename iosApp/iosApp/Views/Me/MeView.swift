@@ -6,54 +6,71 @@ struct MeView: View {
     let userId: String
     @StateObject private var viewModel = MeViewModelWrapper()
     @State private var showSettings = false
+    @State private var editingShelfItem: Shared.ShelfItem? = nil
 
     var body: some View {
-        ZStack {
-            if viewModel.isLoading {
-                LoadingView()
+        VStack(spacing: 0) {
+            MeTopBar(onReadingLogClick: { viewModel.onReadingLogClicked() })
+
+            ZStack {
+                if viewModel.isLoading {
+                    LoadingView()
+                        .transition(.opacity)
+                } else if let error = viewModel.error {
+                    ErrorView(message: error, onRetry: {
+                        viewModel.loadUserData(userId: userId)
+                    })
                     .transition(.opacity)
-            } else if let error = viewModel.error {
-                ErrorView(message: error, onRetry: {
-                    viewModel.loadUserData(userId: userId)
-                })
-                .transition(.opacity)
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if let profile = viewModel.profile {
-                            ProfileSection(
-                                profile: profile,
-                                isUploadingAvatar: viewModel.isUploadingAvatar,
-                                onAvatarPicked: { imageData in
-                                    viewModel.uploadAvatar(imageData: imageData)
-                                }
-                            )
-                        }
-
-                        Divider()
-                            .padding(.vertical, 8)
-
-                        if let statistics = viewModel.statistics {
-                            StatisticsSection(statistics: statistics)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if let profile = viewModel.profile {
+                                ProfileSection(
+                                    profile: profile,
+                                    isUploadingAvatar: viewModel.isUploadingAvatar,
+                                    onAvatarPicked: { imageData in
+                                        viewModel.uploadAvatar(imageData: imageData)
+                                    }
+                                )
+                            }
 
                             Divider()
                                 .padding(.vertical, 8)
+
+                            if let statistics = viewModel.statistics {
+                                StatisticsSection(statistics: statistics, joinDate: viewModel.profile?.joinDate)
+
+                                Divider()
+                                    .padding(.vertical, 8)
+                            }
+
+                            if viewModel.upNext != nil {
+                                UpNextSection(upNext: viewModel.upNext)
+
+                                Divider()
+                                    .padding(.vertical, 8)
+                            }
+
+                            ShelfSection(
+                                shelf: viewModel.shelf,
+                                onUpdateProgress: { sessionId in
+                                    editingShelfItem = viewModel.shelf.first { $0.sessionId == sessionId }
+                                }
+                            )
+
+                            FooterSection(
+                                onSignOut: { viewModel.onSignOutClicked() },
+                                onNavigateToSettings: { showSettings = true }
+                            )
                         }
-
-                        CurrentlyReadingSection(currentReadings: viewModel.currentlyReading)
-
-                        FooterSection(
-                            onSignOut: { viewModel.onSignOutClicked() },
-                            onNavigateToSettings: { showSettings = true }
-                        )
+                        .padding(.horizontal, 16)
                     }
-                    .padding(16)
+                    .transition(.opacity)
                 }
-                .transition(.opacity)
             }
+            .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
+            .animation(.easeInOut(duration: 0.3), value: viewModel.error)
         }
-        .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
-        .animation(.easeInOut(duration: 0.3), value: viewModel.error)
         .overlay(alignment: .bottom) {
             if let snackbarError = viewModel.snackbarError {
                 SnackbarView(message: snackbarError) {
@@ -84,7 +101,39 @@ struct MeView: View {
                 SettingsView(userId: userId)
             }
         }
+        .sheet(item: $editingShelfItem) { item in
+            ReadingProgressSheet(
+                bookTitle: item.bookTitle,
+                pageCount: item.bookPageCount?.int32Value,
+                initialType: item.ownProgress?.type ?? .page,
+                initialCurrentPage: item.ownProgress?.currentPage?.int32Value,
+                initialPercentComplete: item.ownProgress?.percentComplete?.floatValue,
+                initialMarkFinished: item.ownProgress?.isCompleted ?? false,
+                onSave: { type, currentPage, percentComplete, markFinished in
+                    viewModel.onSaveProgress(
+                        sessionId: item.sessionId,
+                        type: type,
+                        currentPage: currentPage,
+                        percentComplete: percentComplete,
+                        markFinished: markFinished
+                    )
+                    editingShelfItem = nil
+                },
+                onDismiss: { editingShelfItem = nil }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showReadingLog, onDismiss: { viewModel.onReadingLogDismissed() }) {
+            ReadingLogSheet(log: viewModel.readingLog, isLoading: viewModel.isReadingLogLoading)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
+}
+
+extension Shared.ShelfItem: @retroactive Identifiable {
+    public var id: String { sessionId }
 }
 
 // MARK: - Profile Section
@@ -138,10 +187,6 @@ struct ProfileSection: View {
                 Text(profile.handle ?? "")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-
-                Text(String(format: NSLocalizedString("label_member_since", comment: ""), profile.joinDate))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -191,7 +236,7 @@ struct FooterItem: View {
         self.iconColor = iconColor
         self.action = action
     }
-    
+
     var iconSize = 18.0
 
     var body: some View {
