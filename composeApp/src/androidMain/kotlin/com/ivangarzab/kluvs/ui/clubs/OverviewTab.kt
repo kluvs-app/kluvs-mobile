@@ -270,7 +270,7 @@ private fun OwnProgressRow(
                 modifier = Modifier.weight(1f)
             )
             GhostButton(
-                text = "Update",
+                text = if (ownProgress != null) "Update" else "Track Progress",
                 onClick = onUpdateProgress
             )
         }

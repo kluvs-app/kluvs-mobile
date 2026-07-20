@@ -22,10 +22,12 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     @Published var selectedClubId: String? = nil
     @Published var clubDetails: Shared.ClubDetails? = nil
     @Published var activeSession: Shared.ActiveSessionDetails? = nil
+    @Published var ownProgress: Shared.OwnProgressInfo? = nil
     @Published var members: [Shared.MemberListItemInfo] = []
     @Published var userRole: Shared.Role? = nil
     @Published var isOperationInProgress: Bool = false
     @Published var operationMessage: String? = nil
+    @Published var createdClubId: String? = nil
     /// ISO-8601 string for the active session's due date, or nil if none.
     @Published var sessionDueDateIso: String? = nil
 
@@ -52,10 +54,12 @@ class ClubDetailsViewModelWrapper: ObservableObject {
                 self.selectedClubId = state.selectedClubId
                 self.clubDetails = state.currentClubDetails
                 self.activeSession = state.activeSession
+                self.ownProgress = state.ownProgress
                 self.members = state.members
                 self.userRole = state.userRole
                 self.isOperationInProgress = state.isOperationInProgress
                 self.operationMessage = self.helper.operationResultMessage(result: state.operationResult)
+                self.createdClubId = state.createdClubId
                 self.sessionDueDateIso = self.helper.localDateTimeToIso(dateTime: state.activeSession?.rawDueDate)
             }
         }
@@ -66,6 +70,9 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     func loadClubData(clubId: String) { helper.loadClubData(clubId: clubId) }
     func selectClub(clubId: String) { helper.selectClub(clubId: clubId) }
     func refresh() { helper.refresh() }
+
+    func onCreateClub(userId: String, name: String) { helper.onCreateClub(userId: userId, name: name) }
+    func onConsumeCreatedClubId() { helper.onConsumeCreatedClubId() }
 
     // General tab
     func onUpdateClubName(_ newName: String) { helper.onUpdateClubName(newName: newName) }
@@ -79,6 +86,19 @@ class ClubDetailsViewModelWrapper: ObservableObject {
         helper.onUpdateSession(book: book, dueDateIso: dueDateIso)
     }
     func onDeleteSession() { helper.onDeleteSession() }
+    func onEndSession() { helper.onEndSession() }
+    func onToggleParticipation(memberId: String, isReading: Bool) {
+        helper.onToggleParticipation(memberId: memberId, isReading: isReading)
+    }
+    /// `percentComplete` is a plain Int (0-100) — the KMP helper converts it to Float internally.
+    func onSaveProgress(type: Shared.ProgressType, currentPage: Int32?, percentComplete: Int32?, markFinished: Bool) {
+        helper.onSaveProgress(
+            type: type,
+            currentPage: currentPage.map { KotlinInt(int: $0) },
+            percentComplete: percentComplete.map { KotlinInt(int: $0) },
+            markFinished: markFinished
+        )
+    }
 
     // Discussion operations — dates passed as ISO strings
     func onCreateDiscussion(title: String, location: String, dateIso: String) {

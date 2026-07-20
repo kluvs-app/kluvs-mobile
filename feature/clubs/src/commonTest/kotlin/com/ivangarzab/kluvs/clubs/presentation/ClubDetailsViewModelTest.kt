@@ -354,7 +354,7 @@ class ClubDetailsViewModelTest {
             members = emptyList(), activeSession = null, pastSessions = emptyList(), shameList = emptyList()
         )
         val member = Member(id = "m1", userId = userId, name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId(userId, forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
 
         viewModel.loadUserClubs(userId)
@@ -425,7 +425,7 @@ class ClubDetailsViewModelTest {
             shameList = emptyList(), role = Role.OWNER
         )
         val member = Member(id = "m1", userId = userId, name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId(userId, forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
 
         viewModel.loadUserClubs(userId)
@@ -449,7 +449,7 @@ class ClubDetailsViewModelTest {
             shameList = emptyList(), role = Role.MEMBER
         )
         val member = Member(id = "m1", userId = userId, name = "Alice", booksRead = 0, clubs = listOf(club1, club2))
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId(userId, forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId1) } returns Result.success(club1)
         everySuspend { clubRepository.getClub(clubId2) } returns Result.success(club2)
 
@@ -481,7 +481,7 @@ class ClubDetailsViewModelTest {
             shameList = emptyList(), role = Role.OWNER
         )
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId("u1") } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
         viewModel.loadUserClubs("u1")
 
         viewModel.onUpdateClubName("New Name")
@@ -498,7 +498,7 @@ class ClubDetailsViewModelTest {
             shameList = emptyList(), role = Role.OWNER
         )
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId("u1") } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
         viewModel.loadUserClubs("u1")
 
@@ -520,7 +520,7 @@ class ClubDetailsViewModelTest {
         )
         val updatedClub = club.copy(name = "New Name")
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId("u1") } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(updatedClub)
         everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(updatedClub)
         everySuspend { clubRepository.updateClub(clubId = clubId, name = "New Name") } returns Result.success(updatedClub)
@@ -543,7 +543,7 @@ class ClubDetailsViewModelTest {
             shameList = emptyList(), role = Role.OWNER
         )
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId("u1") } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
         viewModel.loadUserClubs("u1")
 
@@ -586,7 +586,7 @@ class ClubDetailsViewModelTest {
             shameList = emptyList(), role = role
         )
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId("u1") } returns Result.success(member)
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
         everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
         everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(club)
         viewModel.loadUserClubs("u1")

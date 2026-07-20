@@ -127,7 +127,10 @@ class GetMemberClubsUseCase(
      */
     suspend operator fun invoke(userId: String): Result<List<ClubListItem>> {
         Bark.d("Fetching member clubs (User ID: $userId)")
-        return memberRepository.getMemberByUserId(userId).map { member ->
+        // Force-refresh: a cached Member's embedded clubs[].role can go stale after a role
+        // change, silently hiding admin/owner actions (e.g. kebab menus) until the cache
+        // TTL expires. Role correctness matters more than a cache hit here.
+        return memberRepository.getMemberByUserId(userId, forceRefresh = true).map { member ->
             val clubs = member.clubs ?: emptyList()
             val clubItems = coroutineScope {
                 clubs.map { club -> async { enrichClubListItem(club) } }.map { it.await() }

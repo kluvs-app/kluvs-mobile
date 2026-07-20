@@ -5,17 +5,90 @@ private struct IDWrapper: Identifiable {
     let id: String
 }
 
+/// Entry point for the Clubs tab: owns list -> detail navigation (mirrors web's
+/// `/clubs` -> `/clubs/:id`) and the single `ClubDetailsViewModelWrapper` shared
+/// across both, matching Android's `ClubsScreen`.
 struct ClubsView: View {
     let userId: String
     @StateObject private var viewModel = ClubDetailsViewModelWrapper()
+    @State private var path = NavigationPath()
+    @State private var showCreateClubSheet = false
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            Group {
+                switch viewModel.screenState {
+                case .loading:
+                    LoadingView()
+                case .error(let message):
+                    ErrorView(message: message, onRetry: {
+                        viewModel.loadUserClubs(userId: userId)
+                    })
+                case .empty:
+                    VStack(spacing: 8) {
+                        Text(String(localized: "empty_no_clubs"))
+                            .font(.kluvsSectionHeading)
+                        Text(String(localized: "empty_no_clubs_hint"))
+                            .font(.kluvsBody)
+                            .foregroundColor(.secondary)
+                    }
+                case .content:
+                    ClubsListView(
+                        clubs: viewModel.availableClubs,
+                        onClubSelected: { clubId in
+                            viewModel.selectClub(clubId: clubId)
+                            path.append(clubId)
+                        },
+                        onAddClub: { showCreateClubSheet = true }
+                    )
+                }
+            }
+            .navigationDestination(for: String.self) { _ in
+                ClubDetailView(userId: userId, viewModel: viewModel)
+            }
+        }
+        .onAppear {
+            viewModel.loadUserClubs(userId: userId)
+        }
+        .onChange(of: viewModel.createdClubId) { _, newValue in
+            if let clubId = newValue {
+                path.append(clubId)
+                viewModel.onConsumeCreatedClubId()
+            }
+        }
+        .sheet(isPresented: $showCreateClubSheet) {
+            CreateClubSheet(
+                onCreate: { name in
+                    viewModel.onCreateClub(userId: userId, name: name)
+                    showCreateClubSheet = false
+                },
+                onDismiss: { showCreateClubSheet = false }
+            )
+        }
+    }
+}
+
+#Preview {
+    ClubsView(userId: "1")
+}
+
+// MARK: - Club Detail View
+
+/// The tabbed club detail screen (masthead + Overview/Discussions/Members). Shares
+/// the `ClubDetailsViewModelWrapper` instance owned by `ClubsView`.
+private struct ClubDetailView: View {
+    let userId: String
+    @ObservedObject var viewModel: ClubDetailsViewModelWrapper
     @State private var selectedTab = 0
-    @State private var showClubSelector = false
+    @Environment(\.dismiss) private var dismiss
 
     // Sheet / alert state
     @State private var showEditClubSheet = false
     @State private var showDeleteClubAlert = false
     @State private var showCreateSessionSheet = false
     @State private var showEditSessionSheet = false
+    @State private var showEndSessionAlert = false
+    @State private var showProgressSheet = false
     @State private var showCreateDiscussionSheet = false
     @State private var editingDiscussionId: IDWrapper? = nil
     @State private var deletingDiscussionId: String? = nil
@@ -28,121 +101,132 @@ struct ClubsView: View {
     }
 
     var body: some View {
-        ZStack {
-            switch viewModel.screenState {
-            case .loading:
-                LoadingView()
-                    .transition(.opacity)
-            case .error(let message):
-                ErrorView(message: message, onRetry: {
-                    viewModel.loadUserClubs(userId: userId)
-                })
-                .transition(.opacity)
-            case .empty:
-                VStack(spacing: 8) {
-                    Text(String(localized: "empty_no_clubs"))
-                        .font(.title2)
-                        .fontWeight(.semibold)
-
-                    Text(String(localized: "empty_no_clubs_hint"))
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                }
-                .transition(.opacity)
-            case .content:
-                VStack(spacing: 0) {
-                    // Operation in-progress indicator
-                    if viewModel.isOperationInProgress {
-                        ProgressView()
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .tint(.brandOrange)
-                    }
-
-                    ClubSelectorRow(
-                        clubName: viewModel.clubDetails?.clubName ?? "",
-                        hasMultipleClubs: viewModel.availableClubs.count > 1,
-                        onTap: { showClubSelector = true }
-                    )
-
-                    // Tab selector
-                    Picker("", selection: $selectedTab) {
-                        Text("tab_general").tag(0)
-                        Text("tab_active_session").tag(1)
-                        Text("tab_members").tag(2)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
+        VStack(spacing: 0) {
+            // Operation in-progress indicator
+            if viewModel.isOperationInProgress {
+                ProgressView()
+                    .progressViewStyle(LinearProgressViewStyle())
                     .tint(.brandOrange)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+            }
 
-                    // Tab content
-                    if viewModel.isLoading {
+            // Back row: chevron + "CLUB" eyebrow, mirrors Android's masthead back row
+            HStack(spacing: 4) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.primary)
+                }
+                Text("CLUB")
+                    .font(.kluvsEyebrow)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            // Masthead: club name + role/founded/member-count meta row, + owner overflow
+            if let clubDetails = viewModel.clubDetails {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(clubDetails.clubName)
+                        .font(.kluvsPageHeading)
+                        .foregroundColor(.primary)
+
+                    HStack(alignment: .top) {
+                        ClubMetaRow(
+                            userRole: viewModel.userRole,
+                            foundedYear: clubDetails.foundedYear,
+                            memberCount: Int(clubDetails.memberCount)
+                        )
                         Spacer()
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(1.5)
-                        Spacer()
-                    } else {
-                        TabView(selection: $selectedTab) {
-                            GeneralTab(
-                                clubDetails: viewModel.clubDetails,
-                                userRole: viewModel.userRole,
-                                onEditClub: { showEditClubSheet = true },
-                                onDeleteClub: { showDeleteClubAlert = true }
-                            )
-                            .tag(0)
-
-                            ActiveSessionTab(
-                                sessionDetails: viewModel.activeSession,
-                                userRole: viewModel.userRole,
-                                onCreateSession: { showCreateSessionSheet = true },
-                                onEditSession: { showEditSessionSheet = true },
-                                onCreateDiscussion: { showCreateDiscussionSheet = true },
-                                onEditDiscussion: { id in editingDiscussionId = IDWrapper(id: id) },
-                                onDeleteDiscussion: { id in deletingDiscussionId = id }
-                            )
-                            .tag(1)
-
-                            MembersTab(
-                                members: viewModel.members,
-                                currentUserId: userId,
-                                userRole: viewModel.userRole,
-                                onChangeRole: { memberId in changingRoleMemberId = IDWrapper(id: memberId) },
-                                onRemoveMember: { memberId in removingMemberId = memberId }
-                            )
-                            .tag(2)
+                        if viewModel.userRole == .owner {
+                            Menu {
+                                Button("Edit") { showEditClubSheet = true }
+                                Button("Delete", role: .destructive) { showDeleteClubAlert = true }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     }
                 }
-                .transition(.opacity)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
             }
-        }
-        .animation(.easeInOut(duration: 0.3), value: viewModel.availableClubs.isEmpty)
-        .onAppear {
-            viewModel.loadUserClubs(userId: userId)
-        }
-        // Operation result message
-        .alert("Result", isPresented: Binding(
-            get: { viewModel.operationMessage != nil },
-            set: { if !$0 { viewModel.onConsumeOperationResult() } }
-        )) {
-            Button("OK") { viewModel.onConsumeOperationResult() }
-        } message: {
-            if let message = viewModel.operationMessage {
-                Text(message)
+
+            // Tab selector
+            Picker("", selection: $selectedTab) {
+                Text("tab_general").tag(0)
+                Text("tab_discussions").tag(1)
+                Text("tab_members").tag(2)
             }
-        }
-        // Club selector
-        .sheet(isPresented: $showClubSelector) {
-            ClubSelectorSheet(
-                clubs: viewModel.availableClubs,
-                selectedClubId: viewModel.selectedClubId,
-                onClubSelected: { clubId in
-                    viewModel.selectClub(clubId: clubId)
+            .pickerStyle(SegmentedPickerStyle())
+            .tint(.brandOrange)
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            // Tab content
+            if viewModel.isLoading {
+                Spacer()
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.5)
+                Spacer()
+            } else {
+                TabView(selection: $selectedTab) {
+                    OverviewTab(
+                        clubDetails: viewModel.clubDetails,
+                        sessionDetails: viewModel.activeSession,
+                        ownProgress: viewModel.ownProgress,
+                        userRole: viewModel.userRole,
+                        members: viewModel.members,
+                        currentUserId: userId,
+                        onEditSession: { showEditSessionSheet = true },
+                        onEndSession: { showEndSessionAlert = true },
+                        onUpdateProgress: { showProgressSheet = true },
+                        onCreateSession: { showCreateSessionSheet = true },
+                        onToggleParticipation: { isReading in
+                            if let memberId = currentMemberId {
+                                viewModel.onToggleParticipation(memberId: memberId, isReading: isReading)
+                            }
+                        }
+                    )
+                    .tag(0)
+
+                    ActiveSessionTab(
+                        sessionDetails: viewModel.activeSession,
+                        userRole: viewModel.userRole,
+                        onCreateSession: { showCreateSessionSheet = true },
+                        onEditSession: { showEditSessionSheet = true },
+                        onCreateDiscussion: { showCreateDiscussionSheet = true },
+                        onEditDiscussion: { id in editingDiscussionId = IDWrapper(id: id) },
+                        onDeleteDiscussion: { id in deletingDiscussionId = id }
+                    )
+                    .tag(1)
+
+                    MembersTab(
+                        members: viewModel.members,
+                        participants: viewModel.activeSession?.participants ?? [],
+                        currentUserId: userId,
+                        userRole: viewModel.userRole,
+                        onChangeRole: { memberId in changingRoleMemberId = IDWrapper(id: memberId) },
+                        onRemoveMember: { memberId in removingMemberId = memberId }
+                    )
+                    .tag(2)
                 }
-            )
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                .background(Color.kluvsBackground)
+            }
         }
+        .background(Color.kluvsBackground)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+        // Operation result message — transient toast, not a blocking alert (matches
+        // Android's Snackbar; a tap-to-dismiss dialog on every read-toggle was obnoxious)
+        .toast(message: Binding(
+            get: { viewModel.operationMessage },
+            set: { if $0 == nil { viewModel.onConsumeOperationResult() } }
+        ))
         // Edit club name
         .sheet(isPresented: $showEditClubSheet) {
             EditClubSheet(
@@ -182,6 +266,37 @@ struct ClubsView: View {
                 },
                 onDismiss: { showEditSessionSheet = false }
             )
+        }
+        // End session confirmation
+        .alert("End Session", isPresented: $showEndSessionAlert) {
+            Button("Confirm End", role: .destructive) { viewModel.onEndSession() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            let readingCount = viewModel.activeSession?.participants.filter { $0.isReading }.count ?? 0
+            let creditMessage = readingCount > 0
+                ? "\(readingCount) member\(readingCount != 1 ? "s" : "") will receive credit."
+                : "No members are marked as reading — no credit will be awarded."
+            Text("Are you sure you want to end the current reading session for \"\(viewModel.activeSession?.book.title ?? "")\"?\n\n\(creditMessage)")
+        }
+        // Update reading progress
+        .sheet(isPresented: $showProgressSheet) {
+            if let session = viewModel.activeSession {
+                ReadingProgressSheet(
+                    bookTitle: session.book.title,
+                    pageCount: session.book.pageCount?.int32Value,
+                    initialType: viewModel.ownProgress?.type ?? .page,
+                    initialCurrentPage: viewModel.ownProgress?.currentPage?.int32Value,
+                    initialPercentComplete: viewModel.ownProgress?.percentComplete?.floatValue,
+                    initialMarkFinished: viewModel.ownProgress?.isCompleted ?? false,
+                    onSave: { type, currentPage, percentComplete, markFinished in
+                        viewModel.onSaveProgress(type: type, currentPage: currentPage, percentComplete: percentComplete, markFinished: markFinished)
+                        showProgressSheet = false
+                    },
+                    onDismiss: { showProgressSheet = false }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
         }
         // Create discussion
         .sheet(isPresented: $showCreateDiscussionSheet) {
@@ -258,45 +373,33 @@ struct ClubsView: View {
     }
 }
 
-#Preview {
-    ClubsView(userId: "1")
-}
-
-// MARK: - Club Selector Row
-private struct ClubSelectorRow: View {
-    let clubName: String
-    let hasMultipleClubs: Bool
-    let onTap: () -> Void
+// MARK: - Club Meta Row
+private struct ClubMetaRow: View {
+    let userRole: Shared.Role?
+    let foundedYear: String?
+    let memberCount: Int
 
     var body: some View {
         HStack(spacing: 8) {
-            if hasMultipleClubs {
-                Image(systemName: "chevron.up.chevron.down")
-                    .foregroundColor(.primary)
+            if let userRole {
+                RoleEyebrow(role: userRole)
+                metaDot
             }
-
-            Text(clubName)
-                .font(.headline)
-                .foregroundColor(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .id(clubName)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                    removal: .move(edge: .top).combined(with: .opacity)
-                ))
-                .animation(.easeInOut(duration: 0.3), value: clubName)
-
-            // TODO: Impl once we have club/create feature w/uiux
-            // Image(systemName: "plus")
-            //     .foregroundColor(.primary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if hasMultipleClubs {
-                onTap()
+            if let foundedYear {
+                Text("FOUNDED \(foundedYear)".uppercased())
+                    .font(.plexSansMedium(size: 11))
+                    .foregroundColor(.secondary)
+                metaDot
             }
+            Text("\(memberCount) MEMBERS".uppercased())
+                .font(.plexSansMedium(size: 11))
+                .foregroundColor(.secondary)
         }
+    }
+
+    private var metaDot: some View {
+        Circle()
+            .fill(Color.secondary)
+            .frame(width: 3, height: 3)
     }
 }

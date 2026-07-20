@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.clubs.presentation
 
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.Closeable
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +43,10 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun selectClub(clubId: String) = viewModel.selectClub(clubId)
     fun refresh() = viewModel.refresh()
 
+    // Club creation
+    fun onCreateClub(userId: String, name: String) = viewModel.onCreateClub(userId, name)
+    fun onConsumeCreatedClubId() = viewModel.onConsumeCreatedClubId()
+
     // General tab
     fun onUpdateClubName(newName: String) = viewModel.onUpdateClubName(newName)
     fun onDeleteClub() = viewModel.onDeleteClub()
@@ -52,6 +57,13 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun onUpdateSession(book: Book?, dueDateIso: String?) =
         viewModel.onUpdateSession(book, dueDateIso?.toLocalDateTime())
     fun onDeleteSession() = viewModel.onDeleteSession()
+    fun onEndSession() = viewModel.onEndSession()
+    fun onToggleParticipation(memberId: String, isReading: Boolean) =
+        viewModel.onToggleParticipation(memberId, isReading)
+
+    /** Percent is passed as a plain Int (0-100) to avoid Float bridging quirks on the Swift side. */
+    fun onSaveProgress(type: ProgressType, currentPage: Int?, percentComplete: Int?, markFinished: Boolean) =
+        viewModel.onSaveProgress(type, currentPage, percentComplete?.toFloat(), markFinished)
 
     // Discussion operations — dates passed as ISO strings
     fun onCreateDiscussion(title: String, location: String, dateIso: String) {

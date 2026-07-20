@@ -1,15 +1,20 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
@@ -17,6 +22,7 @@ import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
+import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
@@ -50,6 +56,7 @@ class ClubDetailsViewModelHelperTest {
     private lateinit var memberRepository: MemberRepository
     private lateinit var sessionRepository: SessionRepository
     private lateinit var avatarRepository: AvatarRepository
+    private lateinit var progressRepository: ProgressRepository
     private lateinit var viewModel: ClubDetailsViewModel
     private lateinit var testScope: CoroutineScope
     private lateinit var helper: ClubDetailsViewModelHelper
@@ -64,6 +71,7 @@ class ClubDetailsViewModelHelperTest {
         memberRepository = mock<MemberRepository>()
         sessionRepository = mock<SessionRepository>()
         avatarRepository = mock<AvatarRepository>()
+        progressRepository = mock<ProgressRepository>()
 
         // Create test scope
         testScope = CoroutineScope(testDispatcher + Job())
@@ -73,16 +81,21 @@ class ClubDetailsViewModelHelperTest {
         val getClubDetails = GetClubDetailsUseCase(clubRepository, formatDateTime)
         val getActiveSession = GetActiveSessionUseCase(clubRepository, formatDateTime)
         val getClubMembers = GetClubMembersUseCase(clubRepository, avatarRepository)
-        val getMemberClubs = GetMemberClubsUseCase(memberRepository)
+        val getMemberClubs = GetMemberClubsUseCase(memberRepository, clubRepository, avatarRepository)
 
         // Create real ViewModel with real use cases
         viewModel = ClubDetailsViewModel(
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
+            createClubUseCase = CreateClubUseCase(clubRepository, memberRepository),
             updateClubUseCase = UpdateClubUseCase(clubRepository),
             deleteClubUseCase = DeleteClubUseCase(clubRepository),
             createSessionUseCase = CreateSessionUseCase(sessionRepository),
             updateSessionUseCase = UpdateSessionUseCase(sessionRepository),
             deleteSessionUseCase = DeleteSessionUseCase(sessionRepository),
+            getSessionProgressUseCase = GetSessionProgressUseCase(progressRepository),
+            saveProgressUseCase = SaveProgressUseCase(progressRepository),
+            finishSessionUseCase = FinishSessionUseCase(sessionRepository),
+            toggleSessionParticipationUseCase = ToggleSessionParticipationUseCase(sessionRepository),
             createDiscussionUseCase = CreateDiscussionUseCase(sessionRepository),
             updateDiscussionUseCase = UpdateDiscussionUseCase(sessionRepository),
             deleteDiscussionUseCase = DeleteDiscussionUseCase(sessionRepository),
