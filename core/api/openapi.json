@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Kluvs API",
-    "version": "0.21.2",
+    "version": "0.22.1",
     "description": "Supabase Edge Functions API for managing book clubs."
   },
   "servers": [
@@ -1752,6 +1752,60 @@
         },
         "operationId": "getDiscordGuilds"
       }
+    },
+    "/book-enrichment": {
+      "get": {
+        "summary": "Book & Author Enrichment Proxy",
+        "description": "Proxies Google Books volume lookup, Google Knowledge Graph author search, and Wikipedia author summary through a single endpoint. Always returns 200 — each top-level field independently degrades to null/[] on upstream failure, mirroring the silent-degradation UX of the web client this replaces. At least one of external_google_id or author is required.\n",
+        "tags": [
+          "Book"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "external_google_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Google Books volume ID to fetch full volume details for."
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Author name to look up (Knowledge Graph + Wikipedia) and search other books by."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enrichment data. Individual fields are null/[] when upstream lookups fail or the corresponding param was omitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookEnrichmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither external_google_id nor author was provided."
+          },
+          "401": {
+            "description": "No valid auth token."
+          },
+          "405": {
+            "description": "Method not allowed."
+          }
+        },
+        "operationId": "getBookEnrichment"
+      }
     }
   },
   "components": {
@@ -1951,19 +2005,49 @@
             "items": {
               "$ref": "#/components/schemas/Discussion"
             }
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionParticipantSummary"
+            },
+            "description": "Participation roster, as embedded within a club response's active_session."
+          }
+        }
+      },
+      "SessionParticipantSummary": {
+        "type": "object",
+        "description": "A member's participation entry on a session, as embedded within a club response's active_session.members. Distinct from SessionMember: this shape carries member_name instead of session_id.",
+        "required": [
+          "member_id",
+          "member_name",
+          "is_reading"
+        ],
+        "properties": {
+          "member_id": {
+            "type": "integer"
+          },
+          "member_name": {
+            "type": "string"
+          },
+          "is_reading": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the member is actively reading (vs. opted out)"
           }
         }
       },
       "Book": {
         "type": "object",
         "required": [
-          "id",
           "title",
           "author"
         ],
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true,
+            "description": "Local DB id. Absent/null for Google Books search results that have not been registered yet."
           },
           "title": {
             "type": "string"
@@ -1990,6 +2074,190 @@
           "external_google_id": {
             "type": "string",
             "description": "Google Books volume ID for deduplication"
+          }
+        }
+      },
+      "BookIndustryIdentifier": {
+        "type": "object",
+        "required": [
+          "type",
+          "identifier"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ISBN_10",
+              "ISBN_13",
+              "ISSN",
+              "OTHER"
+            ]
+          },
+          "identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "BookVolumeInfo": {
+        "type": "object",
+        "required": [
+          "title",
+          "authors",
+          "industryIdentifiers",
+          "pageCount",
+          "categories",
+          "imageLinks"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "publisher": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishedDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "industryIdentifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookIndustryIdentifier"
+            }
+          },
+          "pageCount": {
+            "type": "integer"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageLinks": {
+            "type": "object",
+            "required": [
+              "thumbnail",
+              "small",
+              "medium",
+              "large",
+              "extraLarge"
+            ],
+            "properties": {
+              "thumbnail": {
+                "type": "string",
+                "nullable": true
+              },
+              "small": {
+                "type": "string",
+                "nullable": true
+              },
+              "medium": {
+                "type": "string",
+                "nullable": true
+              },
+              "large": {
+                "type": "string",
+                "nullable": true
+              },
+              "extraLarge": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "AuthorInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "From Google Knowledge Graph"
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Knowledge Graph portrait, falling back to Wikipedia thumbnail"
+          },
+          "extract": {
+            "type": "string",
+            "nullable": true,
+            "description": "Wikipedia summary extract"
+          }
+        }
+      },
+      "AuthorBook": {
+        "type": "object",
+        "required": [
+          "externalGoogleId",
+          "title",
+          "authors"
+        ],
+        "properties": {
+          "externalGoogleId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishedDate": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "BookEnrichmentResponse": {
+        "type": "object",
+        "required": [
+          "volumeInfo",
+          "authorInfo",
+          "authorBooks"
+        ],
+        "properties": {
+          "volumeInfo": {
+            "$ref": "#/components/schemas/BookVolumeInfo",
+            "nullable": true
+          },
+          "authorInfo": {
+            "$ref": "#/components/schemas/AuthorInfo",
+            "nullable": true
+          },
+          "authorBooks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorBook"
+            }
           }
         }
       },
