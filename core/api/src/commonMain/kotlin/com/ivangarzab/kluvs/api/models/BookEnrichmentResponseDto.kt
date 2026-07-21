@@ -26,19 +26,19 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
+ * @param authorBooks 
  * @param volumeInfo 
  * @param authorInfo 
- * @param authorBooks 
  */
 @Serializable
 
 data class BookEnrichmentResponseDto (
 
-    @SerialName(value = "volumeInfo") @Required val volumeInfo: BookVolumeInfoDto,
+    @SerialName(value = "authorBooks") @Required val authorBooks: kotlin.collections.List<AuthorBookDto>,
 
-    @SerialName(value = "authorInfo") @Required val authorInfo: AuthorInfoDto,
+    @SerialName(value = "volumeInfo") val volumeInfo: BookVolumeInfoDto? = null,
 
-    @SerialName(value = "authorBooks") @Required val authorBooks: kotlin.collections.List<AuthorBookDto>
+    @SerialName(value = "authorInfo") val authorInfo: AuthorInfoDto? = null
 
 ) {
 
