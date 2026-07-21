@@ -1,7 +1,7 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.api.models.SessionDto
-import com.ivangarzab.kluvs.api.models.SessionParticipantDto
+import com.ivangarzab.kluvs.api.models.SessionParticipantSummaryDto
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.model.SessionMember
 
@@ -23,10 +23,10 @@ fun SessionDto.toDomain(): Session {
 }
 
 /**
- * Maps a [SessionParticipantDto] from the club response's `active_session.members`
+ * Maps a [SessionParticipantSummaryDto] from the club response's `active_session.members`
  * list to a [SessionMember] domain model.
  */
-fun SessionParticipantDto.toDomain(): SessionMember {
+fun SessionParticipantSummaryDto.toDomain(): SessionMember {
     return SessionMember(
         memberId = memberId.toString(),
         memberName = memberName,
