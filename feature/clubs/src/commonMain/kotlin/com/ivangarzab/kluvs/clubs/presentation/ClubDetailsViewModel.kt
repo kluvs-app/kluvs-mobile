@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.clubs.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
@@ -11,17 +12,20 @@ import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
+import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
@@ -55,7 +59,10 @@ class ClubDetailsViewModel(
     private val getSessionProgressUseCase: GetSessionProgressUseCase,
     private val saveProgressUseCase: SaveProgressUseCase,
     private val finishSessionUseCase: FinishSessionUseCase,
-    private val toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase
+    private val toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase,
+    private val getAttendanceRosterUseCase: GetAttendanceRosterUseCase,
+    private val setAttendanceUseCase: SetAttendanceUseCase,
+    private val clearAttendanceUseCase: ClearAttendanceUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ClubDetailsState())
@@ -407,17 +414,97 @@ class ClubDetailsViewModel(
 
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, date: LocalDateTime?) {
         val role = _state.value.userRole ?: return
-        val sessionId = _state.value.activeSession?.sessionId ?: return
+        _state.value.activeSession ?: return
         launchMutation("Discussion updated") {
-            updateDiscussionUseCase(UpdateDiscussionUseCase.Params(sessionId, discussionId, title, location, date), role)
+            updateDiscussionUseCase(UpdateDiscussionUseCase.Params(discussionId, title, location, date), role)
         }
     }
 
     fun onDeleteDiscussion(discussionId: String) {
         val role = _state.value.userRole ?: return
-        val sessionId = _state.value.activeSession?.sessionId ?: return
+        _state.value.activeSession ?: return
         launchMutation("Discussion deleted") {
-            deleteDiscussionUseCase(DeleteDiscussionUseCase.Params(sessionId, discussionId), role)
+            deleteDiscussionUseCase(DeleteDiscussionUseCase.Params(discussionId), role)
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Attendance operations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads the attendance roster for a discussion, if not already cached.
+     *
+     * Called lazily as timeline rows are shown (one roster per discussion),
+     * mirroring the web app's per-row fetch-on-mount. Does not set
+     * [ClubDetailsState.isOperationInProgress] — this fires for every visible
+     * row and would spam the global progress indicator.
+     */
+    fun onLoadAttendanceRoster(discussionId: String) {
+        if (_state.value.discussionRosters.containsKey(discussionId)) return
+        viewModelScope.launch {
+            getAttendanceRosterUseCase(discussionId)
+                .onSuccess { roster ->
+                    _state.update {
+                        it.copy(discussionRosters = it.discussionRosters + (discussionId to roster))
+                    }
+                }
+        }
+    }
+
+    /**
+     * Sets or clears the signed-in member's RSVP for a discussion. Tapping the
+     * already-selected status clears it, mirroring web's [AttendanceControl].
+     *
+     * The roster's [com.ivangarzab.kluvs.model.AttendanceRoster.myStatus] is
+     * patched optimistically for instant pill feedback, then the roster is
+     * re-fetched on success so response counts stay authoritative — unlike
+     * `myStatus`, the full response list is never cached client-side (see
+     * [com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository]),
+     * so it can't be patched locally. On failure, `myStatus` is rolled back.
+     *
+     * Self-serve — does not use [launchMutation]/full refresh, same reasoning
+     * as [onToggleParticipation].
+     */
+    fun onSetAttendance(discussionId: String, status: AttendanceStatus) {
+        val roster = _state.value.discussionRosters[discussionId] ?: return
+        val previousStatus = roster.myStatus
+        val isClearing = previousStatus == status
+
+        _state.update {
+            it.copy(
+                discussionRosters = it.discussionRosters + (discussionId to roster.copy(
+                    myStatus = if (isClearing) null else status
+                ))
+            )
+        }
+
+        viewModelScope.launch {
+            val result = if (isClearing) {
+                clearAttendanceUseCase(discussionId).map { }
+            } else {
+                setAttendanceUseCase(SetAttendanceUseCase.Params(discussionId, status)).map { }
+            }
+
+            result
+                .onSuccess {
+                    getAttendanceRosterUseCase(discussionId).onSuccess { refreshedRoster ->
+                        _state.update {
+                            it.copy(discussionRosters = it.discussionRosters + (discussionId to refreshedRoster))
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Set attendance. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            discussionRosters = it.discussionRosters + (discussionId to roster.copy(myStatus = previousStatus)),
+                            operationResult = OperationResult.Error(
+                                error.message ?: "An unexpected error occurred"
+                            )
+                        )
+                    }
+                }
         }
     }
 

@@ -1,9 +1,7 @@
 package com.ivangarzab.kluvs.clubs.domain
 
-import com.ivangarzab.kluvs.data.repositories.SessionRepository
-import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.model.Session
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.mock
@@ -14,16 +12,14 @@ import kotlin.test.assertTrue
 
 class DeleteDiscussionUseCaseTest {
 
-    private val sessionRepository = mock<SessionRepository>()
-    private val useCase = DeleteDiscussionUseCase(sessionRepository)
+    private val discussionRepository = mock<DiscussionRepository>()
+    private val useCase = DeleteDiscussionUseCase(discussionRepository)
 
-    private val book = Book("book-1", "The Hobbit", "Tolkien", null, 1937, null)
-    private val stubSession = Session(id = "session-1", clubId = "club-1", book = book, dueDate = null, discussions = emptyList())
-    private val params = DeleteDiscussionUseCase.Params(sessionId = "session-1", discussionId = "d1")
+    private val params = DeleteDiscussionUseCase.Params(discussionId = "d1")
 
     @Test
     fun `invoke succeeds when user is OWNER`() = runTest {
-        everySuspend { sessionRepository.updateSession(sessionId = "session-1", discussionIdsToDelete = listOf("d1")) } returns Result.success(stubSession)
+        everySuspend { discussionRepository.deleteDiscussion("d1") } returns Result.success(Unit)
 
         val result = useCase(params, Role.OWNER)
 
@@ -32,8 +28,7 @@ class DeleteDiscussionUseCaseTest {
 
     @Test
     fun `invoke succeeds when user is ADMIN`() = runTest {
-        everySuspend { sessionRepository.updateSession(sessionId = "session-1", discussionIdsToDelete = listOf("d1")) } returns
-            Result.success(stubSession)
+        everySuspend { discussionRepository.deleteDiscussion("d1") } returns Result.success(Unit)
 
         val result = useCase(params, Role.ADMIN)
 
@@ -50,7 +45,7 @@ class DeleteDiscussionUseCaseTest {
 
     @Test
     fun `invoke propagates repository failure`() = runTest {
-        everySuspend { sessionRepository.updateSession(sessionId = "session-1", discussionIdsToDelete = listOf("d1")) } returns
+        everySuspend { discussionRepository.deleteDiscussion("d1") } returns
             Result.failure(RuntimeException("Server error"))
 
         val result = useCase(params, Role.OWNER)

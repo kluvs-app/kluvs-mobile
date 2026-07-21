@@ -25,6 +25,7 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     @Published var ownProgress: Shared.OwnProgressInfo? = nil
     @Published var members: [Shared.MemberListItemInfo] = []
     @Published var userRole: Shared.Role? = nil
+    @Published var discussionRosters: [String: Shared.AttendanceRoster] = [:]
     @Published var isOperationInProgress: Bool = false
     @Published var operationMessage: String? = nil
     @Published var createdClubId: String? = nil
@@ -57,6 +58,7 @@ class ClubDetailsViewModelWrapper: ObservableObject {
                 self.ownProgress = state.ownProgress
                 self.members = state.members
                 self.userRole = state.userRole
+                self.discussionRosters = state.discussionRosters
                 self.isOperationInProgress = state.isOperationInProgress
                 self.operationMessage = self.helper.operationResultMessage(result: state.operationResult)
                 self.createdClubId = state.createdClubId
@@ -112,6 +114,14 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     /// Returns the ISO-8601 date string for a specific discussion, read from current KMP state.
     func discussionDateIso(for discussionId: String) -> String? {
         helper.getDiscussionDateIso(discussionId: discussionId)
+    }
+
+    // Attendance operations
+    func onLoadAttendanceRoster(discussionId: String) {
+        helper.onLoadAttendanceRoster(discussionId: discussionId)
+    }
+    func onSetAttendance(discussionId: String, status: Shared.AttendanceStatus) {
+        helper.onSetAttendance(discussionId: discussionId, status: status)
     }
 
     // Member operations

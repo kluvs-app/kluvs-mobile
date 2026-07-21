@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
@@ -8,12 +9,14 @@ import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
@@ -21,6 +24,8 @@ import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
@@ -57,6 +62,8 @@ class ClubDetailsViewModelHelperTest {
     private lateinit var sessionRepository: SessionRepository
     private lateinit var avatarRepository: AvatarRepository
     private lateinit var progressRepository: ProgressRepository
+    private lateinit var discussionRepository: DiscussionRepository
+    private lateinit var discussionAttendanceRepository: DiscussionAttendanceRepository
     private lateinit var viewModel: ClubDetailsViewModel
     private lateinit var testScope: CoroutineScope
     private lateinit var helper: ClubDetailsViewModelHelper
@@ -72,6 +79,8 @@ class ClubDetailsViewModelHelperTest {
         sessionRepository = mock<SessionRepository>()
         avatarRepository = mock<AvatarRepository>()
         progressRepository = mock<ProgressRepository>()
+        discussionRepository = mock<DiscussionRepository>()
+        discussionAttendanceRepository = mock<DiscussionAttendanceRepository>()
 
         // Create test scope
         testScope = CoroutineScope(testDispatcher + Job())
@@ -96,11 +105,14 @@ class ClubDetailsViewModelHelperTest {
             saveProgressUseCase = SaveProgressUseCase(progressRepository),
             finishSessionUseCase = FinishSessionUseCase(sessionRepository),
             toggleSessionParticipationUseCase = ToggleSessionParticipationUseCase(sessionRepository),
-            createDiscussionUseCase = CreateDiscussionUseCase(sessionRepository),
-            updateDiscussionUseCase = UpdateDiscussionUseCase(sessionRepository),
-            deleteDiscussionUseCase = DeleteDiscussionUseCase(sessionRepository),
+            createDiscussionUseCase = CreateDiscussionUseCase(discussionRepository),
+            updateDiscussionUseCase = UpdateDiscussionUseCase(discussionRepository),
+            deleteDiscussionUseCase = DeleteDiscussionUseCase(discussionRepository),
             updateMemberRoleUseCase = UpdateMemberRoleUseCase(memberRepository),
-            removeMemberUseCase = RemoveMemberUseCase(memberRepository)
+            removeMemberUseCase = RemoveMemberUseCase(memberRepository),
+            getAttendanceRosterUseCase = GetAttendanceRosterUseCase(discussionAttendanceRepository),
+            setAttendanceUseCase = SetAttendanceUseCase(discussionAttendanceRepository),
+            clearAttendanceUseCase = ClearAttendanceUseCase(discussionAttendanceRepository)
         )
 
         // Start Koin with test module

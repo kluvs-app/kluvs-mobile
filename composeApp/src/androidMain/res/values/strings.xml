@@ -38,6 +38,8 @@
     <string name="club_name">Club Name</string>
     <string name="x_members">%s members</string>
     <string name="invite">+ Invite</string>
+    <string name="x_discussions_scheduled">%s scheduled</string>
+    <string name="add_discussion">+ Add</string>
     <string name="invite_members">Invite Members</string>
     <string name="invite_others_cta">Invite others to get the conversation going.</string>
     <string name="books_read">Books</string>

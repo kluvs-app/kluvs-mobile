@@ -55,6 +55,7 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
 import com.ivangarzab.kluvs.clubs.presentation.OperationResult
+import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
@@ -161,6 +162,8 @@ fun ClubsScreen(
                     onCreateDiscussion = viewModel::onCreateDiscussion,
                     onUpdateDiscussion = viewModel::onUpdateDiscussion,
                     onDeleteDiscussion = viewModel::onDeleteDiscussion,
+                    onLoadAttendanceRoster = viewModel::onLoadAttendanceRoster,
+                    onSetAttendance = viewModel::onSetAttendance,
                     onUpdateMemberRole = { memberId, newRole ->
                         val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
                         viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)
@@ -197,6 +200,8 @@ fun ClubsScreenContent(
     onCreateDiscussion: (String, String, LocalDateTime) -> Unit = { _, _, _ -> },
     onUpdateDiscussion: (String, String?, String?, LocalDateTime?) -> Unit = { _, _, _, _ -> },
     onDeleteDiscussion: (String) -> Unit = {},
+    onLoadAttendanceRoster: (discussionId: String) -> Unit = {},
+    onSetAttendance: (discussionId: String, status: AttendanceStatus) -> Unit = { _, _ -> },
     onUpdateMemberRole: (memberId: String, newRole: Role) -> Unit = { _, _ -> },
     onRemoveMember: (memberId: String) -> Unit = {},
 ) {
@@ -399,15 +404,14 @@ fun ClubsScreenContent(
                                 1 -> ActiveSessionTab(
                                     modifier = tabModifier,
                                     sessionDetails = state.activeSession,
-                                    ownProgress = state.ownProgress,
                                     userRole = state.userRole,
                                     onCreateSession = { showCreateSessionSheet = true },
-                                    onEditSession = { showEditSessionSheet = true },
-                                    onEndSession = { showEndSessionDialog = true },
-                                    onUpdateProgress = { showProgressSheet = true },
                                     onCreateDiscussion = { showCreateDiscussionSheet = true },
                                     onEditDiscussion = { id -> editingDiscussionId = id },
-                                    onDeleteDiscussion = { id -> deletingDiscussionId = id }
+                                    onDeleteDiscussion = { id -> deletingDiscussionId = id },
+                                    discussionRosters = state.discussionRosters,
+                                    onLoadAttendanceRoster = onLoadAttendanceRoster,
+                                    onSetAttendance = onSetAttendance
                                 )
                                 2 -> MembersTab(
                                     modifier = tabModifier,

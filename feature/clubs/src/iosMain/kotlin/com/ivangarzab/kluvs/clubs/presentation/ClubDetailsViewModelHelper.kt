@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
@@ -73,6 +74,11 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, dateIso: String?) =
         viewModel.onUpdateDiscussion(discussionId, title, location, dateIso?.toLocalDateTime())
     fun onDeleteDiscussion(discussionId: String) = viewModel.onDeleteDiscussion(discussionId)
+
+    // Attendance operations
+    fun onLoadAttendanceRoster(discussionId: String) = viewModel.onLoadAttendanceRoster(discussionId)
+    fun onSetAttendance(discussionId: String, status: AttendanceStatus) =
+        viewModel.onSetAttendance(discussionId, status)
 
     // Member operations
     fun onUpdateMemberRole(memberId: String, currentMemberId: String, newRole: Role) =
