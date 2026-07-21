@@ -81,6 +81,10 @@ val avatarStackOverflowBg = foregroundWarmDisabled
 val statusDanger = Color(0xFFEF4444)
 val statusDangerHover = Color(0xFFDC2626)
 val statusSuccess = Color(0xFF48A480)
+/** rgba(72,164,128,0.15) — pressed "yes" segment background in AttendanceControl. */
+val statusSuccessSubtle = Color(0x2648A480)
+/** rgba(239,68,68,0.08) — pressed "no" segment background in AttendanceControl. */
+val statusDangerSubtle = Color(0x14EF4444)
 
 // --- OAuth provider brand colors ---
 val providerDiscordBg = Color(0xFF5865F2)

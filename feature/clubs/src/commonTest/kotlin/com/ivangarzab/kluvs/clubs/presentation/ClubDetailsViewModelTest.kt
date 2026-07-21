@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
@@ -8,12 +9,14 @@ import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
+import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
@@ -21,9 +24,14 @@ import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
+import com.ivangarzab.kluvs.model.AttendanceResponse
+import com.ivangarzab.kluvs.model.AttendanceRoster
+import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.ClubMember
@@ -41,6 +49,8 @@ import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -65,6 +75,7 @@ class ClubDetailsViewModelTest {
     private lateinit var memberRepository: MemberRepository
     private lateinit var sessionRepository: SessionRepository
     private lateinit var avatarRepository: AvatarRepository
+    private lateinit var discussionRepository: DiscussionRepository
     private lateinit var getClubDetails: GetClubDetailsUseCase
     private lateinit var getActiveSession: GetActiveSessionUseCase
     private lateinit var getClubMembers: GetClubMembersUseCase
@@ -85,6 +96,10 @@ class ClubDetailsViewModelTest {
     private lateinit var saveProgressUseCase: SaveProgressUseCase
     private lateinit var finishSessionUseCase: FinishSessionUseCase
     private lateinit var toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase
+    private lateinit var discussionAttendanceRepository: DiscussionAttendanceRepository
+    private lateinit var getAttendanceRosterUseCase: GetAttendanceRosterUseCase
+    private lateinit var setAttendanceUseCase: SetAttendanceUseCase
+    private lateinit var clearAttendanceUseCase: ClearAttendanceUseCase
     private lateinit var viewModel: ClubDetailsViewModel
 
     private val formatDateTime = FormatDateTimeUseCase()
@@ -98,6 +113,8 @@ class ClubDetailsViewModelTest {
         sessionRepository = mock<SessionRepository>()
         avatarRepository = mock<AvatarRepository>()
         progressRepository = mock<ProgressRepository>()
+        discussionAttendanceRepository = mock<DiscussionAttendanceRepository>()
+        discussionRepository = mock<DiscussionRepository>()
 
         // Use REAL UseCases with mocked repositories
         getClubDetails = GetClubDetailsUseCase(clubRepository, formatDateTime)
@@ -110,15 +127,18 @@ class ClubDetailsViewModelTest {
         createSessionUseCase = CreateSessionUseCase(sessionRepository)
         updateSessionUseCase = UpdateSessionUseCase(sessionRepository)
         deleteSessionUseCase = DeleteSessionUseCase(sessionRepository)
-        createDiscussionUseCase = CreateDiscussionUseCase(sessionRepository)
-        updateDiscussionUseCase = UpdateDiscussionUseCase(sessionRepository)
-        deleteDiscussionUseCase = DeleteDiscussionUseCase(sessionRepository)
+        createDiscussionUseCase = CreateDiscussionUseCase(discussionRepository)
+        updateDiscussionUseCase = UpdateDiscussionUseCase(discussionRepository)
+        deleteDiscussionUseCase = DeleteDiscussionUseCase(discussionRepository)
         updateMemberRoleUseCase = UpdateMemberRoleUseCase(memberRepository)
         removeMemberUseCase = RemoveMemberUseCase(memberRepository)
         getSessionProgressUseCase = GetSessionProgressUseCase(progressRepository)
         saveProgressUseCase = SaveProgressUseCase(progressRepository)
         finishSessionUseCase = FinishSessionUseCase(sessionRepository)
         toggleSessionParticipationUseCase = ToggleSessionParticipationUseCase(sessionRepository)
+        getAttendanceRosterUseCase = GetAttendanceRosterUseCase(discussionAttendanceRepository)
+        setAttendanceUseCase = SetAttendanceUseCase(discussionAttendanceRepository)
+        clearAttendanceUseCase = ClearAttendanceUseCase(discussionAttendanceRepository)
 
         viewModel = ClubDetailsViewModel(
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
@@ -128,7 +148,8 @@ class ClubDetailsViewModelTest {
             updateDiscussionUseCase, deleteDiscussionUseCase,
             updateMemberRoleUseCase, removeMemberUseCase,
             getSessionProgressUseCase, saveProgressUseCase, finishSessionUseCase,
-            toggleSessionParticipationUseCase
+            toggleSessionParticipationUseCase,
+            getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
@@ -721,6 +742,107 @@ class ClubDetailsViewModelTest {
 
         viewModel.onEndSession()
 
+        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+    }
+
+    // -------------------------------------------------------------------------
+    // Attendance operations
+    // -------------------------------------------------------------------------
+
+    /** Loads a club with an active session containing one discussion (id "d1"). */
+    private suspend fun loadClubWithDiscussion(): String {
+        val clubId = "club-1"
+        val book = Book("book-1", "The Hobbit", "Tolkien", null, 1937, null)
+        val discussion = Discussion(
+            id = "d1", sessionId = "session-1", title = "Chapter 1",
+            date = LocalDateTime(2032, 1, 1, 19, 0), location = "Discord"
+        )
+        val session = Session(
+            id = "session-1", clubId = clubId, book = book,
+            dueDate = LocalDateTime(2032, 3, 15, 0, 0),
+            discussions = listOf(discussion)
+        )
+        val club = Club(
+            id = clubId, name = "Test Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = session, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(club)
+        viewModel.loadUserClubs("u1")
+        return clubId
+    }
+
+    private fun roster(myStatus: AttendanceStatus?) = AttendanceRoster(
+        responses = listOf(AttendanceResponse(memberId = "m1", name = "Alice", status = AttendanceStatus.YES)),
+        myStatus = myStatus,
+        totalMembers = 3
+    )
+
+    @Test
+    fun `onLoadAttendanceRoster stores roster in state`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(null))
+
+        viewModel.onLoadAttendanceRoster("d1")
+
+        assertEquals(roster(null), viewModel.state.value.discussionRosters["d1"])
+    }
+
+    @Test
+    fun `onLoadAttendanceRoster does not refetch when already cached`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(null))
+        viewModel.onLoadAttendanceRoster("d1")
+
+        viewModel.onLoadAttendanceRoster("d1")
+
+        verifySuspend(VerifyMode.exactly(1)) {
+            discussionAttendanceRepository.getRoster("d1")
+        }
+    }
+
+    @Test
+    fun `onSetAttendance optimistically updates myStatus then refreshes roster`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(null))
+        viewModel.onLoadAttendanceRoster("d1")
+        everySuspend { discussionAttendanceRepository.setAttendance("d1", AttendanceStatus.YES) } returns
+            Result.success(AttendanceStatus.YES)
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(AttendanceStatus.YES))
+
+        viewModel.onSetAttendance("d1", AttendanceStatus.YES)
+
+        assertEquals(AttendanceStatus.YES, viewModel.state.value.discussionRosters["d1"]?.myStatus)
+    }
+
+    @Test
+    fun `onSetAttendance re-selecting current status clears it`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(AttendanceStatus.YES))
+        viewModel.onLoadAttendanceRoster("d1")
+        everySuspend { discussionAttendanceRepository.clearAttendance("d1") } returns Result.success(Unit)
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(null))
+
+        viewModel.onSetAttendance("d1", AttendanceStatus.YES)
+
+        verifySuspend { discussionAttendanceRepository.clearAttendance("d1") }
+        assertNull(viewModel.state.value.discussionRosters["d1"]?.myStatus)
+    }
+
+    @Test
+    fun `onSetAttendance rolls back myStatus on failure`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(null))
+        viewModel.onLoadAttendanceRoster("d1")
+        everySuspend { discussionAttendanceRepository.setAttendance("d1", AttendanceStatus.NO) } returns
+            Result.failure(RuntimeException("Network error"))
+
+        viewModel.onSetAttendance("d1", AttendanceStatus.NO)
+
+        assertNull(viewModel.state.value.discussionRosters["d1"]?.myStatus)
         assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
     }
 }

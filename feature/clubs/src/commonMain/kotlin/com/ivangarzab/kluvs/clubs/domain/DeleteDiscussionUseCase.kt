@@ -1,9 +1,8 @@
 package com.ivangarzab.kluvs.clubs.domain
 
 import com.ivangarzab.bark.Bark
-import com.ivangarzab.kluvs.data.repositories.SessionRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.model.Session
 
 /**
  * UseCase for deleting a discussion from an active session.
@@ -11,22 +10,18 @@ import com.ivangarzab.kluvs.model.Session
  * Requires [Role.ADMIN] or [Role.OWNER] authorization.
  */
 class DeleteDiscussionUseCase(
-    private val sessionRepository: SessionRepository
-) : BaseAdminUseCase<DeleteDiscussionUseCase.Params, Session>() {
+    private val discussionRepository: DiscussionRepository
+) : BaseAdminUseCase<DeleteDiscussionUseCase.Params, Unit>() {
 
     override val requiredRoles = ADMIN_AND_ABOVE
 
     data class Params(
-        val sessionId: String,
         val discussionId: String
     )
 
-    override suspend fun execute(params: Params): Result<Session> {
-        Bark.d("Deleting discussion (Session ID: ${params.sessionId}, Discussion ID: ${params.discussionId})")
-        return sessionRepository.updateSession(
-            sessionId = params.sessionId,
-            discussionIdsToDelete = listOf(params.discussionId)
-        )
+    override suspend fun execute(params: Params): Result<Unit> {
+        Bark.d("Deleting discussion (Discussion ID: ${params.discussionId})")
+        return discussionRepository.deleteDiscussion(params.discussionId)
             .onSuccess { Bark.i("Discussion deleted (Discussion ID: ${params.discussionId})") }
             .onFailure { Bark.e("Failed to delete discussion (Discussion ID: ${params.discussionId}). Retry.", it) }
     }
