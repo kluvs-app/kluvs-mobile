@@ -56,6 +56,7 @@ import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.theme.brandPrimary
 import com.ivangarzab.kluvs.theme.foregroundWarmDisabled
 import com.ivangarzab.kluvs.ui.components.AttendanceControl
+import com.ivangarzab.kluvs.ui.components.GhostButton
 import com.ivangarzab.kluvs.ui.components.NoTabData
 import kotlinx.datetime.LocalDateTime
 
@@ -112,82 +113,53 @@ fun ActiveSessionTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.background
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
+            if (sessionDetails.discussions.isNotEmpty()) {
                 Text(
-                    text = "DISCUSSIONS",
+                    text = "${sessionDetails.discussions.size} scheduled",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelSmall
+                    style = MaterialTheme.typography.headlineSmall.copy(fontStyle = FontStyle.Italic)
                 )
-                if (sessionDetails.discussions.isNotEmpty()) {
-                    Text(
-                        text = "${sessionDetails.discussions.size} scheduled",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontStyle = FontStyle.Italic)
-                    )
-                }
             }
-            Spacer(Modifier.height(12.dp))
+            if (isAdminOrAbove) {
+                GhostButton(
+                    text = "Add Discussion",
+                    onClick = onCreateDiscussion,
+                )
+            }
+        }
 
-            sessionDetails.discussions.let { discussions ->
-                if (discussions.isEmpty()) {
-                    Text(
-                        text = "No discussions scheduled yet.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    )
-                } else {
-                    // Timeline
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(0.dp)
-                    ) {
-                        itemsIndexed(discussions) { index, discussion ->
-                            DiscussionTimelineItem(
-                                discussion = discussion,
-                                isFirst = index == 0,
-                                isLast = index == discussions.size - 1,
-                                showAdminActions = isAdminOrAbove,
-                                onEdit = { onEditDiscussion(discussion.id) },
-                                onDelete = { onDeleteDiscussion(discussion.id) },
-                                attendanceRoster = discussionRosters[discussion.id],
-                                onLoadRoster = { onLoadAttendanceRoster(discussion.id) },
-                                onSetAttendance = { status -> onSetAttendance(discussion.id, status) }
-                            )
-                        }
+        sessionDetails.discussions.let { discussions ->
+            if (discussions.isEmpty()) {
+                Text(
+                    text = "No discussions scheduled yet.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+            } else {
+                // Timeline
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    itemsIndexed(discussions) { index, discussion ->
+                        DiscussionTimelineItem(
+                            discussion = discussion,
+                            isFirst = index == 0,
+                            isLast = index == discussions.size - 1,
+                            showAdminActions = isAdminOrAbove,
+                            onEdit = { onEditDiscussion(discussion.id) },
+                            onDelete = { onDeleteDiscussion(discussion.id) },
+                            attendanceRoster = discussionRosters[discussion.id],
+                            onLoadRoster = { onLoadAttendanceRoster(discussion.id) },
+                            onSetAttendance = { status -> onSetAttendance(discussion.id, status) }
+                        )
                     }
                 }
-            }
-
-            if (isAdminOrAbove) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onCreateDiscussion,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "Add Discussion",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
             }
         }
     }
