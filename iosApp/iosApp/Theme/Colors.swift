@@ -91,6 +91,10 @@ extension Color {
     static let statusDanger = Color(hex: 0xEF4444)
     static let statusDangerHover = Color(hex: 0xDC2626)
     static let statusSuccess = Color(hex: 0x48A480)
+    /// Pressed "yes" segment background in AttendanceControl.
+    static let statusSuccessSubtle = Color(hex: 0x48A480, alpha: 0.15)
+    /// Pressed "no" segment background in AttendanceControl.
+    static let statusDangerSubtle = Color(hex: 0xEF4444, alpha: 0.08)
 
     // MARK: - OAuth provider brand colors
     static let discordBlue = Color(hex: 0x5865F2)

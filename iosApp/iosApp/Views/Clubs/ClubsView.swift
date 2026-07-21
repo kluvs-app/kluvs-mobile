@@ -197,10 +197,12 @@ private struct ClubDetailView: View {
                         sessionDetails: viewModel.activeSession,
                         userRole: viewModel.userRole,
                         onCreateSession: { showCreateSessionSheet = true },
-                        onEditSession: { showEditSessionSheet = true },
                         onCreateDiscussion: { showCreateDiscussionSheet = true },
                         onEditDiscussion: { id in editingDiscussionId = IDWrapper(id: id) },
-                        onDeleteDiscussion: { id in deletingDiscussionId = id }
+                        onDeleteDiscussion: { id in deletingDiscussionId = id },
+                        discussionRosters: viewModel.discussionRosters,
+                        onLoadAttendanceRoster: { id in viewModel.onLoadAttendanceRoster(discussionId: id) },
+                        onSetAttendance: { id, status in viewModel.onSetAttendance(discussionId: id, status: status) }
                     )
                     .tag(1)
 

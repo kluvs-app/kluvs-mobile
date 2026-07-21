@@ -5,10 +5,12 @@ struct ActiveSessionTab: View {
     let sessionDetails: Shared.ActiveSessionDetails?
     var userRole: Shared.Role? = nil
     var onCreateSession: () -> Void = {}
-    var onEditSession: () -> Void = {}
     var onCreateDiscussion: () -> Void = {}
     var onEditDiscussion: (String) -> Void = { _ in }
     var onDeleteDiscussion: (String) -> Void = { _ in }
+    var discussionRosters: [String: Shared.AttendanceRoster] = [:]
+    var onLoadAttendanceRoster: (String) -> Void = { _ in }
+    var onSetAttendance: (String, Shared.AttendanceStatus) -> Void = { _, _ in }
 
     private var isOwner: Bool { userRole == .owner }
     private var isAdminOrAbove: Bool { userRole == .owner || userRole == .admin }
@@ -16,47 +18,26 @@ struct ActiveSessionTab: View {
     var body: some View {
         ScrollView {
             if let session = sessionDetails {
-                VStack(spacing: 12) {
-                    // Session Book Card
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(session.book.title)
-                                    .font(.headline)
-
-                                Text(String(format: NSLocalizedString("label_by_author", comment: ""), session.book.author))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-
-                                HStack {
-                                    Text("label_due_date")
-                                        .fontWeight(.medium)
-                                    Text(session.dueDate)
-                                }
-                                .font(.subheadline)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        if !session.discussions.isEmpty {
+                            Text("\(session.discussions.count) scheduled")
+                                .font(.ebGaramondItalic(size: 16))
                                 .foregroundColor(.secondary)
-                            }
-
-                            if isOwner {
-                                Spacer()
-                                Button(action: onEditSession) {
-                                    Image(systemName: "pencil")
-                                        .foregroundColor(.secondary)
-                                }
-                            }
+                        }
+                        Spacer()
+                        if isAdminOrAbove {
+                            GhostButton(text: "+ Add", onClick: onCreateDiscussion)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
+                    .padding(.bottom, 12)
 
-                    Divider()
-
-                    // Discussion Timeline
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("section_discussion_timeline")
-                            .font(.headline)
-                            .padding(.bottom, 8)
-
+                    if session.discussions.isEmpty {
+                        Text("No discussions scheduled yet.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 12)
+                    } else {
                         ForEach(Array(session.discussions.enumerated()), id: \.offset) { index, discussion in
                             DiscussionTimelineItem(
                                 discussion: discussion,
@@ -64,22 +45,15 @@ struct ActiveSessionTab: View {
                                 isLast: index == session.discussions.count - 1,
                                 showAdminActions: isAdminOrAbove,
                                 onEdit: { onEditDiscussion(discussion.id) },
-                                onDelete: { onDeleteDiscussion(discussion.id) }
+                                onDelete: { onDeleteDiscussion(discussion.id) },
+                                attendanceRoster: discussionRosters[discussion.id],
+                                onLoadRoster: { onLoadAttendanceRoster(discussion.id) },
+                                onSetAttendance: { status in onSetAttendance(discussion.id, status) }
                             )
                         }
-
-                        if isAdminOrAbove {
-                            Button(action: onCreateDiscussion) {
-                                Label("Add Discussion", systemImage: "plus")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                            }
-                            .padding(.top, 8)
-                        }
                     }
-                    .padding()
                 }
-                .padding()
+                .padding(16)
             } else {
                 if isOwner {
                     VStack(spacing: 12) {
@@ -109,76 +83,80 @@ struct DiscussionTimelineItem: View {
     var showAdminActions: Bool = false
     var onEdit: () -> Void = {}
     var onDelete: () -> Void = {}
+    var attendanceRoster: Shared.AttendanceRoster? = nil
+    var onLoadRoster: () -> Void = {}
+    var onSetAttendance: (Shared.AttendanceStatus) -> Void = { _ in }
+
+    // A dot/line is "lit" (copper) once its discussion is past or is the current
+    // next one — this is what makes the rail read as a continuous copper thread
+    // through completed items.
+    private var isLit: Bool { discussion.isPast || discussion.isNext }
+    private var litLineColor: Color { Color.brandOrange.opacity(0.4) }
+    private var neutralLineColor: Color { Color.gray.opacity(0.3) }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Timeline indicator
+            // Rail: stretches to the row's actual height (whatever the content
+            // column ends up needing, attendance pill included) so the connecting
+            // line never falls short.
             VStack(spacing: 0) {
+                // Fixed offset down to the dot — lit if this discussion itself is
+                // past/next (the line leading in from a completed/current dot above).
                 if !isFirst {
                     Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 2, height: 40)
+                        .fill(isLit ? litLineColor : neutralLineColor)
+                        .frame(width: 2, height: 38)
                 } else {
-                    Spacer().frame(height: 40)
+                    Spacer().frame(height: 38)
                 }
 
-                ZStack {
-                    Circle()
-                        .fill(discussion.isPast || discussion.isNext
-                              ? Color.brandOrange.opacity(discussion.isPast ? 0.75 : 1.0)
-                              : Color.gray.opacity(0.3))
-                        .frame(width: 24, height: 24)
+                dot
 
-                    if discussion.isPast {
-                        Image.custom(.checkmark)
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(Color(UIColor.systemBackground))
-                    }
-                }
-
-                if !isLast {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 2, height: 60)
-                } else {
-                    Spacer().frame(height: 60)
-                }
+                // Fills the rest of the row's height, down to the next dot — lit
+                // only if this discussion is past; the line out of "next" stays neutral.
+                Rectangle()
+                    .fill(isLast ? Color.clear : (discussion.isPast ? litLineColor : neutralLineColor))
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
             }
             .frame(width: 32)
+            .frame(maxHeight: .infinity)
 
             // Discussion content
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     if discussion.isNext {
-                        NextDiscussionCard(
-                            title: discussion.title,
-                            location: discussion.location,
-                            formattedDate: discussion.date
-                        )
-                    } else {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(discussion.title)
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .opacity(discussion.isPast ? 0.5 : 1.0)
-
-                            HStack(spacing: 2) {
-                                Image.custom(.location)
-                                    .font(.caption)
-                                Text(discussion.location)
-                                    .font(.subheadline)
-                            }
-                            .foregroundColor(.secondary)
-                            .opacity(discussion.isPast ? 0.5 : 1.0)
-
-                            Text(discussion.date)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .opacity(discussion.isPast ? 0.5 : 1.0)
-                        }
-                        .padding(.vertical, 12)
+                        Text("UP NEXT")
+                            .font(.plexSansMedium(size: 11))
+                            .foregroundColor(.brandOrange)
                     }
+                    Text(discussion.title)
+                        .font(discussion.isNext ? .ebGaramondMediumItalic(size: 22) : .body)
+                        .fontWeight(discussion.isNext ? .regular : .medium)
+                        .opacity(discussion.isPast ? 0.5 : 1.0)
+
+                    HStack(spacing: 2) {
+                        Image.custom(.location)
+                            .font(.caption)
+                        Text(discussion.location)
+                            .font(.subheadline)
+                    }
+                    .foregroundColor(.secondary)
+                    .opacity(discussion.isPast ? 0.5 : 1.0)
+
+                    Text(discussion.date)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .opacity(discussion.isPast ? 0.5 : 1.0)
+
+                    AttendanceControl(
+                        roster: attendanceRoster,
+                        disabled: discussion.isPast,
+                        onSetAttendance: onSetAttendance
+                    )
+                    .padding(.top, 4)
                 }
+                .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if showAdminActions {
@@ -193,6 +171,40 @@ struct DiscussionTimelineItem: View {
                 }
             }
         }
+        .opacity(discussion.isPast ? 0.5 : 1.0)
+        .task(id: discussion.id) { onLoadRoster() }
+    }
+
+    @ViewBuilder
+    private var dot: some View {
+        ZStack {
+            if discussion.isNext {
+                Circle()
+                    .fill(Color.brandOrange.opacity(0.10))
+                    .frame(width: 34, height: 34)
+            }
+            ZStack {
+                Circle()
+                    .fill(dotFillColor)
+                    .frame(width: discussion.isNext ? 24 : 16, height: discussion.isNext ? 24 : 16)
+                if !discussion.isPast && !discussion.isNext {
+                    Circle()
+                        .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
+                        .frame(width: 16, height: 16)
+                }
+                if discussion.isPast {
+                    Image.custom(.checkmark)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(Color(UIColor.systemBackground))
+                }
+            }
+        }
+    }
+
+    private var dotFillColor: Color {
+        if discussion.isPast { return .avatarStackOverflowBg }
+        if discussion.isNext { return .brandOrange }
+        return .clear
     }
 }
 
