@@ -5,8 +5,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,14 +22,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,8 +41,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.ActiveSessionDetails
 import com.ivangarzab.kluvs.clubs.presentation.BookInfo
@@ -107,12 +108,7 @@ fun ActiveSessionTab(
         return
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -120,18 +116,24 @@ fun ActiveSessionTab(
         ) {
             if (sessionDetails.discussions.isNotEmpty()) {
                 Text(
-                    text = "${sessionDetails.discussions.size} scheduled",
+                    text = stringResource(R.string.x_discussions_scheduled, sessionDetails.discussions.size),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontStyle = FontStyle.Italic)
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontStyle = FontStyle.Italic
+                    )
                 )
             }
             if (isAdminOrAbove) {
                 GhostButton(
-                    text = "Add Discussion",
+                    text = stringResource(R.string.add_discussion),
                     onClick = onCreateDiscussion,
                 )
             }
         }
+
+        Spacer(Modifier.height(12.dp))
 
         sessionDetails.discussions.let { discussions ->
             if (discussions.isEmpty()) {
@@ -189,52 +191,33 @@ private fun DiscussionTimelineItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .alpha(if (discussion.isPast) 0.5f else 1f),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
-        Box(
-            modifier = Modifier.width(32.dp),
-            contentAlignment = Alignment.TopCenter
+        // Rail: fills the row's actual height (whatever the content column ends up
+        // needing, attendance pill included) so the connecting line never falls short.
+        Column(
+            modifier = Modifier
+                .width(32.dp)
+                .fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Vertical line through entire height
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Top line section — lit if this discussion itself is past/next (the line
-                // leading in from a completed/current dot above).
-                if (!isFirst) {
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(40.dp)
-                            .background(if (isLit) litLineColor else neutralLineColor)
-                    )
-                } else {
-                    Spacer(Modifier.height(40.dp))
-                }
-
-                // Bottom line section — lit only if this discussion is past (a completed
-                // dot leading into the next one); the line out of "next" stays neutral.
+            // Fixed offset down to the dot — lit if this discussion itself is past/next
+            // (the line leading in from a completed/current dot above).
+            if (!isFirst) {
                 Box(
                     modifier = Modifier
                         .width(2.dp)
-                        .height(60.dp)
-                        .background(
-                            when {
-                                isLast -> Color.Transparent
-                                discussion.isPast -> litLineColor
-                                else -> neutralLineColor
-                            }
-                        )
+                        .height(38.dp)
+                        .background(if (isLit) litLineColor else neutralLineColor)
                 )
+            } else {
+                Spacer(Modifier.height(38.dp))
             }
 
-            // Circle indicator positioned at top with padding
-            Box(
-                modifier = Modifier.padding(top = 38.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            // Dot indicator
+            Box(contentAlignment = Alignment.Center) {
                 if (discussion.isNext) {
                     // Soft glow ring behind the "next" dot
                     Box(
@@ -271,6 +254,21 @@ private fun DiscussionTimelineItem(
                     }
                 }
             }
+
+            // Fills the rest of the row's height, down to the next dot — lit only if
+            // this discussion is past; the line out of "next" stays neutral.
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .width(2.dp)
+                    .background(
+                        when {
+                            isLast -> Color.Transparent
+                            discussion.isPast -> litLineColor
+                            else -> neutralLineColor
+                        }
+                    )
+            )
         }
 
         Spacer(Modifier.width(12.dp))
