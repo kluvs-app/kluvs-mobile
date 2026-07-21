@@ -26,7 +26,7 @@ struct MeTopBar: View {
         .padding(.horizontal, 16)
         .frame(height: 56)
         .padding(.top, safeAreaInsets.top)
-        .background(Color(UIColor.systemBackground))
+        .background(Color.kluvsBackground)
     }
 }
 

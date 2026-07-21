@@ -62,6 +62,7 @@ struct MeView: View {
                                 onSignOut: { viewModel.onSignOutClicked() },
                                 onNavigateToSettings: { showSettings = true }
                             )
+                            .padding(.bottom, 24)
                         }
                         .padding(.horizontal, 16)
                     }
