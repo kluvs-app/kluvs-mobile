@@ -40,17 +40,14 @@
     <string name="invite">+ Invite</string>
     <string name="invite_members">Invite Members</string>
     <string name="invite_others_cta">Invite others to get the conversation going.</string>
-    <string name="member_since_x">Member since %s</string>
-    <string name="your_statistics">Your Statistics</string>
-    <string name="books_read">Books Read</string>
+    <string name="books_read">Books</string>
     <string name="points">Points</string>
-    <string name="no_of_clubs">Number of Clubs</string>
-    <string name="currently_reading">Currently Reading</string>
+    <string name="no_of_clubs">Clubs</string>
+    <string name="since">Since</string>
     <string name="version_x">Version: %s</string>
     <string name="no_club_details">No club details available</string>
     <string name="no_session_details">No session details available</string>
     <string name="no_members_in_club">No members in club</string>
-    <string name="and_more">And more…</string>
     <string name="sign_in_to_your_account">Sign in to your account</string>
     <string name="create_a_new_account">Create a new account</string>
     <string name="continue_with_discord">Continue with Discord</string>
@@ -112,6 +109,13 @@
     <string name="profile_picture">Profile picture</string>
     <string name="edit_profile_picture">Edit profile picture</string>
     <string name="avatar_of_x">Avatar of %s</string>
+
+    <!-- Me screen — On Your Shelf -->
+    <string name="on_your_shelf">On Your Shelf</string>
+    <string name="books_in_progress_x">%d books in progress</string>
+    <string name="reading_log">Reading Log</string>
+    <string name="nothing_here_yet">Nothing here yet.</string>
+    <string name="profile_menu">Profile menu</string>
 
     <!-- Books tab -->
     <string name="search_books">Search books</string>

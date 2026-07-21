@@ -244,13 +244,10 @@ private fun ShelfSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
-            // Eyebrow — design-system component.eyebrow: IBM Plex Sans 11px/500, uppercase, 0.14em tracking
+            // Eyebrow — design-system component.eyebrow, mapped to Typography.labelSmall
             Text(
                 text = sectionLabel(section).uppercase(),
-                fontFamily = ibmPlexSans,
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp,
-                letterSpacing = 0.14.em,
+                style = MaterialTheme.typography.labelSmall,
                 color = if (isDark) Color(0xFFB0B0B0) else foregroundLightSecondary
             )
             Text(

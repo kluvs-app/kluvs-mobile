@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.clubs.domain
+package com.ivangarzab.kluvs.presentation.progress
 
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.model.ProgressStatus

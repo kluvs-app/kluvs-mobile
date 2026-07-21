@@ -307,17 +307,6 @@
         }
       }
     },
-    "empty_no_books_reading" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No books currently reading"
-          }
-        }
-      }
-    },
     "empty_no_club_details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -576,17 +565,6 @@
         }
       }
     },
-    "label_and_more" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "…and more"
-          }
-        }
-      }
-    },
     "label_by_author" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -649,17 +627,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Handle"
-          }
-        }
-      }
-    },
-    "label_member_since" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Member since %@"
           }
         }
       }
@@ -941,13 +908,46 @@
         }
       }
     },
-    "section_currently_reading" : {
+    "on_your_shelf" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Currently Reading"
+            "value" : "On Your Shelf"
+          }
+        }
+      }
+    },
+    "books_in_progress_x" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld books in progress"
+          }
+        }
+      }
+    },
+    "reading_log" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading Log"
+          }
+        }
+      }
+    },
+    "nothing_here_yet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing here yet."
           }
         }
       }
@@ -974,13 +974,13 @@
         }
       }
     },
-    "section_your_statistics" : {
+    "up_next_eyebrow" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your Statistics"
+            "value" : "Up Next"
           }
         }
       }
@@ -1137,7 +1137,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Books Read"
+            "value" : "Books"
           }
         }
       }
@@ -1148,7 +1148,18 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Number of Clubs"
+            "value" : "Clubs"
+          }
+        }
+      }
+    },
+    "stat_since" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since"
           }
         }
       }

@@ -48,7 +48,7 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubDetails
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionInfo
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionTimelineItemInfo
 import com.ivangarzab.kluvs.clubs.presentation.MemberListItemInfo
-import com.ivangarzab.kluvs.clubs.presentation.OwnProgressInfo
+import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role

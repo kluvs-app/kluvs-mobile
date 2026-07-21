@@ -5,12 +5,17 @@ import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
+import com.ivangarzab.kluvs.data.repositories.ProgressRepository
+import com.ivangarzab.kluvs.data.repositories.SessionRepository
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
-import com.ivangarzab.kluvs.member.domain.GetCurrentlyReadingBooksUseCase
+import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
+import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
 import com.ivangarzab.kluvs.member.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
+import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
@@ -42,6 +47,8 @@ class MeViewModelHelperTest {
 
     private lateinit var memberRepository: MemberRepository
     private lateinit var clubRepository: ClubRepository
+    private lateinit var sessionRepository: SessionRepository
+    private lateinit var progressRepository: ProgressRepository
     private lateinit var authRepository: AuthRepository
     private lateinit var avatarRepository: AvatarRepository
     private lateinit var database: KluvsDatabase
@@ -57,12 +64,15 @@ class MeViewModelHelperTest {
         // Create mocked repositories
         memberRepository = mock<MemberRepository>()
         clubRepository = mock<ClubRepository>()
+        sessionRepository = mock<SessionRepository>()
+        progressRepository = mock<ProgressRepository>()
         authRepository = mock<AuthRepository>()
         avatarRepository = mock<AvatarRepository>()
         database = mock<KluvsDatabase>()
 
         // Setup default mock behaviors
         everySuspend { avatarRepository.getAvatarUrl(any()) } returns ""
+        everySuspend { progressRepository.getProgress(any(), any(), any()) } returns Result.success(emptyList())
 
         // Create test scope
         testScope = CoroutineScope(testDispatcher + Job())
@@ -71,14 +81,25 @@ class MeViewModelHelperTest {
         val formatDateTime = FormatDateTimeUseCase()
         val getCurrentUserProfile = GetCurrentUserProfileUseCase(memberRepository, formatDateTime, avatarRepository)
         val getUserStatistics = GetUserStatisticsUseCase(memberRepository)
-        val getCurrentlyReadingBooks =
-            GetCurrentlyReadingBooksUseCase(memberRepository, clubRepository, formatDateTime)
+        val getSessionProgress = GetSessionProgressUseCase(progressRepository)
+        val getOnYourShelf =
+            GetOnYourShelfUseCase(memberRepository, clubRepository, getSessionProgress, formatDateTime)
+        val getReadingLog = GetReadingLogUseCase(sessionRepository)
+        val saveProgress = SaveProgressUseCase(progressRepository)
         val signOut = SignOutUseCase(authRepository, database)
         val updateAvatar = UpdateAvatarUseCase(avatarRepository, memberRepository)
 
 
         // Create real ViewModel with real use cases
-        viewModel = MeViewModel(getCurrentUserProfile, getUserStatistics, getCurrentlyReadingBooks, signOut, updateAvatar)
+        viewModel = MeViewModel(
+            getCurrentUserProfile,
+            getUserStatistics,
+            getOnYourShelf,
+            getReadingLog,
+            saveProgress,
+            signOut,
+            updateAvatar
+        )
 
         // Start Koin with test module
         startKoin {

@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.member.presentation
 
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.Closeable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
@@ -40,4 +41,12 @@ class MeViewModelHelper : KoinComponent {
     fun uploadAvatar(imageData: ByteArray) = viewModel.uploadAvatar(imageData)
 
     fun clearAvatarError() = viewModel.clearAvatarError()
+
+    /** [percentComplete] is a plain Int (0-100) — converted to Float internally, mirroring ClubDetailsViewModelHelper. */
+    fun onSaveProgress(sessionId: String, type: ProgressType, currentPage: Int?, percentComplete: Int?, markFinished: Boolean) =
+        viewModel.onSaveProgress(sessionId, type, currentPage, percentComplete?.toFloat(), markFinished)
+
+    fun onReadingLogClicked() = viewModel.onReadingLogClicked()
+
+    fun onReadingLogDismissed() = viewModel.onReadingLogDismissed()
 }

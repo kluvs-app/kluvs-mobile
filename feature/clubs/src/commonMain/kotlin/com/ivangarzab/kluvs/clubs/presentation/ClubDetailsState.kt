@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
 
 data class ClubDetailsState(
     val isLoading: Boolean = true,

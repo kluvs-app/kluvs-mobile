@@ -46,18 +46,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.TextButton
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.ActiveSessionDetails
 import com.ivangarzab.kluvs.clubs.presentation.BookInfo
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionTimelineItemInfo
-import com.ivangarzab.kluvs.clubs.presentation.OwnProgressInfo
+import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.NoTabData
+import com.ivangarzab.kluvs.ui.components.OwnProgressRow
 import kotlinx.datetime.LocalDateTime
 
 @Composable
@@ -226,52 +225,6 @@ fun ActiveSessionTab(
                 }
                 Spacer(Modifier.height(8.dp))
             }
-        }
-    }
-}
-
-/**
- * The signed-in member's progress on the session book: thin bar, status label,
- * and the entry point to the progress edit sheet.
- */
-@Composable
-private fun OwnProgressRow(
-    ownProgress: OwnProgressInfo?,
-    onUpdateProgress: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            LinearProgressIndicator(
-                progress = { (ownProgress?.percent ?: 0) / 100f },
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = onUpdateProgress) {
-                Text(
-                    text = if (ownProgress != null) "Update" else "Track Progress",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Your progress",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = ownProgress?.label ?: "Not started",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodySmall
-            )
         }
     }
 }

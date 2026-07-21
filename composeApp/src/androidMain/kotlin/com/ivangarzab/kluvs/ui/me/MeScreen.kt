@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,8 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,7 +34,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,16 +46,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
-import com.ivangarzab.kluvs.member.presentation.CurrentlyReadingBook
 import com.ivangarzab.kluvs.member.presentation.MeState
 import com.ivangarzab.kluvs.member.presentation.MeViewModel
+import com.ivangarzab.kluvs.member.presentation.ShelfItem
+import com.ivangarzab.kluvs.member.presentation.UpNextItem
 import com.ivangarzab.kluvs.member.presentation.UserProfile
 import com.ivangarzab.kluvs.member.presentation.UserStatistics
+import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.components.Avatar
+import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.utils.compressImage
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -68,6 +72,7 @@ fun MeScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    var editingShelfItem by remember { mutableStateOf<ShelfItem?>(null) }
 
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -100,25 +105,56 @@ fun MeScreen(
         )
     }
 
-    Box(modifier = modifier) {
-        MeScreenContent(
-            modifier = Modifier,
-            state = state,
-            onRetry = viewModel::refresh,
-            onSettingsClick = onNavigateToSettings,
-            onHelpClick = { /* TODO() */ },
-            onSignOutClick = viewModel::onSignOutClicked,
-            onAvatarClick = {
-                imagePickerLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+    Column(modifier = modifier.background(color = MaterialTheme.colorScheme.background)) {
+        MeTopBar(onReadingLogClick = viewModel::onReadingLogClicked)
+
+        Box(modifier = Modifier.weight(1f)) {
+            MeScreenContent(
+                modifier = Modifier,
+                state = state,
+                onRetry = viewModel::refresh,
+                onSettingsClick = onNavigateToSettings,
+                onHelpClick = { /* TODO() */ },
+                onSignOutClick = viewModel::onSignOutClicked,
+                onAvatarClick = {
+                    imagePickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onUpdateProgress = { sessionId ->
+                    editingShelfItem = state.shelf.find { it.sessionId == sessionId }
+                }
+            )
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+
+            editingShelfItem?.let { item ->
+                ReadingProgressBottomSheet(
+                    bookTitle = item.bookTitle,
+                    pageCount = item.bookPageCount,
+                    initialType = item.ownProgress?.type ?: ProgressType.PAGE,
+                    initialCurrentPage = item.ownProgress?.currentPage,
+                    initialPercentComplete = item.ownProgress?.percentComplete,
+                    initialMarkFinished = item.ownProgress?.isCompleted ?: false,
+                    onSave = { type, currentPage, percentComplete, markFinished ->
+                        viewModel.onSaveProgress(item.sessionId, type, currentPage, percentComplete, markFinished)
+                        editingShelfItem = null
+                    },
+                    onDismiss = { editingShelfItem = null }
                 )
             }
-        )
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+            if (state.showReadingLog) {
+                ReadingLogBottomSheet(
+                    log = state.readingLog,
+                    isLoading = state.isReadingLogLoading,
+                    onDismiss = viewModel::onReadingLogDismissed
+                )
+            }
+        }
     }
 }
 
@@ -153,6 +189,7 @@ fun MeScreenContent(
     onHelpClick: () -> Unit,
     onSignOutClick: () -> Unit,
     onAvatarClick: () -> Unit = {},
+    onUpdateProgress: (sessionId: String) -> Unit = {},
 ) {
     val screenState = when {
         state.isLoading -> ScreenState.Loading
@@ -178,14 +215,15 @@ fun MeScreenContent(
                 Column(
                     modifier = modifier
                         .fillMaxSize()
+                        .background(color = MaterialTheme.colorScheme.background)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     ProfileSection(
                         avatarUrl = state.profile?.avatarUrl,
                         name = state.profile?.name ?: "",
                         handle = state.profile?.handle ?: "",
-                        joinDate = state.profile?.joinDate ?: "",
                         isUploadingAvatar = state.isUploadingAvatar,
                         onAvatarClick = onAvatarClick
                     )
@@ -194,14 +232,25 @@ fun MeScreenContent(
 
                     StatisticsSection(
                         modifier = Modifier.fillMaxWidth(),
-                        data = state.statistics
+                        data = state.statistics,
+                        joinDate = state.profile?.joinDate
                     )
 
                     Divider()
 
-                    CurrentlyReadingSection(
+                    UpNextSection(
                         modifier = Modifier.fillMaxWidth(),
-                        currentReadings = state.currentlyReading
+                        upNext = state.upNext
+                    )
+
+                    if (state.upNext != null) {
+                        Divider()
+                    }
+
+                    ShelfSection(
+                        modifier = Modifier.fillMaxWidth(),
+                        shelf = state.shelf,
+                        onUpdateProgress = onUpdateProgress
                     )
 
                     Divider()
@@ -224,68 +273,55 @@ private fun ProfileSection(
     avatarUrl: String?,
     name: String,
     handle: String,
-    joinDate: String,
     isUploadingAvatar: Boolean = false,
-    onAvatarClick: () -> Unit = {}
+    onAvatarClick: () -> Unit = {},
 ) {
-    Card(
+    Row(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar with edit button overlay
-            Box {
-                Avatar(
-                    name = name,
-                    avatarUrl = avatarUrl,
-                    size = 60.dp,
-                    isOwn = true,
-                    contentDescription = stringResource(R.string.profile_picture),
-                    onClick = onAvatarClick,
-                    isLoading = isUploadingAvatar
-                )
+        // Avatar with edit button overlay
+        Box {
+            Avatar(
+                name = name,
+                avatarUrl = avatarUrl,
+                size = 60.dp,
+                isOwn = true,
+                contentDescription = stringResource(R.string.profile_picture),
+                onClick = onAvatarClick,
+                isLoading = isUploadingAvatar
+            )
 
-                // Edit icon overlay
-                FloatingActionButton(
-                    onClick = onAvatarClick,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .align(Alignment.BottomEnd),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_edit),
-                        contentDescription = stringResource(R.string.edit_profile_picture),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.padding(8.dp))
-
-            Column {
-                Text(
-                    text = name,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = handle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = stringResource(R.string.member_since_x, joinDate),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
+            // Edit icon overlay
+            FloatingActionButton(
+                onClick = onAvatarClick,
+                modifier = Modifier
+                    .size(24.dp)
+                    .align(Alignment.BottomEnd),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_edit),
+                    contentDescription = stringResource(R.string.edit_profile_picture),
+                    modifier = Modifier.size(14.dp)
                 )
             }
+        }
+
+        Spacer(Modifier.padding(8.dp))
+
+        Column {
+            Text(
+                text = name,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = handle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -299,8 +335,8 @@ private fun FooterSection(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         FooterItem(
             label = stringResource(R.string.settings),
@@ -308,21 +344,15 @@ private fun FooterSection(
             onClick = onSettingsClick
         )
 
-        Divider(
-            modifier = Modifier.padding(vertical = 12.dp),
-            color = MaterialTheme.colorScheme.inverseOnSurface
-        )
+        Divider()
 
-        FooterItem(
-            label = stringResource(R.string.help_and_support),
-            icon = R.drawable.ic_help,
-            onClick = onHelpClick
-        )
-
-        Divider(
-            modifier = Modifier.padding(vertical = 12.dp),
-            color = MaterialTheme.colorScheme.inverseOnSurface
-        )
+//        FooterItem(
+//            label = stringResource(R.string.help_and_support),
+//            icon = R.drawable.ic_help,
+//            onClick = onHelpClick
+//        )
+//
+//        Divider()
 
         FooterItem(
             label = stringResource(R.string.sign_out),
@@ -375,30 +405,45 @@ private fun Divider(
 @PreviewLightDark
 @Composable
 fun Preview_MeScreen() = KluvsTheme {
-    MeScreenContent(
-        modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
-        state = MeState(
-            isLoading = false,
-            profile = UserProfile(
-                memberId = "0",
-                name = "Quill",
-                handle = "@quill-bot",
-                joinDate = "2025",
-                avatarUrl = null
-            ),
-            statistics = UserStatistics(clubsCount = 6, booksRead = 2),
-            currentlyReading = listOf(
-                CurrentlyReadingBook(
-                    bookTitle = "1984",
-                    clubName = "Quill's Club",
-                    progress = 0.66f,
-                    dueDate = "Tomorrow"
+    Column(modifier = Modifier.background(color = MaterialTheme.colorScheme.background)) {
+        MeTopBar()
+
+        MeScreenContent(
+            state = MeState(
+                isLoading = false,
+                profile = UserProfile(
+                    memberId = "0",
+                    name = "Quill",
+                    handle = "@quill-bot",
+                    joinDate = "2025",
+                    avatarUrl = null
+                ),
+                statistics = UserStatistics(clubsCount = 6, booksRead = 2),
+                upNext = UpNextItem(
+                    title = "End-of-Year Check-in",
+                    clubName = "Showcase Kluv",
+                    location = "Online",
+                    date = "January 1, 2027"
+                ),
+                shelf = listOf(
+                    ShelfItem(
+                        sessionId = "s0",
+                        bookId = "b0",
+                        bookTitle = "1984",
+                        bookAuthor = "George Orwell",
+                        bookCoverUrl = null,
+                        bookPageCount = null,
+                        clubId = "c0",
+                        clubName = "Quill's Club",
+                        nextDiscussionDate = "Tomorrow",
+                        ownProgress = null
+                    )
                 )
-            )
-        ),
-        onRetry = { },
-        onSettingsClick = { },
-        onHelpClick = { },
-        onSignOutClick = { },
-    )
+            ),
+            onRetry = { },
+            onSettingsClick = { },
+            onHelpClick = { },
+            onSignOutClick = { },
+        )
+    }
 }

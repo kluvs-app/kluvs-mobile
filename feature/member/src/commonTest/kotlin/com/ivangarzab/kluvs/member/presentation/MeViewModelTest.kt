@@ -4,10 +4,18 @@ import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
+import com.ivangarzab.kluvs.data.repositories.ProgressRepository
+import com.ivangarzab.kluvs.data.repositories.SessionRepository
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.BookSummary
 import com.ivangarzab.kluvs.model.Club
-import com.ivangarzab.kluvs.model.Discussion
+import com.ivangarzab.kluvs.model.ClubPreview
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.model.ProgressStatus
+import com.ivangarzab.kluvs.model.ProgressType
+import com.ivangarzab.kluvs.model.ReadingLog
+import com.ivangarzab.kluvs.model.ReadingLogEntry
+import com.ivangarzab.kluvs.model.ReadingProgress
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.database.KluvsDatabase
@@ -23,14 +31,17 @@ import com.ivangarzab.kluvs.database.dao.ServerDao
 import com.ivangarzab.kluvs.database.dao.SessionDao
 import com.ivangarzab.kluvs.database.dao.ShelfDao
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
-import com.ivangarzab.kluvs.member.domain.GetCurrentlyReadingBooksUseCase
+import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
+import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
 import com.ivangarzab.kluvs.member.domain.UpdateAvatarUseCase
+import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
+import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
-import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,12 +63,16 @@ class MeViewModelTest {
 
     private lateinit var memberRepository: MemberRepository
     private lateinit var clubRepository: ClubRepository
+    private lateinit var sessionRepository: SessionRepository
+    private lateinit var progressRepository: ProgressRepository
     private lateinit var authRepository: AuthRepository
     private lateinit var avatarRepository: AvatarRepository
     private lateinit var database: KluvsDatabase
     private lateinit var getCurrentUserProfile: GetCurrentUserProfileUseCase
     private lateinit var getUserStatistics: GetUserStatisticsUseCase
-    private lateinit var getCurrentlyReadingBooks: GetCurrentlyReadingBooksUseCase
+    private lateinit var getOnYourShelf: GetOnYourShelfUseCase
+    private lateinit var getReadingLog: GetReadingLogUseCase
+    private lateinit var saveProgressUseCase: SaveProgressUseCase
     private lateinit var signOut: SignOutUseCase
     private lateinit var updateAvatarUseCase: UpdateAvatarUseCase
     private lateinit var viewModel: MeViewModel
@@ -70,6 +85,8 @@ class MeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         memberRepository = mock<MemberRepository>()
         clubRepository = mock<ClubRepository>()
+        sessionRepository = mock<SessionRepository>()
+        progressRepository = mock<ProgressRepository>()
         authRepository = mock<AuthRepository>()
         avatarRepository = mock<AvatarRepository>()
 
@@ -116,11 +133,22 @@ class MeViewModelTest {
         // Use REAL UseCases with mocked repositories
         getCurrentUserProfile = GetCurrentUserProfileUseCase(memberRepository, formatDateTime, avatarRepository)
         getUserStatistics = GetUserStatisticsUseCase(memberRepository)
-        getCurrentlyReadingBooks = GetCurrentlyReadingBooksUseCase(memberRepository, clubRepository, formatDateTime)
+        everySuspend { progressRepository.getProgress(any(), any(), any()) } returns Result.success(emptyList())
+        getOnYourShelf = GetOnYourShelfUseCase(memberRepository, clubRepository, GetSessionProgressUseCase(progressRepository), formatDateTime)
+        getReadingLog = GetReadingLogUseCase(sessionRepository)
+        saveProgressUseCase = SaveProgressUseCase(progressRepository)
         signOut = SignOutUseCase(authRepository, database)
         updateAvatarUseCase = UpdateAvatarUseCase(avatarRepository, memberRepository)
 
-        viewModel = MeViewModel(getCurrentUserProfile, getUserStatistics, getCurrentlyReadingBooks, signOut, updateAvatarUseCase)
+        viewModel = MeViewModel(
+            getCurrentUserProfile,
+            getUserStatistics,
+            getOnYourShelf,
+            getReadingLog,
+            saveProgressUseCase,
+            signOut,
+            updateAvatarUseCase
+        )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
 
@@ -139,7 +167,7 @@ class MeViewModelTest {
         assertNull(state.error)
         assertNull(state.profile)
         assertNull(state.statistics)
-        assertTrue(state.currentlyReading.isEmpty())
+        assertTrue(state.shelf.isEmpty())
     }
 
     @Test
@@ -160,32 +188,11 @@ class MeViewModelTest {
 
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
 
-        // Mock club details for currently reading books
         val book1 = Book("book-1", "The Hobbit", "Tolkien", null, 1937, null)
         val book2 = Book("book-2", "Dune", "Herbert", null, 1965, null)
 
-        val session1 = Session(
-            id = "s1",
-            clubId = "club-1",
-            book = book1,
-            dueDate = LocalDateTime(2027, 3, 15, 0, 0),
-            discussions = listOf(
-                Discussion("d1", "s1", "Chapter 1", LocalDateTime(2024, 1, 1, 19, 0), null),  // Clearly past
-                Discussion("d2", "s1", "Chapter 2", LocalDateTime(2027, 2, 15, 19, 0), null)  // Clearly future
-            )
-        )
-        val session2 = Session(
-            id = "s2",
-            clubId = "club-2",
-            book = book2,
-            dueDate = LocalDateTime(2027, 4, 1, 0, 0),
-            discussions = listOf(
-                Discussion("d3", "s2", "Part 1", LocalDateTime(2027, 3, 1, 19, 0), null),  // Clearly future
-                Discussion("d4", "s2", "Part 2", LocalDateTime(2027, 3, 15, 19, 0), null), // Clearly future
-                Discussion("d5", "s2", "Part 3", LocalDateTime(2027, 3, 29, 19, 0), null), // Clearly future
-                Discussion("d6", "s2", "Part 4", LocalDateTime(2027, 4, 12, 19, 0), null)  // Clearly future
-            )
-        )
+        val session1 = Session(id = "s1", clubId = "club-1", book = book1, dueDate = LocalDateTime(2027, 3, 15, 0, 0), discussions = emptyList())
+        val session2 = Session(id = "s2", clubId = "club-2", book = book2, dueDate = LocalDateTime(2027, 4, 1, 0, 0), discussions = emptyList())
 
         val club1 = Club(id = "club-1", name = "Fantasy Readers", activeSession = session1)
         val club2 = Club(id = "club-2", name = "Sci-Fi Club", activeSession = session2)
@@ -213,13 +220,11 @@ class MeViewModelTest {
         assertEquals(3, state.statistics?.clubsCount)
         assertEquals(12, state.statistics?.booksRead)
 
-        // Currently reading books
-        assertEquals(2, state.currentlyReading.size)
-        assertEquals("The Hobbit", state.currentlyReading[0].bookTitle)
-        assertEquals("Fantasy Readers", state.currentlyReading[0].clubName)
-        assertEquals(0.5f, state.currentlyReading[0].progress) // 1 of 2 discussions complete
-        assertEquals("Dune", state.currentlyReading[1].bookTitle)
-        assertEquals(0.0f, state.currentlyReading[1].progress) // 0 of 4 discussions complete
+        // Shelf
+        assertEquals(2, state.shelf.size)
+        assertEquals("The Hobbit", state.shelf[0].bookTitle)
+        assertEquals("Fantasy Readers", state.shelf[0].clubName)
+        assertEquals("Dune", state.shelf[1].bookTitle)
     }
 
     @Test
@@ -238,7 +243,7 @@ class MeViewModelTest {
         assertEquals(errorMessage, state.error)
         assertNull(state.profile)
         assertNull(state.statistics)
-        assertTrue(state.currentlyReading.isEmpty())
+        assertTrue(state.shelf.isEmpty())
     }
 
     @Test
@@ -264,49 +269,7 @@ class MeViewModelTest {
         assertNull(state.error)
         assertEquals("New User", state.profile?.name)
         assertEquals(0, state.statistics?.clubsCount)
-        assertTrue(state.currentlyReading.isEmpty())
-    }
-
-    @Test
-    fun `loadUserData calculates progress based on completed discussions`() = runTest {
-        // Given
-        val userId = "user-123"
-        val member = Member(
-            id = "member-1",
-            userId = userId,
-            name = "Alice",
-            booksRead = 5,
-            clubs = listOf(
-                Club(id = "club-1", name = "Test Club", role = null)
-            )
-        )
-
-        val book = Book("book-1", "Test Book", "Author", null, 2024, null)
-        val session = Session(
-            id = "s1",
-            clubId = "club-1",
-            book = book,
-            dueDate = LocalDateTime(2027, 12, 31, 0, 0),
-            discussions = listOf(
-                Discussion("d1", "s1", "Part 1", LocalDateTime(2024, 1, 1, 19, 0), null),
-                Discussion("d2", "s1", "Part 2", LocalDateTime(2024, 2, 1, 19, 0), null),
-                Discussion("d3", "s1", "Part 3", LocalDateTime(2024, 3, 1, 19, 0), null),
-                Discussion("d4", "s1", "Part 4", LocalDateTime(2027, 5, 1, 19, 0), null)
-            )
-        )
-
-        val club = Club(id = "club-1", name = "Test Club", activeSession = session)
-
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
-        everySuspend { clubRepository.getClub("club-1") } returns Result.success(club)
-
-        // When
-        viewModel.loadUserData(userId)
-
-        // Then
-        val reading = viewModel.state.value.currentlyReading
-        assertEquals(1, reading.size)
-        assertEquals(0.75f, reading[0].progress) // 3 of 4 discussions complete
+        assertTrue(state.shelf.isEmpty())
     }
 
     @Test
@@ -424,7 +387,78 @@ class MeViewModelTest {
         assertNull(state.error)
         assertEquals("Alice", state.profile?.name)
         assertEquals(1, state.statistics?.clubsCount)
-        assertTrue(state.currentlyReading.isEmpty()) // No active sessions
+        assertTrue(state.shelf.isEmpty()) // No active sessions
+    }
+
+    @Test
+    fun `onSaveProgress updates only the matching shelf item`() = runTest {
+        // Given
+        val userId = "user-123"
+        val member = Member(id = "member-1", userId = userId, name = "Alice", booksRead = 5, clubs = listOf(Club(id = "club-1", name = "Club")))
+        val book = Book("book-1", "Test Book", "Author", null, 2024, null, pageCount = 200)
+        val session = Session(id = "s1", clubId = "club-1", book = book, dueDate = null, discussions = emptyList())
+        val club = Club(id = "club-1", name = "Club", activeSession = session)
+
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(club)
+        viewModel.loadUserData(userId)
+
+        val updatedProgress = ReadingProgress(
+            id = "p1",
+            memberId = "7",
+            bookId = "book-1",
+            sessionId = "s1",
+            type = ProgressType.PAGE,
+            status = ProgressStatus.IN_PROGRESS,
+            currentPage = 100
+        )
+        everySuspend { progressRepository.createProgress(any(), any(), any(), any(), any()) } returns Result.success(updatedProgress)
+
+        // When
+        viewModel.onSaveProgress("s1", ProgressType.PAGE, 100, null, false)
+
+        // Then
+        val item = viewModel.state.value.shelf.first { it.sessionId == "s1" }
+        assertEquals("p1", item.ownProgress?.progressId)
+        assertEquals("100 of 200 pages", item.ownProgress?.label)
+    }
+
+    @Test
+    fun `onSaveProgress does nothing for an unknown session`() = runTest {
+        // When
+        viewModel.onSaveProgress("unknown-session", ProgressType.PAGE, 10, null, false)
+
+        // Then - no crash, no shelf item to update
+        assertTrue(viewModel.state.value.shelf.isEmpty())
+    }
+
+    @Test
+    fun `onReadingLogClicked shows the sheet and loads the log once`() = runTest {
+        // Given
+        val log = ReadingLog(
+            active = listOf(ReadingLogEntry(sessionId = "s1", book = BookSummary(id = "b1", title = "Dune", author = "Herbert"), club = ClubPreview(id = "c1", name = "Club"))),
+            finished = emptyList()
+        )
+        everySuspend { sessionRepository.getReadingLog() } returns Result.success(log)
+
+        // When
+        viewModel.onReadingLogClicked()
+
+        // Then
+        val state = viewModel.state.value
+        assertTrue(state.showReadingLog)
+        assertEquals(log, state.readingLog)
+        assertFalse(state.isReadingLogLoading)
+    }
+
+    @Test
+    fun `onReadingLogDismissed hides the sheet`() = runTest {
+        everySuspend { sessionRepository.getReadingLog() } returns Result.success(ReadingLog(emptyList(), emptyList()))
+        viewModel.onReadingLogClicked()
+
+        viewModel.onReadingLogDismissed()
+
+        assertFalse(viewModel.state.value.showReadingLog)
     }
 
     @Test
