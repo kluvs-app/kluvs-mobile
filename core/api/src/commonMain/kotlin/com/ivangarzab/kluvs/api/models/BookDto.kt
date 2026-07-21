@@ -23,9 +23,9 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
- * @param id 
  * @param title 
  * @param author 
+ * @param id Local DB id. Absent/null for Google Books search results that have not been registered yet.
  * @param edition 
  * @param year 
  * @param isbn 
@@ -37,13 +37,12 @@ import kotlinx.serialization.encoding.*
 
 data class BookDto (
 
-    // Nullable despite the spec marking `id` required: `?q=` search results come straight from
-    // the Google Books API and have no local DB id until the book is registered (see /book GET docs).
-    @SerialName(value = "id") val id: kotlin.Int? = null,
-
     @SerialName(value = "title") @Required val title: kotlin.String,
 
     @SerialName(value = "author") @Required val author: kotlin.String,
+
+    /* Local DB id. Absent/null for Google Books search results that have not been registered yet. */
+    @SerialName(value = "id") val id: kotlin.Int? = null,
 
     @SerialName(value = "edition") val edition: kotlin.String? = null,
 

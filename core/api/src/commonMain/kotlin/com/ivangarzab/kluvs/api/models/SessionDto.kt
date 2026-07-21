@@ -17,6 +17,7 @@ package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.SessionParticipantSummaryDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -32,6 +33,7 @@ import kotlinx.serialization.encoding.*
  * @param book 
  * @param dueDate 
  * @param discussions 
+ * @param members Participation roster, as embedded within a club response's active_session.
  */
 @Serializable
 
@@ -52,10 +54,8 @@ data class SessionDto (
 
     @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null,
 
-    /* HAND-EDITED: the club GET response embeds `active_session.members[]`, but the
-       OpenAPI spec's Session schema does not declare it yet, so regeneration omits
-       this field. Re-apply this edit (or fix the spec) if models are regenerated. */
-    @SerialName(value = "members") val members: kotlin.collections.List<SessionParticipantDto>? = null
+    /* Participation roster, as embedded within a club response's active_session. */
+    @SerialName(value = "members") val members: kotlin.collections.List<SessionParticipantSummaryDto>? = null
 
 ) {
 
