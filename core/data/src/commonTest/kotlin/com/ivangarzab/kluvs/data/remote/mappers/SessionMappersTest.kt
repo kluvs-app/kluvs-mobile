@@ -3,7 +3,7 @@ package com.ivangarzab.kluvs.data.remote.mappers
 import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.api.models.DiscussionDto
 import com.ivangarzab.kluvs.api.models.SessionDto
-import com.ivangarzab.kluvs.api.models.SessionParticipantDto
+import com.ivangarzab.kluvs.api.models.SessionParticipantSummaryDto
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -84,8 +84,8 @@ class SessionMappersTest {
             status = SessionDto.Status.active,
             book = BookDto(id = 3, title = "Book", author = "Author"),
             members = listOf(
-                SessionParticipantDto(memberId = 7, memberName = "Ana", isReading = true),
-                SessionParticipantDto(memberId = 8, memberName = null, isReading = false)
+                SessionParticipantSummaryDto(memberId = 7, memberName = "Ana", isReading = true),
+                SessionParticipantSummaryDto(memberId = 8, memberName = "", isReading = false)
             )
         )
 
@@ -98,7 +98,7 @@ class SessionMappersTest {
         assertEquals("Ana", domain.members[0].memberName)
         assertTrue(domain.members[0].isReading)
         assertEquals("8", domain.members[1].memberId)
-        assertNull(domain.members[1].memberName)
+        assertEquals("", domain.members[1].memberName)
         assertTrue(!domain.members[1].isReading)
     }
 

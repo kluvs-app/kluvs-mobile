@@ -5,22 +5,13 @@
 import SwiftUI
 import Shared
 
-private let assignableShelfStatuses: [Shared.ShelfStatus] = [.currentlyReading, .read, .wantToRead, .notFinished]
-
 /// A single book tile: cover (with a read-ribbon badge for Kluvs-session books), title,
-/// author, year, and a shelf-status menu.
-///
-/// The shelf menu lives directly on the card since there is no book detail screen yet.
+/// author, and year. Purely a browsing tile — tapping navigates to the book detail screen,
+/// where shelf/like functionality actually lives.
 struct BookCard: View {
     let book: Shared.Book
-    let shelfStatus: Shared.ShelfStatus?
     var shelfSource: Shared.ShelfSource? = nil
-    let onShelfChange: (Shared.ShelfStatus?) -> Void
     var onTap: () -> Void = {}
-
-    /// Search results straight from Google Books have no local DB id yet (book detail /
-    /// registration flow is a separate ticket), so shelving isn't available until then.
-    private var isRegistered: Bool { Int(book.id) != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -34,52 +25,27 @@ struct BookCard: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 4) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(book.title)
-                        .font(.kluvsCardHeading)
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-                    Text(book.author)
-                        .font(.kluvsBody)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                    if let year = book.year {
-                        Text("\(year)")
-                            .font(.kluvsBody)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                if isRegistered {
-                    Spacer(minLength: 0)
-                    Menu {
-                        Button {
-                            onShelfChange(nil)
-                        } label: {
-                            if shelfStatus == nil {
-                                Label(String(localized: "shelf_none"), systemImage: "checkmark")
-                            } else {
-                                Text(String(localized: "shelf_none"))
-                            }
-                        }
-                        ForEach(assignableShelfStatuses, id: \.ordinal) { status in
-                            Button {
-                                onShelfChange(status)
-                            } label: {
-                                if shelfStatus == status {
-                                    Label(shelfLabel(status), systemImage: "checkmark")
-                                } else {
-                                    Text(shelfLabel(status))
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .foregroundColor(.secondary)
-                            .frame(width: 24, height: 24)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                // Reserve full 2-line height regardless of actual title length (real font
+                // metrics, not a guessed pixel height), so 1-line and 2-line titles don't
+                // produce differently sized cards in the same row.
+                Text(book.title)
+                    .font(.kluvsCardHeading)
+                    .foregroundColor(.primary)
+                    .lineLimit(2, reservesSpace: true)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                Text(book.author)
+                    .font(.kluvsBody)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                // Always reserve the year line's height, even when there's no year to show —
+                // `book.year` is nullable, and omitting the row entirely made those cards shorter.
+                // `book.year` bridges as boxed `KotlinInt` (an NSNumber subclass); interpolating
+                // it directly invokes NSNumber's locale-aware `description` (e.g. "2,025") —
+                // pull out `.intValue` first for a plain digit string.
+                Text(book.year.map { "\($0.intValue)" } ?? " ")
+                    .font(.kluvsBody)
+                    .foregroundColor(book.year != nil ? .secondary : .clear)
             }
         }
         .frame(width: 120)
@@ -104,22 +70,10 @@ struct BookCard: View {
     }
 }
 
-private func shelfLabel(_ status: Shared.ShelfStatus) -> String {
-    switch status {
-    case .currentlyReading: return String(localized: "shelf_currently_reading")
-    case .read: return String(localized: "shelf_read")
-    case .wantToRead: return String(localized: "shelf_want_to_read")
-    case .notFinished: return String(localized: "shelf_not_finished")
-    default: return ""
-    }
-}
-
 #Preview {
     BookCard(
         book: Book(id: "42", title: "The Hobbit", author: "J.R.R. Tolkien", edition: nil, year: 1937, isbn: "978-0-395-07122-1", pageCount: nil, imageUrl: nil, externalGoogleId: nil),
-        shelfStatus: .currentlyReading,
-        shelfSource: .session,
-        onShelfChange: { _ in }
+        shelfSource: .session
     )
     .padding()
 }

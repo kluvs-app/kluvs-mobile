@@ -23,6 +23,8 @@ import com.ivangarzab.kluvs.data.local.source.ShelfLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.ShelfLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.api.AvatarService
 import com.ivangarzab.kluvs.data.remote.api.AvatarServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.BookEnrichmentService
+import com.ivangarzab.kluvs.data.remote.api.BookEnrichmentServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.BookService
 import com.ivangarzab.kluvs.data.remote.api.BookServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.ClubService
@@ -49,6 +51,8 @@ import com.ivangarzab.kluvs.data.remote.api.SessionService
 import com.ivangarzab.kluvs.data.remote.api.SessionServiceImpl
 import com.ivangarzab.kluvs.data.remote.source.AvatarRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.AvatarRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.BookEnrichmentRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.BookEnrichmentRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.BookRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.BookRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
@@ -75,6 +79,8 @@ import com.ivangarzab.kluvs.data.remote.source.ShelfRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.ShelfRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.AvatarRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.BookEnrichmentRepository
+import com.ivangarzab.kluvs.data.repositories.BookEnrichmentRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.BookRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
@@ -127,6 +133,7 @@ val coreDataModule = module {
 
     // Services
     single<BookService> { BookServiceImpl(get<SupabaseClient>()) }
+    single<BookEnrichmentService> { BookEnrichmentServiceImpl(get<SupabaseClient>()) }
     single<ClubService> { ClubServiceImpl(get<SupabaseClient>()) }
     single<MemberService> { MemberServiceImpl(get<SupabaseClient>()) }
     single<ServerService> { ServerServiceImpl(get<SupabaseClient>()) }
@@ -143,6 +150,7 @@ val coreDataModule = module {
     // Remote Data Sources
     single<AvatarRemoteDataSource> { AvatarRemoteDataSourceImpl(get<AvatarService>()) }
     single<BookRemoteDataSource> { BookRemoteDataSourceImpl(get<BookService>()) }
+    single<BookEnrichmentRemoteDataSource> { BookEnrichmentRemoteDataSourceImpl(get<BookEnrichmentService>()) }
     single<ClubRemoteDataSource> { ClubRemoteDataSourceImpl(get<ClubService>()) }
     single<MemberRemoteDataSource> { MemberRemoteDataSourceImpl(get<MemberService>()) }
     single<ServerRemoteDataSource> { ServerRemoteDataSourceImpl(get<ServerService>()) }
@@ -163,6 +171,7 @@ val coreDataModule = module {
             get<BookLocalDataSource>()
         )
     }
+    single<BookEnrichmentRepository> { BookEnrichmentRepositoryImpl(get<BookEnrichmentRemoteDataSource>()) }
     single<ServerRepository> {
         ServerRepositoryImpl(
             get<ServerRemoteDataSource>(),

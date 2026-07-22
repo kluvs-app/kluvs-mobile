@@ -43,6 +43,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.books.presentation.BooksState
 import com.ivangarzab.kluvs.books.presentation.BooksViewModel
@@ -80,6 +83,12 @@ fun BooksScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val navController = rememberNavController()
+
+    // Tapped books (from shelf, search, or a "more by this author" row) are threaded through
+    // this closure rather than nav args, since they may not be back-referenceable from BooksState
+    // (e.g. an author's other book fetched only via enrichment).
+    var selectedBook by remember { mutableStateOf<Book?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadShelf()
@@ -93,15 +102,40 @@ fun BooksScreen(
     }
 
     Box(modifier = modifier) {
-        BooksScreenContent(
-            modifier = Modifier.fillMaxSize(),
-            state = state,
-            onRetryShelf = { viewModel.loadShelf() },
-            onQueryChange = viewModel::onQueryChange,
-            onSearch = viewModel::search,
-            onAssignShelf = viewModel::onAssignShelf,
-            onRemoveFromShelf = viewModel::onRemoveFromShelf
-        )
+        NavHost(
+            navController = navController,
+            startDestination = "list"
+        ) {
+            composable("list") {
+                BooksScreenContent(
+                    modifier = Modifier.fillMaxSize(),
+                    state = state,
+                    onRetryShelf = { viewModel.loadShelf() },
+                    onQueryChange = viewModel::onQueryChange,
+                    onSearch = viewModel::search,
+                    onBookClick = { book ->
+                        selectedBook = book
+                        navController.navigate("detail/${book.id}")
+                    }
+                )
+            }
+            composable("detail/{bookId}") {
+                selectedBook?.let { book ->
+                    val shelfEntry = state.shelfEntries.find { it.book.id == book.id }
+                    BookDetailScreen(
+                        modifier = Modifier.fillMaxSize(),
+                        book = book,
+                        initialShelfStatus = shelfEntry?.shelf,
+                        initialShelfSource = shelfEntry?.source,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToBook = { nextBook ->
+                            selectedBook = nextBook
+                            navController.navigate("detail/${nextBook.id}")
+                        }
+                    )
+                }
+            }
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
@@ -116,8 +150,7 @@ fun BooksScreenContent(
     onRetryShelf: () -> Unit = {},
     onQueryChange: (String) -> Unit = {},
     onSearch: (String) -> Unit = {},
-    onAssignShelf: (String, ShelfStatus) -> Unit = { _, _ -> },
-    onRemoveFromShelf: (String) -> Unit = {}
+    onBookClick: (Book) -> Unit = {}
 ) {
     var view by remember { mutableStateOf(BooksView.Shelf) }
 
@@ -152,8 +185,7 @@ fun BooksScreenContent(
                     modifier = Modifier.weight(1f),
                     state = state,
                     onRetry = onRetryShelf,
-                    onAssignShelf = onAssignShelf,
-                    onRemoveFromShelf = onRemoveFromShelf
+                    onBookClick = onBookClick
                 )
             }
             BooksView.Search -> {
@@ -161,8 +193,7 @@ fun BooksScreenContent(
                     modifier = Modifier.weight(1f),
                     state = state,
                     onRetry = { onSearch(state.query) },
-                    onAssignShelf = onAssignShelf,
-                    onRemoveFromShelf = onRemoveFromShelf
+                    onBookClick = onBookClick
                 )
             }
         }
@@ -174,8 +205,7 @@ private fun ShelfContent(
     modifier: Modifier = Modifier,
     state: BooksState,
     onRetry: () -> Unit,
-    onAssignShelf: (String, ShelfStatus) -> Unit,
-    onRemoveFromShelf: (String) -> Unit
+    onBookClick: (Book) -> Unit
 ) {
     val shelfError = state.shelfError
     val screenState = when {
@@ -217,8 +247,7 @@ private fun ShelfContent(
                                 ShelfSection(
                                     section = section,
                                     entries = entries,
-                                    onAssignShelf = onAssignShelf,
-                                    onRemoveFromShelf = onRemoveFromShelf
+                                    onBookClick = onBookClick
                                 )
                             }
                         }
@@ -234,8 +263,7 @@ private fun ShelfSection(
     modifier: Modifier = Modifier,
     section: ShelfStatus,
     entries: List<ShelfEntry>,
-    onAssignShelf: (String, ShelfStatus) -> Unit,
-    onRemoveFromShelf: (String) -> Unit
+    onBookClick: (Book) -> Unit
 ) {
     Column(modifier = modifier) {
         val isDark = isSystemInDarkTheme()
@@ -264,15 +292,8 @@ private fun ShelfSection(
             items(entries, key = { it.book.id }) { entry ->
                 BookCard(
                     book = entry.book,
-                    shelfStatus = entry.shelf,
                     shelfSource = entry.source,
-                    onShelfChange = { newShelf ->
-                        if (newShelf == null) {
-                            onRemoveFromShelf(entry.book.id)
-                        } else {
-                            onAssignShelf(entry.book.id, newShelf)
-                        }
-                    }
+                    onClick = { onBookClick(entry.book) }
                 )
             }
         }
@@ -284,8 +305,7 @@ private fun SearchContent(
     modifier: Modifier = Modifier,
     state: BooksState,
     onRetry: () -> Unit,
-    onAssignShelf: (String, ShelfStatus) -> Unit,
-    onRemoveFromShelf: (String) -> Unit
+    onBookClick: (Book) -> Unit
 ) {
     val searchError = state.searchError
 
@@ -315,14 +335,7 @@ private fun SearchContent(
                     gridItems(state.searchResults, key = { it.id }) { book ->
                         BookCard(
                             book = book,
-                            shelfStatus = null,
-                            onShelfChange = { newShelf ->
-                                if (newShelf == null) {
-                                    onRemoveFromShelf(book.id)
-                                } else {
-                                    onAssignShelf(book.id, newShelf)
-                                }
-                            }
+                            onClick = { onBookClick(book) }
                         )
                     }
                 }
