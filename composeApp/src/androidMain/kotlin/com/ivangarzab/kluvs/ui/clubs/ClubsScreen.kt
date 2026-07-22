@@ -57,6 +57,7 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
 import com.ivangarzab.kluvs.clubs.presentation.OperationResult
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
@@ -77,6 +78,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ClubsScreen(
     modifier: Modifier = Modifier,
     userId: String,
+    initialClubId: String? = null,
+    onNavigateToJoin: () -> Unit = {},
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -114,6 +117,14 @@ fun ClubsScreen(
         }
     }
 
+    // Navigate into a club opened from outside this tab (e.g. auto-join after sign-in)
+    LaunchedEffect(initialClubId) {
+        initialClubId?.let { clubId ->
+            viewModel.selectClub(clubId)
+            navController.navigate("detail/$clubId")
+        }
+    }
+
     Box(modifier = modifier) {
         NavHost(
             navController = navController,
@@ -131,7 +142,8 @@ fun ClubsScreen(
                         viewModel.selectClub(clubId)
                         navController.navigate("detail/$clubId")
                     },
-                    onAddClub = { showCreateClubSheet = true }
+                    onAddClub = { showCreateClubSheet = true },
+                    onJoinWithCode = onNavigateToJoin
                 )
 
                 if (showCreateClubSheet) {
@@ -154,6 +166,9 @@ fun ClubsScreen(
                     onRetry = viewModel::refresh,
                     onUpdateClubName = viewModel::onUpdateClubName,
                     onDeleteClub = viewModel::onDeleteClub,
+                    onUpdateJoinPolicy = viewModel::onUpdateJoinPolicy,
+                    onRotateInviteLink = viewModel::onRotateInviteLink,
+                    onOpenShareSheet = { viewModel.refresh(forceRefresh = true) },
                     onCreateSession = viewModel::onCreateSession,
                     onUpdateSession = viewModel::onUpdateSession,
                     onEndSession = viewModel::onEndSession,
@@ -195,6 +210,9 @@ fun ClubsScreenContent(
     onNavigateBack: () -> Unit = {},
     onUpdateClubName: (String) -> Unit = {},
     onDeleteClub: () -> Unit = {},
+    onUpdateJoinPolicy: (JoinPolicy) -> Unit = {},
+    onRotateInviteLink: () -> Unit = {},
+    onOpenShareSheet: () -> Unit = {},
     onCreateSession: (Book, LocalDateTime?) -> Unit = { _, _ -> },
     onUpdateSession: (Book?, LocalDateTime?) -> Unit = { _, _ -> },
     onEndSession: () -> Unit = {},
@@ -213,6 +231,7 @@ fun ClubsScreenContent(
 ) {
     // Sheet / dialog visibility state
     var showEditClubSheet by remember { mutableStateOf(false) }
+    var showShareClubSheet by remember { mutableStateOf(false) }
     var showDeleteClubDialog by remember { mutableStateOf(false) }
     var showCreateSessionSheet by remember { mutableStateOf(false) }
     var showEditSessionSheet by remember { mutableStateOf(false) }
@@ -323,10 +342,15 @@ fun ClubsScreenContent(
                                     memberCount = clubDetails.memberCount
                                 )
                             }
-                            if (state.userRole == Role.OWNER) {
+                            if (state.userRole == Role.OWNER || state.userRole == Role.ADMIN) {
                                 ClubOverflowMenu(
+                                    canManageClub = state.userRole == Role.OWNER,
                                     onEdit = { showEditClubSheet = true },
-                                    onDelete = { showDeleteClubDialog = true }
+                                    onDelete = { showDeleteClubDialog = true },
+                                    onShare = {
+                                        onOpenShareSheet()
+                                        showShareClubSheet = true
+                                    }
                                 )
                             }
                         }
@@ -447,6 +471,18 @@ fun ClubsScreenContent(
                             showEditClubSheet = false
                         },
                         onDismiss = { showEditClubSheet = false }
+                    )
+                }
+
+                if (showShareClubSheet) {
+                    ShareClubBottomSheet(
+                        joinPolicy = state.currentClubDetails?.joinPolicy,
+                        inviteToken = state.currentClubDetails?.inviteToken,
+                        canManage = state.userRole == Role.OWNER,
+                        isOperationInProgress = state.isOperationInProgress,
+                        onTogglePolicy = onUpdateJoinPolicy,
+                        onRotate = onRotateInviteLink,
+                        onDismiss = { showShareClubSheet = false }
                     )
                 }
 
@@ -653,8 +689,10 @@ private fun MetaDot() {
 
 @Composable
 private fun ClubOverflowMenu(
+    canManageClub: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onShare: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -671,24 +709,33 @@ private fun ClubOverflowMenu(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("Edit") },
+                text = { Text("Share") },
                 onClick = {
                     expanded = false
-                    onEdit()
+                    onShare()
                 }
             )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = "Delete",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                },
-                onClick = {
-                    expanded = false
-                    onDelete()
-                }
-            )
+            if (canManageClub) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    onClick = {
+                        expanded = false
+                        onEdit()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Delete",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onDelete()
+                    }
+                )
+            }
         }
     }
 }

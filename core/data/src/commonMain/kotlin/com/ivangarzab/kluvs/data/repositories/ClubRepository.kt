@@ -9,6 +9,7 @@ import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
+import com.ivangarzab.kluvs.model.JoinPolicy
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -60,13 +61,16 @@ interface ClubRepository {
      * @param serverId Optional server ID for Discord integration (defaults to null for mobile-only clubs)
      * @param name Optional new name for the club (null to keep current value)
      * @param discordChannel Optional new Discord channel (null to keep current value)
+     * @param joinPolicy Optional new join policy. Setting to INVITE_LINK creates (or reuses) an
+     *        active invite token; setting to PRIVATE deactivates all active invites (null to keep current value)
      * @return Result containing the updated Club if successful, or an error if the operation failed
      */
     suspend fun updateClub(
         clubId: String,
         serverId: String? = null,
         name: String? = null,
-        discordChannel: String? = null
+        discordChannel: String? = null,
+        joinPolicy: JoinPolicy? = null
     ): Result<Club>
 
     /**
@@ -169,14 +173,21 @@ internal class ClubRepositoryImpl(
         clubId: String,
         serverId: String?,
         name: String?,
-        discordChannel: String?
+        discordChannel: String?,
+        joinPolicy: JoinPolicy?
     ): Result<Club> =
         clubRemoteDataSource.updateClub(
             ClubUpdateRequestDto(
                 id = clubId,
                 serverId = serverId,
                 name = name,
-                discordChannel = discordChannel
+                discordChannel = discordChannel,
+                joinPolicy = joinPolicy?.let {
+                    when (it) {
+                        JoinPolicy.PRIVATE -> ClubUpdateRequestDto.JoinPolicy.PRIVATE
+                        JoinPolicy.INVITE_LINK -> ClubUpdateRequestDto.JoinPolicy.INVITE_LINK
+                    }
+                }
             )
         )
 

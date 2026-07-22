@@ -38,6 +38,7 @@ kotlin {
             export(project(":feature:member"))
             export(project(":feature:settings"))
             export(project(":feature:books"))
+            export(project(":feature:join"))
             export(libs.bark)
         }
     }
@@ -55,6 +56,7 @@ kotlin {
             api(project(":feature:member"))
             api(project(":feature:settings"))
             api(project(":feature:books"))
+            api(project(":feature:join"))
 
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization)

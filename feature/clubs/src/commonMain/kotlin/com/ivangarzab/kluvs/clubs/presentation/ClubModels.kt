@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.datetime.LocalDateTime
 
@@ -38,7 +39,14 @@ data class ClubDetails(
     val memberCount: Int,
     val foundedYear: String?,
     val currentBook: BookInfo?,
-    val nextDiscussion: DiscussionInfo?
+    val nextDiscussion: DiscussionInfo?,
+    /**
+     * Join policy and invite token for the share sheet. Null when not yet loaded — the
+     * share sheet always force-refreshes the club before showing, since these fields are
+     * never persisted to the local cache (see [com.ivangarzab.kluvs.model.Club.joinPolicy]).
+     */
+    val joinPolicy: JoinPolicy? = null,
+    val inviteToken: String? = null
 )
 
 /**

@@ -6,12 +6,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavHostController
@@ -20,11 +27,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.app.AppCoordinator
+import com.ivangarzab.kluvs.app.AutoJoinResult
 import com.ivangarzab.kluvs.app.NavigationState
+import com.ivangarzab.kluvs.app.PendingJoinCoordinator
 import com.ivangarzab.kluvs.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.auth.ForgotPasswordScreen
 import com.ivangarzab.kluvs.ui.auth.LoginScreen
 import com.ivangarzab.kluvs.ui.auth.SignupScreen
+import com.ivangarzab.kluvs.ui.join.JoinScreen
 import com.ivangarzab.kluvs.ui.settings.SettingsScreen
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -72,7 +82,13 @@ fun MainNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val appCoordinator: AppCoordinator = koinViewModel()
+    val pendingJoinCoordinator: PendingJoinCoordinator = koinViewModel()
     val navState by appCoordinator.navigationState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Only set on a successful auto-join after sign-in; consumed by the MAIN destination
+    // to open straight into that club (see PendingJoinCoordinator).
+    var autoJoinedClubId by remember { mutableStateOf<String?>(null) }
 
     // Navigate based on app-level state
     LaunchedEffect(navState) {
@@ -99,54 +115,90 @@ fun MainNavHost(
         }
     }
 
-    NavHost(
-        modifier = modifier,
-        navController = navController,
-        startDestination = NavDestinations.LOGIN
-    ) {
-        composable(NavDestinations.LOGIN) {
-            LoginScreen(
-                onNavigateToSignUp = {
-                    navController.navigate(NavDestinations.SIGNUP)
-                },
-                onNavigateToForgotPassword = {
-                    navController.navigate(NavDestinations.FORGOT_PASSWORD)
-                },
-            )
+    LaunchedEffect(Unit) {
+        pendingJoinCoordinator.autoJoinResult.collect { result ->
+            when (result) {
+                is AutoJoinResult.Success -> autoJoinedClubId = result.clubId
+                is AutoJoinResult.Failure -> {
+                    snackbarHostState.showSnackbar(result.message ?: "Failed to join club")
+                }
+            }
         }
-        composable(NavDestinations.SIGNUP) {
-            SignupScreen(
-                onNavigateToLogIn = {
-                    navController.navigate(NavDestinations.LOGIN)
-                },
-                onNavigateToForgotPassword = {
-                    navController.navigate(NavDestinations.FORGOT_PASSWORD)
-                },
-            )
-        }
-        composable(NavDestinations.FORGOT_PASSWORD) {
-            ForgotPasswordScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-        composable(NavDestinations.MAIN) {
-            val userId = (navState as? NavigationState.Authenticated)?.userId
-            if (userId != null) {
-                MainScreen(
+    }
+
+    Box(modifier = modifier) {
+        NavHost(
+            modifier = Modifier.fillMaxSize(),
+            navController = navController,
+            startDestination = NavDestinations.LOGIN
+        ) {
+            composable(NavDestinations.LOGIN) {
+                LoginScreen(
+                    onNavigateToSignUp = {
+                        navController.navigate(NavDestinations.SIGNUP)
+                    },
+                    onNavigateToForgotPassword = {
+                        navController.navigate(NavDestinations.FORGOT_PASSWORD)
+                    },
+                )
+            }
+            composable(NavDestinations.SIGNUP) {
+                SignupScreen(
+                    onNavigateToLogIn = {
+                        navController.navigate(NavDestinations.LOGIN)
+                    },
+                    onNavigateToForgotPassword = {
+                        navController.navigate(NavDestinations.FORGOT_PASSWORD)
+                    },
+                )
+            }
+            composable(NavDestinations.FORGOT_PASSWORD) {
+                ForgotPasswordScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(NavDestinations.MAIN) {
+                val userId = (navState as? NavigationState.Authenticated)?.userId
+                if (userId != null) {
+                    MainScreen(
+                        userId = userId,
+                        initialClubId = autoJoinedClubId,
+                        onNavigateToSettings = {
+                            navController.navigate("${NavDestinations.SETTINGS}/$userId")
+                        },
+                        onNavigateToJoin = {
+                            navController.navigate(NavDestinations.JOIN)
+                        }
+                    )
+                }
+            }
+            composable("${NavDestinations.SETTINGS}/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+                SettingsScreen(
                     userId = userId,
-                    onNavigateToSettings = {
-                        navController.navigate("${NavDestinations.SETTINGS}/$userId")
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(NavDestinations.JOIN) {
+                JoinScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToClub = { clubId ->
+                        autoJoinedClubId = clubId
+                        navController.navigate(NavDestinations.MAIN) {
+                            popUpTo(NavDestinations.JOIN) { inclusive = true }
+                        }
+                    },
+                    onNeedsSignIn = { token ->
+                        pendingJoinCoordinator.setPendingToken(token)
+                        navController.navigate(NavDestinations.LOGIN)
                     }
                 )
             }
         }
-        composable("${NavDestinations.SETTINGS}/{userId}") { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
-            SettingsScreen(
-                userId = userId,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -156,4 +208,5 @@ object NavDestinations {
     const val FORGOT_PASSWORD = "forgot_password"
     const val MAIN = "main"
     const val SETTINGS = "settings"
+    const val JOIN = "join"
 }

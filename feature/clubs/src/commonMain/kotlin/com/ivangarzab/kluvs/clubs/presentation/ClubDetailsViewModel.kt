@@ -21,16 +21,19 @@ import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateJoinPolicyUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.coroutines.async
@@ -51,6 +54,8 @@ class ClubDetailsViewModel(
     private val getMemberClubsUseCase: GetMemberClubsUseCase,
     private val createClubUseCase: CreateClubUseCase,
     private val updateClubUseCase: UpdateClubUseCase,
+    private val updateJoinPolicyUseCase: UpdateJoinPolicyUseCase,
+    private val rotateInviteLinkUseCase: RotateInviteLinkUseCase,
     private val deleteClubUseCase: DeleteClubUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
     private val updateSessionUseCase: UpdateSessionUseCase,
@@ -242,6 +247,31 @@ class ClubDetailsViewModel(
         val clubId = currentClubId ?: return
         launchMutation("Club deleted") {
             deleteClubUseCase(DeleteClubUseCase.Params(clubId), role)
+        }
+    }
+
+    /**
+     * Toggles the club's join policy (invite link on/off). Owner-only.
+     *
+     * [joinPolicy]/[com.ivangarzab.kluvs.clubs.presentation.ClubDetails.inviteToken] are
+     * never cached locally, so this triggers a force refresh on success like any other
+     * mutation via [launchMutation] — the share sheet should also force-refresh on open
+     * to avoid showing stale (absent) invite data from a cache hit.
+     */
+    fun onUpdateJoinPolicy(joinPolicy: JoinPolicy) {
+        val role = _state.value.userRole ?: return
+        val clubId = currentClubId ?: return
+        launchMutation("Join policy updated") {
+            updateJoinPolicyUseCase(UpdateJoinPolicyUseCase.Params(clubId, joinPolicy), role)
+        }
+    }
+
+    /** Rotates the club's active invite token. Owner-only. See [RotateInviteLinkUseCase]. */
+    fun onRotateInviteLink() {
+        val role = _state.value.userRole ?: return
+        val clubId = currentClubId ?: return
+        launchMutation("Invite link rotated") {
+            rotateInviteLinkUseCase(RotateInviteLinkUseCase.Params(clubId), role)
         }
     }
 

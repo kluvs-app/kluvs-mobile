@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.api.models.ClubMemberDto
 import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
 import com.ivangarzab.kluvs.api.models.ServerClubSummaryDto
 import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Role
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -110,6 +111,59 @@ class ClubMappersTest {
         // Then: Role is populated from the wrapper
         assertEquals("club-1", domain.id)
         assertEquals(Role.OWNER, domain.role)
+    }
+
+    @Test
+    fun `ClubDto toDomain maps joinPolicy and inviteToken when policy is INVITE_LINK`() {
+        // Given: A ClubDto with an active invite link
+        val dto = ClubDto(
+            id = "club-1",
+            name = "Book Club",
+            joinPolicy = ClubDto.JoinPolicy.INVITE_LINK,
+            inviteToken = "abc-123"
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: joinPolicy and inviteToken are mapped
+        assertEquals(JoinPolicy.INVITE_LINK, domain.joinPolicy)
+        assertEquals("abc-123", domain.inviteToken)
+    }
+
+    @Test
+    fun `ClubDto toDomain maps joinPolicy PRIVATE with null inviteToken`() {
+        // Given: A ClubDto that is private (default)
+        val dto = ClubDto(
+            id = "club-1",
+            name = "Book Club"
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: joinPolicy defaults to PRIVATE, inviteToken is null
+        assertEquals(JoinPolicy.PRIVATE, domain.joinPolicy)
+        assertNull(domain.inviteToken)
+    }
+
+    @Test
+    fun `MemberClubEntryDto toDomain maps joinPolicy and inviteToken`() {
+        // Given: A club embedded within a member's clubs list, with an active invite link
+        val dto = MemberClubEntryDto(
+            id = "club-1",
+            name = "Full Club",
+            joinPolicy = MemberClubEntryDto.JoinPolicy.INVITE_LINK,
+            inviteToken = "xyz-789",
+            role = MemberClubEntryDto.Role.owner
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: joinPolicy and inviteToken are mapped
+        assertEquals(JoinPolicy.INVITE_LINK, domain.joinPolicy)
+        assertEquals("xyz-789", domain.inviteToken)
     }
 
     @Test
