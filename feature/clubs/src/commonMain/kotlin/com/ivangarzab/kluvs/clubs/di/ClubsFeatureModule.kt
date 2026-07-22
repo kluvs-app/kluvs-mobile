@@ -17,12 +17,14 @@ import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
 import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateJoinPolicyUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
@@ -49,6 +51,8 @@ val clubsFeatureModule = module {
     // Use Cases — write (admin operations)
     factoryOf(::CreateClubUseCase)
     factoryOf(::UpdateClubUseCase)
+    factoryOf(::UpdateJoinPolicyUseCase)
+    factoryOf(::RotateInviteLinkUseCase)
     factoryOf(::DeleteClubUseCase)
     factoryOf(::CreateSessionUseCase)
     factoryOf(::UpdateSessionUseCase)
@@ -72,6 +76,8 @@ val clubsFeatureModule = module {
             getMemberClubsUseCase = get(),
             createClubUseCase = get(),
             updateClubUseCase = get(),
+            updateJoinPolicyUseCase = get(),
+            rotateInviteLinkUseCase = get(),
             deleteClubUseCase = get(),
             createSessionUseCase = get(),
             updateSessionUseCase = get(),

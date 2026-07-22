@@ -41,12 +41,16 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     modifier: Modifier = Modifier,
     userId: String,
+    initialClubId: String? = null,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToJoin: () -> Unit = {},
 ) {
     MainScreenContent(
         modifier = modifier,
         userId = userId,
+        initialClubId = initialClubId,
         onNavigateToSettings = onNavigateToSettings,
+        onNavigateToJoin = onNavigateToJoin,
     )
 }
 
@@ -55,13 +59,15 @@ fun MainScreen(
 fun MainScreenContent(
     modifier: Modifier = Modifier,
     userId: String,
+    initialClubId: String? = null,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToJoin: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
         pageCount = { 3 },
-        initialPage = 0
+        initialPage = if (initialClubId != null) 1 else 0
     )
 
     Scaffold(
@@ -181,6 +187,8 @@ fun MainScreenContent(
                 1 -> ClubsScreen(
                     modifier = contentModifier,
                     userId = userId,
+                    initialClubId = initialClubId,
+                    onNavigateToJoin = onNavigateToJoin,
                 )
                 2 -> BooksScreen(
                     modifier = contentModifier,

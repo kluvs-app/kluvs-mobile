@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.api.models.ServerDto
 import com.ivangarzab.kluvs.api.models.ServerClubSummaryDto
 import com.ivangarzab.kluvs.api.models.ServerGetSingleResponseDto
 import com.ivangarzab.kluvs.model.Club
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Server
 import com.ivangarzab.kluvs.network.utils.parseDateOnlyString
 
@@ -58,6 +59,11 @@ fun ServerClubSummaryDto.toDomain(): Club {
         role = null,
         members = members?.map { it.toDomain() },
         activeSession = null,
-        pastSessions = null
+        pastSessions = null,
+        joinPolicy = when (joinPolicy) {
+            ServerClubSummaryDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
+            ServerClubSummaryDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
+        },
+        inviteToken = inviteToken
     )
 }

@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.clubs.presentation
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.Closeable
@@ -51,6 +52,8 @@ class ClubDetailsViewModelHelper : KoinComponent {
     // General tab
     fun onUpdateClubName(newName: String) = viewModel.onUpdateClubName(newName)
     fun onDeleteClub() = viewModel.onDeleteClub()
+    fun onUpdateJoinPolicy(joinPolicy: JoinPolicy) = viewModel.onUpdateJoinPolicy(joinPolicy)
+    fun onRotateInviteLink() = viewModel.onRotateInviteLink()
 
     // Session tab — dates passed as ISO strings to avoid LocalDateTime in Swift
     fun onCreateSession(book: Book, dueDateIso: String?) =

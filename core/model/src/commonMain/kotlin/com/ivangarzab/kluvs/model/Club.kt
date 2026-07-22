@@ -51,5 +51,16 @@ data class Club(
      * List of past [Session]s for this club.
      * Null when not loaded; empty list when loaded but no past sessions exist.
      */
-    val pastSessions: List<Session>? = null
+    val pastSessions: List<Session>? = null,
+
+    /**
+     * Controls how new members can join this club. Null when not loaded (e.g. served from cache).
+     */
+    val joinPolicy: JoinPolicy? = null,
+
+    /**
+     * Active invite token UUID, present when [joinPolicy] is [JoinPolicy.INVITE_LINK].
+     * Null when not loaded (e.g. served from cache) or when the policy is PRIVATE.
+     */
+    val inviteToken: String? = null
 )

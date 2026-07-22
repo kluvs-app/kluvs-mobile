@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.remote.mappers
 import com.ivangarzab.kluvs.api.models.ClubDto
 import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
 import com.ivangarzab.kluvs.model.Club
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.network.utils.parseDateOnlyString
 
@@ -28,8 +29,20 @@ fun ClubDto.toDomain(): Club {
         role = null,
         members = members?.map { it.toDomain() },
         activeSession = activeSession?.toDomain(),
-        pastSessions = null
+        pastSessions = null,
+        joinPolicy = joinPolicy.toDomain(),
+        inviteToken = inviteToken
     )
+}
+
+private fun ClubDto.JoinPolicy.toDomain(): JoinPolicy = when (this) {
+    ClubDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
+    ClubDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
+}
+
+private fun MemberClubEntryDto.JoinPolicy.toDomain(): JoinPolicy = when (this) {
+    MemberClubEntryDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
+    MemberClubEntryDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
 }
 
 /**
@@ -49,6 +62,8 @@ fun MemberClubEntryDto.toDomain(): Club {
         role = role?.let { Role.fromString(it.value) },
         members = members?.map { it.toDomain() },
         activeSession = activeSession?.toDomain(),
-        pastSessions = null
+        pastSessions = null,
+        joinPolicy = joinPolicy.toDomain(),
+        inviteToken = inviteToken
     )
 }

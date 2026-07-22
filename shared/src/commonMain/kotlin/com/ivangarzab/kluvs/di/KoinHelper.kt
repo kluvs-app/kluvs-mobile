@@ -1,11 +1,13 @@
 package com.ivangarzab.kluvs.di
 
 import com.ivangarzab.kluvs.app.AppCoordinator
+import com.ivangarzab.kluvs.app.PendingJoinCoordinator
 import com.ivangarzab.kluvs.auth.di.authFeatureModule
 import com.ivangarzab.kluvs.auth.di.coreAuthModule
 import com.ivangarzab.kluvs.books.di.booksFeatureModule
 import com.ivangarzab.kluvs.clubs.di.clubsFeatureModule
 import com.ivangarzab.kluvs.data.di.coreDataModule
+import com.ivangarzab.kluvs.join.di.joinFeatureModule
 import com.ivangarzab.kluvs.member.di.memberFeatureModule
 import com.ivangarzab.kluvs.settings.di.settingsFeatureModule
 import com.ivangarzab.kluvs.network.di.coreNetworkModule
@@ -34,7 +36,8 @@ fun initKoin(appDeclaration: KoinAppDeclaration = {}) = startKoin {
         clubsFeatureModule,
         memberFeatureModule,
         settingsFeatureModule,
-        booksFeatureModule
+        booksFeatureModule,
+        joinFeatureModule
     )
 }
 
@@ -47,4 +50,6 @@ private val appModule = module {
     // Cross-platform navigation ViewModel
     // Singleton - survives navigation
     singleOf(::AppCoordinator)
+    // Singleton - survives navigation, needed to resume a join after sign-in
+    singleOf(::PendingJoinCoordinator)
 }

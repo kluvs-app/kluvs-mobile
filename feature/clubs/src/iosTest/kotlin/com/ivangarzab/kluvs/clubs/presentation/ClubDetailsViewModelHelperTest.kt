@@ -18,12 +18,14 @@ import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateJoinPolicyUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
@@ -104,6 +106,8 @@ class ClubDetailsViewModelHelperTest {
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
             createClubUseCase = CreateClubUseCase(clubRepository, memberRepository),
             updateClubUseCase = UpdateClubUseCase(clubRepository),
+            updateJoinPolicyUseCase = UpdateJoinPolicyUseCase(clubRepository),
+            rotateInviteLinkUseCase = RotateInviteLinkUseCase(clubRepository),
             deleteClubUseCase = DeleteClubUseCase(clubRepository),
             createSessionUseCase = CreateSessionUseCase(sessionRepository),
             updateSessionUseCase = UpdateSessionUseCase(sessionRepository),

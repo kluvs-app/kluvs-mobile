@@ -65,7 +65,9 @@ class GetClubDetailsUseCase(
                             location = it.location ?: "TBD...",
                             formattedDate = formatDateTime(it.date, DateTimeFormat.FULL)
                         )
-                    }
+                    },
+                joinPolicy = club.joinPolicy,
+                inviteToken = club.inviteToken
             )
             Bark.i("Loaded club details (Name: ${club.name}, Members: $memberCount, Active: $hasActiveSession, Next Discussions: $nextDiscussionCount)")
             details

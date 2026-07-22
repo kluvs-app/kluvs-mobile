@@ -18,12 +18,14 @@ import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
+import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateJoinPolicyUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
@@ -42,6 +44,7 @@ import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.ClubMember
 import com.ivangarzab.kluvs.model.Discussion
 import com.ivangarzab.kluvs.model.DiscussionNote
+import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.ProgressStatus
 import com.ivangarzab.kluvs.model.ProgressType
@@ -88,6 +91,8 @@ class ClubDetailsViewModelTest {
     private lateinit var getMemberClubs: GetMemberClubsUseCase
     private lateinit var createClubUseCase: CreateClubUseCase
     private lateinit var updateClubUseCase: UpdateClubUseCase
+    private lateinit var updateJoinPolicyUseCase: UpdateJoinPolicyUseCase
+    private lateinit var rotateInviteLinkUseCase: RotateInviteLinkUseCase
     private lateinit var deleteClubUseCase: DeleteClubUseCase
     private lateinit var createSessionUseCase: CreateSessionUseCase
     private lateinit var updateSessionUseCase: UpdateSessionUseCase
@@ -135,6 +140,8 @@ class ClubDetailsViewModelTest {
         getMemberClubs = GetMemberClubsUseCase(memberRepository, clubRepository, avatarRepository)
         createClubUseCase = CreateClubUseCase(clubRepository, memberRepository)
         updateClubUseCase = UpdateClubUseCase(clubRepository)
+        updateJoinPolicyUseCase = UpdateJoinPolicyUseCase(clubRepository)
+        rotateInviteLinkUseCase = RotateInviteLinkUseCase(clubRepository)
         deleteClubUseCase = DeleteClubUseCase(clubRepository)
         createSessionUseCase = CreateSessionUseCase(sessionRepository)
         updateSessionUseCase = UpdateSessionUseCase(sessionRepository)
@@ -159,7 +166,8 @@ class ClubDetailsViewModelTest {
         viewModel = ClubDetailsViewModel(
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
             createClubUseCase,
-            updateClubUseCase, deleteClubUseCase, createSessionUseCase,
+            updateClubUseCase, updateJoinPolicyUseCase, rotateInviteLinkUseCase,
+            deleteClubUseCase, createSessionUseCase,
             updateSessionUseCase, deleteSessionUseCase, createDiscussionUseCase,
             updateDiscussionUseCase, deleteDiscussionUseCase,
             updateMemberRoleUseCase, removeMemberUseCase,
@@ -596,6 +604,120 @@ class ClubDetailsViewModelTest {
     fun `onUpdateClubName does nothing when userRole is null`() = runTest {
         // No loadUserClubs — userRole is null
         viewModel.onUpdateClubName("New Name")
+
+        assertNull(viewModel.state.value.operationResult)
+    }
+
+    @Test
+    fun `onUpdateJoinPolicy sets operationResult Success on success`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val updatedClub = club.copy(joinPolicy = JoinPolicy.INVITE_LINK, inviteToken = "tok-1")
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(updatedClub)
+        everySuspend {
+            clubRepository.updateClub(clubId = clubId, joinPolicy = JoinPolicy.INVITE_LINK)
+        } returns Result.success(updatedClub)
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onUpdateJoinPolicy(JoinPolicy.INVITE_LINK)
+
+        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(JoinPolicy.INVITE_LINK, viewModel.state.value.currentClubDetails?.joinPolicy)
+        assertEquals("tok-1", viewModel.state.value.currentClubDetails?.inviteToken)
+    }
+
+    @Test
+    fun `onUpdateJoinPolicy sets operationResult Error on failure`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        viewModel.loadUserClubs("u1")
+
+        everySuspend {
+            clubRepository.updateClub(clubId = clubId, joinPolicy = JoinPolicy.PRIVATE)
+        } returns Result.failure(RuntimeException("Network error"))
+
+        viewModel.onUpdateJoinPolicy(JoinPolicy.PRIVATE)
+
+        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+    }
+
+    @Test
+    fun `onUpdateJoinPolicy does nothing when userRole is null`() = runTest {
+        viewModel.onUpdateJoinPolicy(JoinPolicy.INVITE_LINK)
+
+        assertNull(viewModel.state.value.operationResult)
+    }
+
+    @Test
+    fun `onRotateInviteLink sets operationResult Success on success`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val rotatedClub = club.copy(joinPolicy = JoinPolicy.INVITE_LINK, inviteToken = "tok-new")
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(rotatedClub)
+        everySuspend {
+            clubRepository.updateClub(clubId = clubId, joinPolicy = JoinPolicy.PRIVATE)
+        } returns Result.success(club.copy(joinPolicy = JoinPolicy.PRIVATE, inviteToken = null))
+        everySuspend {
+            clubRepository.updateClub(clubId = clubId, joinPolicy = JoinPolicy.INVITE_LINK)
+        } returns Result.success(rotatedClub)
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onRotateInviteLink()
+
+        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals("tok-new", viewModel.state.value.currentClubDetails?.inviteToken)
+    }
+
+    @Test
+    fun `onRotateInviteLink sets a distinct error when reactivation fails after deactivation succeeds`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend {
+            clubRepository.updateClub(clubId = clubId, joinPolicy = JoinPolicy.PRIVATE)
+        } returns Result.success(club.copy(joinPolicy = JoinPolicy.PRIVATE, inviteToken = null))
+        everySuspend {
+            clubRepository.updateClub(clubId = clubId, joinPolicy = JoinPolicy.INVITE_LINK)
+        } returns Result.failure(RuntimeException("Network error"))
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onRotateInviteLink()
+
+        val result = viewModel.state.value.operationResult
+        assertIs<OperationResult.Error>(result)
+        assertEquals("Invite link deactivated but rotation failed — try again", result.message)
+    }
+
+    @Test
+    fun `onRotateInviteLink does nothing when userRole is null`() = runTest {
+        viewModel.onRotateInviteLink()
 
         assertNull(viewModel.state.value.operationResult)
     }

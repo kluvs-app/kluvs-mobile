@@ -10,6 +10,8 @@ private struct IDWrapper: Identifiable {
 /// across both, matching Android's `ClubsScreen`.
 struct ClubsView: View {
     let userId: String
+    var initialClubId: String? = nil
+    var onNavigateToJoin: () -> Void = {}
     @StateObject private var viewModel = ClubDetailsViewModelWrapper()
     @State private var path = NavigationPath()
     @State private var showCreateClubSheet = false
@@ -31,6 +33,7 @@ struct ClubsView: View {
                         Text(String(localized: "empty_no_clubs_hint"))
                             .font(.kluvsBody)
                             .foregroundColor(.secondary)
+                        Button("Join with a code", action: onNavigateToJoin)
                     }
                 case .content:
                     ClubsListView(
@@ -39,7 +42,8 @@ struct ClubsView: View {
                             viewModel.selectClub(clubId: clubId)
                             path.append(clubId)
                         },
-                        onAddClub: { showCreateClubSheet = true }
+                        onAddClub: { showCreateClubSheet = true },
+                        onJoinWithCode: onNavigateToJoin
                     )
                 }
             }
@@ -54,6 +58,12 @@ struct ClubsView: View {
             if let clubId = newValue {
                 path.append(clubId)
                 viewModel.onConsumeCreatedClubId()
+            }
+        }
+        .onChange(of: initialClubId) { _, newValue in
+            if let clubId = newValue {
+                viewModel.selectClub(clubId: clubId)
+                path.append(clubId)
             }
         }
         .sheet(isPresented: $showCreateClubSheet) {
@@ -84,6 +94,7 @@ private struct ClubDetailView: View {
 
     // Sheet / alert state
     @State private var showEditClubSheet = false
+    @State private var showShareClubSheet = false
     @State private var showDeleteClubAlert = false
     @State private var showCreateSessionSheet = false
     @State private var showEditSessionSheet = false
@@ -139,10 +150,16 @@ private struct ClubDetailView: View {
                             memberCount: Int(clubDetails.memberCount)
                         )
                         Spacer()
-                        if viewModel.userRole == .owner {
+                        if viewModel.userRole == .owner || viewModel.userRole == .admin {
                             Menu {
-                                Button("Edit") { showEditClubSheet = true }
-                                Button("Delete", role: .destructive) { showDeleteClubAlert = true }
+                                Button("Share") {
+                                    viewModel.refresh()
+                                    showShareClubSheet = true
+                                }
+                                if viewModel.userRole == .owner {
+                                    Button("Edit") { showEditClubSheet = true }
+                                    Button("Delete", role: .destructive) { showDeleteClubAlert = true }
+                                }
                             } label: {
                                 Image(systemName: "ellipsis")
                                     .foregroundColor(.secondary)
@@ -231,6 +248,18 @@ private struct ClubDetailView: View {
             get: { viewModel.operationMessage },
             set: { if $0 == nil { viewModel.onConsumeOperationResult() } }
         ))
+        // Share club invite link
+        .sheet(isPresented: $showShareClubSheet) {
+            ShareClubSheet(
+                joinPolicy: viewModel.clubDetails?.joinPolicy,
+                inviteToken: viewModel.clubDetails?.inviteToken,
+                canManage: viewModel.userRole == .owner,
+                isOperationInProgress: viewModel.isOperationInProgress,
+                onTogglePolicy: { viewModel.onUpdateJoinPolicy($0) },
+                onRotate: { viewModel.onRotateInviteLink() },
+                onDismiss: { showShareClubSheet = false }
+            )
+        }
         // Edit club name
         .sheet(isPresented: $showEditClubSheet) {
             EditClubSheet(

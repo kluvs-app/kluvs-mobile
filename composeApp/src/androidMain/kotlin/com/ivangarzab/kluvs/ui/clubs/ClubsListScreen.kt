@@ -24,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +63,7 @@ fun ClubsListScreen(
     onRetry: () -> Unit,
     onClubSelected: (String) -> Unit,
     onAddClub: () -> Unit = {},
+    onJoinWithCode: () -> Unit = {},
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         when (screenState) {
@@ -77,21 +79,33 @@ fun ClubsListScreen(
                 onRetry = onRetry
             )
 
-            is ScreenState.Empty -> ClubsListEmptyState(modifier = Modifier.fillMaxSize())
+            is ScreenState.Empty -> ClubsListEmptyState(
+                modifier = Modifier.fillMaxSize(),
+                onJoinWithCode = onJoinWithCode
+            )
 
             is ScreenState.Content -> Column(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp)) {
-                    Text(
-                        text = stringResource(R.string.your_eyebrow).uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.clubs),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.your_eyebrow).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.clubs),
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    TextButton(onClick = onJoinWithCode) {
+                        Text("Join with a code")
+                    }
                 }
 
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
@@ -200,7 +214,7 @@ private fun MemberAvatarInfo.toAvatarStackMember() = AvatarStackMember(
 )
 
 @Composable
-private fun ClubsListEmptyState(modifier: Modifier = Modifier) {
+private fun ClubsListEmptyState(modifier: Modifier = Modifier, onJoinWithCode: () -> Unit = {}) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -219,6 +233,9 @@ private fun ClubsListEmptyState(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            TextButton(onClick = onJoinWithCode) {
+                Text("Join with a code")
+            }
         }
     }
 }
