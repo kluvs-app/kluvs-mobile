@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
@@ -15,6 +17,7 @@ import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
@@ -22,6 +25,7 @@ import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
@@ -62,7 +66,11 @@ class ClubDetailsViewModel(
     private val toggleSessionParticipationUseCase: ToggleSessionParticipationUseCase,
     private val getAttendanceRosterUseCase: GetAttendanceRosterUseCase,
     private val setAttendanceUseCase: SetAttendanceUseCase,
-    private val clearAttendanceUseCase: ClearAttendanceUseCase
+    private val clearAttendanceUseCase: ClearAttendanceUseCase,
+    private val getDiscussionNoteUseCase: GetDiscussionNoteUseCase,
+    private val createDiscussionNoteUseCase: CreateDiscussionNoteUseCase,
+    private val updateDiscussionNoteUseCase: UpdateDiscussionNoteUseCase,
+    private val deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ClubDetailsState())
@@ -502,6 +510,106 @@ class ClubDetailsViewModel(
                             operationResult = OperationResult.Error(
                                 error.message ?: "An unexpected error occurred"
                             )
+                        )
+                    }
+                }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Discussion note operations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads the signed-in member's note for a discussion, if not already loaded.
+     *
+     * Lazy-once, same as [onLoadAttendanceRoster] — called when a note sheet opens.
+     * A null [DiscussionNoteInfo.noteId] in the resulting entry means no note
+     * exists yet, so the sheet should open straight into create/edit mode.
+     */
+    fun onLoadDiscussionNote(discussionId: String) {
+        if (_state.value.discussionNotes.containsKey(discussionId)) return
+        viewModelScope.launch {
+            getDiscussionNoteUseCase(discussionId)
+                .onSuccess { note ->
+                    val info = DiscussionNoteInfo(noteId = note?.id, content = note?.content ?: "")
+                    _state.update {
+                        it.copy(discussionNotes = it.discussionNotes + (discussionId to info))
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Load discussion note. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo(
+                                error = error.message ?: "An unexpected error occurred"
+                            ))
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Creates or updates the signed-in member's note for a discussion, depending on
+     * whether a note already exists for it. Patches only that discussion's map
+     * entry — mirrors [onSetAttendance]'s reasoning for not using [launchMutation].
+     */
+    fun onSaveDiscussionNote(discussionId: String, content: String) {
+        val current = _state.value.discussionNotes[discussionId] ?: DiscussionNoteInfo()
+        _state.update {
+            it.copy(discussionNotes = it.discussionNotes + (discussionId to current.copy(isSaving = true, error = null)))
+        }
+
+        viewModelScope.launch {
+            val result = if (current.noteId == null) {
+                createDiscussionNoteUseCase(CreateDiscussionNoteUseCase.Params(discussionId, content))
+            } else {
+                updateDiscussionNoteUseCase(UpdateDiscussionNoteUseCase.Params(current.noteId, content))
+            }
+
+            result
+                .onSuccess { note ->
+                    _state.update {
+                        it.copy(
+                            discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo(
+                                noteId = note.id,
+                                content = note.content
+                            ))
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Save discussion note. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            discussionNotes = it.discussionNotes + (discussionId to current.copy(
+                                isSaving = false,
+                                error = error.message ?: "An unexpected error occurred"
+                            ))
+                        )
+                    }
+                }
+        }
+    }
+
+    /** Deletes the signed-in member's note for a discussion and resets its map entry to empty. */
+    fun onDeleteDiscussionNote(discussionId: String) {
+        val noteId = _state.value.discussionNotes[discussionId]?.noteId ?: return
+        viewModelScope.launch {
+            deleteDiscussionNoteUseCase(DeleteDiscussionNoteUseCase.Params(noteId))
+                .onSuccess {
+                    _state.update {
+                        it.copy(discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo()))
+                    }
+                }
+                .onFailure { error ->
+                    Bark.e("Operation failed: Delete discussion note. ${error.message}", error)
+                    _state.update {
+                        it.copy(
+                            discussionNotes = it.discussionNotes + (discussionId to it.discussionNotes.getValue(discussionId).copy(
+                                error = error.message ?: "An unexpected error occurred"
+                            ))
                         )
                     }
                 }

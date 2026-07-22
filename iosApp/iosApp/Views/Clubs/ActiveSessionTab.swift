@@ -8,6 +8,7 @@ struct ActiveSessionTab: View {
     var onCreateDiscussion: () -> Void = {}
     var onEditDiscussion: (String) -> Void = { _ in }
     var onDeleteDiscussion: (String) -> Void = { _ in }
+    var onOpenNote: (String) -> Void = { _ in }
     var discussionRosters: [String: Shared.AttendanceRoster] = [:]
     var onLoadAttendanceRoster: (String) -> Void = { _ in }
     var onSetAttendance: (String, Shared.AttendanceStatus) -> Void = { _, _ in }
@@ -46,6 +47,7 @@ struct ActiveSessionTab: View {
                                 showAdminActions: isAdminOrAbove,
                                 onEdit: { onEditDiscussion(discussion.id) },
                                 onDelete: { onDeleteDiscussion(discussion.id) },
+                                onOpenNote: { onOpenNote(discussion.id) },
                                 attendanceRoster: discussionRosters[discussion.id],
                                 onLoadRoster: { onLoadAttendanceRoster(discussion.id) },
                                 onSetAttendance: { status in onSetAttendance(discussion.id, status) }
@@ -83,6 +85,7 @@ struct DiscussionTimelineItem: View {
     var showAdminActions: Bool = false
     var onEdit: () -> Void = {}
     var onDelete: () -> Void = {}
+    var onOpenNote: () -> Void = {}
     var attendanceRoster: Shared.AttendanceRoster? = nil
     var onLoadRoster: () -> Void = {}
     var onSetAttendance: (Shared.AttendanceStatus) -> Void = { _ in }
@@ -159,14 +162,22 @@ struct DiscussionTimelineItem: View {
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if showAdminActions {
-                    Menu {
-                        Button("Edit") { onEdit() }
-                        Button("Delete", role: .destructive) { onDelete() }
-                    } label: {
-                        Image(systemName: "ellipsis")
+                HStack(spacing: 0) {
+                    Button(action: onOpenNote) {
+                        Image(systemName: "pencil")
                             .foregroundColor(.secondary)
                             .padding(.vertical, 12)
+                    }
+
+                    if showAdminActions {
+                        Menu {
+                            Button("Edit") { onEdit() }
+                            Button("Delete", role: .destructive) { onDelete() }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 12)
+                        }
                     }
                 }
             }

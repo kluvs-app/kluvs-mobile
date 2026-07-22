@@ -80,6 +80,12 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun onSetAttendance(discussionId: String, status: AttendanceStatus) =
         viewModel.onSetAttendance(discussionId, status)
 
+    // Discussion note operations
+    fun onLoadDiscussionNote(discussionId: String) = viewModel.onLoadDiscussionNote(discussionId)
+    fun onSaveDiscussionNote(discussionId: String, content: String) =
+        viewModel.onSaveDiscussionNote(discussionId, content)
+    fun onDeleteDiscussionNote(discussionId: String) = viewModel.onDeleteDiscussionNote(discussionId)
+
     // Member operations
     fun onUpdateMemberRole(memberId: String, currentMemberId: String, newRole: Role) =
         viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)

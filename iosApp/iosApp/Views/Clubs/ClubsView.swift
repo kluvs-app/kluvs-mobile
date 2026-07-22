@@ -92,6 +92,7 @@ private struct ClubDetailView: View {
     @State private var showCreateDiscussionSheet = false
     @State private var editingDiscussionId: IDWrapper? = nil
     @State private var deletingDiscussionId: String? = nil
+    @State private var openNoteDiscussionId: IDWrapper? = nil
     @State private var changingRoleMemberId: IDWrapper? = nil
     @State private var removingMemberId: String? = nil
 
@@ -200,6 +201,7 @@ private struct ClubDetailView: View {
                         onCreateDiscussion: { showCreateDiscussionSheet = true },
                         onEditDiscussion: { id in editingDiscussionId = IDWrapper(id: id) },
                         onDeleteDiscussion: { id in deletingDiscussionId = id },
+                        onOpenNote: { id in openNoteDiscussionId = IDWrapper(id: id) },
                         discussionRosters: viewModel.discussionRosters,
                         onLoadAttendanceRoster: { id in viewModel.onLoadAttendanceRoster(discussionId: id) },
                         onSetAttendance: { id, status in viewModel.onSetAttendance(discussionId: id, status: status) }
@@ -339,6 +341,20 @@ private struct ClubDetailView: View {
             Button("Cancel", role: .cancel) { deletingDiscussionId = nil }
         } message: {
             Text("Are you sure you want to delete this discussion?")
+        }
+        // Discussion note
+        .sheet(item: $openNoteDiscussionId) { wrapper in
+            let discussionId = wrapper.id
+            DiscussionNoteSheet(
+                note: viewModel.discussionNotes[discussionId],
+                onSave: { content in viewModel.onSaveDiscussionNote(discussionId: discussionId, content: content) },
+                onDelete: {
+                    viewModel.onDeleteDiscussionNote(discussionId: discussionId)
+                    openNoteDiscussionId = nil
+                },
+                onDismiss: { openNoteDiscussionId = nil }
+            )
+            .onAppear { viewModel.onLoadDiscussionNote(discussionId: discussionId) }
         }
         // Change role
         .sheet(item: $changingRoleMemberId) { wrapper in

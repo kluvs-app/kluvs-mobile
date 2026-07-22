@@ -131,3 +131,17 @@ sealed interface OperationResult {
     data class Success(val message: String) : OperationResult
     data class Error(val message: String) : OperationResult
 }
+
+/**
+ * UI model for the signed-in member's note on a discussion, keyed by discussion ID
+ * in [ClubDetailsState.discussionNotes].
+ *
+ * [noteId] is null when no note exists yet for the discussion — the sheet should
+ * open straight into an editable/create state in that case.
+ */
+data class DiscussionNoteInfo(
+    val noteId: String? = null,
+    val content: String = "",
+    val isSaving: Boolean = false,
+    val error: String? = null
+)

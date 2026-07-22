@@ -2,9 +2,11 @@ package com.ivangarzab.kluvs.clubs.presentation
 
 import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
@@ -12,6 +14,7 @@ import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
@@ -19,12 +22,14 @@ import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionNoteRepository
 import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
@@ -64,6 +69,7 @@ class ClubDetailsViewModelHelperTest {
     private lateinit var progressRepository: ProgressRepository
     private lateinit var discussionRepository: DiscussionRepository
     private lateinit var discussionAttendanceRepository: DiscussionAttendanceRepository
+    private lateinit var discussionNoteRepository: DiscussionNoteRepository
     private lateinit var viewModel: ClubDetailsViewModel
     private lateinit var testScope: CoroutineScope
     private lateinit var helper: ClubDetailsViewModelHelper
@@ -81,6 +87,7 @@ class ClubDetailsViewModelHelperTest {
         progressRepository = mock<ProgressRepository>()
         discussionRepository = mock<DiscussionRepository>()
         discussionAttendanceRepository = mock<DiscussionAttendanceRepository>()
+        discussionNoteRepository = mock<DiscussionNoteRepository>()
 
         // Create test scope
         testScope = CoroutineScope(testDispatcher + Job())
@@ -112,7 +119,11 @@ class ClubDetailsViewModelHelperTest {
             removeMemberUseCase = RemoveMemberUseCase(memberRepository),
             getAttendanceRosterUseCase = GetAttendanceRosterUseCase(discussionAttendanceRepository),
             setAttendanceUseCase = SetAttendanceUseCase(discussionAttendanceRepository),
-            clearAttendanceUseCase = ClearAttendanceUseCase(discussionAttendanceRepository)
+            clearAttendanceUseCase = ClearAttendanceUseCase(discussionAttendanceRepository),
+            getDiscussionNoteUseCase = GetDiscussionNoteUseCase(discussionNoteRepository),
+            createDiscussionNoteUseCase = CreateDiscussionNoteUseCase(discussionNoteRepository),
+            updateDiscussionNoteUseCase = UpdateDiscussionNoteUseCase(discussionNoteRepository),
+            deleteDiscussionNoteUseCase = DeleteDiscussionNoteUseCase(discussionNoteRepository)
         )
 
         // Start Koin with test module
