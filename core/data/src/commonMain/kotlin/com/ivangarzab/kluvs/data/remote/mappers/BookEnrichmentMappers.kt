@@ -30,12 +30,28 @@ fun BookVolumeInfoDto.toDomain(): BookVolumeInfo {
     return BookVolumeInfo(
         subtitle = subtitle,
         publisher = publisher,
-        description = description,
+        description = description?.let { stripHtml(it) },
         categories = categories,
         language = language,
         isbn13 = industryIdentifiers.firstOrNull { it.type == BookIndustryIdentifierDto.Type.ISBN_13 }?.identifier,
         isbn10 = industryIdentifiers.firstOrNull { it.type == BookIndustryIdentifierDto.Type.ISBN_10 }?.identifier
     )
+}
+
+/**
+ * Strips HTML from Google Books' `description` field (mirrors web's `stripHtml` in
+ * `googleBooks.ts`) — descriptions routinely arrive as `<p><b>...</b>...</p>` markup.
+ */
+private fun stripHtml(html: String): String {
+    return html
+        .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
+        .replace(Regex("<[^>]+>"), "")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .trim()
 }
 
 fun AuthorInfoDto.toDomain(): Author {

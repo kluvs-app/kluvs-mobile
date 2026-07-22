@@ -1,9 +1,12 @@
 package com.ivangarzab.kluvs.ui.books
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -50,8 +55,9 @@ import com.ivangarzab.kluvs.theme.ebGaramond
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Book detail screen: cover header, volume info, "About the Author", "More by this author",
- * and shelf/like controls. Mirrors web's `BooksPage.tsx` detail panel section order.
+ * Book detail screen: cover header, category chips, shelf/like actions, "About",
+ * "Details", "About the Author", and "More by this author". Mirrors web's
+ * `BooksPage.tsx` detail panel section order (see [kluvs-frontend] for reference).
  */
 @Composable
 fun BookDetailScreen(
@@ -95,6 +101,7 @@ fun BookDetailScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BookDetailScreenContent(
     modifier: Modifier = Modifier,
@@ -107,6 +114,7 @@ fun BookDetailScreenContent(
     onToggleLike: () -> Unit = {}
 ) {
     val book = state.book ?: return
+    val volumeInfo = state.enrichment?.volumeInfo
 
     Column(
         modifier = modifier
@@ -133,7 +141,7 @@ fun BookDetailScreenContent(
         }
 
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Cover header
@@ -157,24 +165,26 @@ fun BookDetailScreenContent(
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    state.enrichment?.volumeInfo?.subtitle?.let { subtitle ->
+                    volumeInfo?.subtitle?.let { subtitle ->
                         Text(
                             text = subtitle,
+                            fontFamily = ebGaramond,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
-                        text = book.author,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = metaLine(book, volumeInfo),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    book.year?.let { year ->
-                        Text(
-                            text = year.toString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                }
+            }
+
+            if (volumeInfo != null && volumeInfo.categories.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    volumeInfo.categories.take(5).forEach { category ->
+                        CategoryChip(category)
                     }
                 }
             }
@@ -190,24 +200,53 @@ fun BookDetailScreenContent(
                 onToggleLike = onToggleLike
             )
 
-            state.enrichment?.volumeInfo?.let { volumeInfo ->
-                VolumeInfoSection(volumeInfo = volumeInfo)
+            HorizontalDivider()
+
+            // About
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionEyebrow(stringResource(R.string.book_about))
+                val description = volumeInfo?.description
+                Text(
+                    text = description ?: stringResource(R.string.book_no_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = if (description == null) FontStyle.Italic else FontStyle.Normal,
+                    color = if (description == null) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
             }
 
-            AuthorSection(
-                modifier = Modifier.fillMaxWidth(),
-                isLoading = state.isLoadingEnrichment,
-                author = state.enrichment?.author
-            )
+            val detailRows = buildDetailRows(book, volumeInfo)
+            if (detailRows.isNotEmpty()) {
+                HorizontalDivider()
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SectionEyebrow(stringResource(R.string.book_details))
+                    detailRows.forEachIndexed { index, (labelRes, value) ->
+                        if (index > 0) HorizontalDivider()
+                        DetailRow(label = stringResource(labelRes), value = value)
+                    }
+                }
+            }
+
+            if (state.isLoadingEnrichment || state.enrichment?.author != null) {
+                HorizontalDivider()
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SectionEyebrow(stringResource(R.string.book_about_the_author))
+                    AuthorSection(
+                        modifier = Modifier.fillMaxWidth(),
+                        isLoading = state.isLoadingEnrichment,
+                        author = state.enrichment?.author
+                    )
+                }
+            }
 
             val authorBooks = state.enrichment?.authorBooks.orEmpty()
             if (authorBooks.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "More by this author",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                HorizontalDivider()
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SectionEyebrow(stringResource(R.string.book_more_by_x, primaryAuthor(book.author)))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(authorBooks, key = { it.id }) { authorBook ->
                             BookCard(
@@ -223,31 +262,86 @@ fun BookDetailScreenContent(
 }
 
 @Composable
-private fun VolumeInfoSection(modifier: Modifier = Modifier, volumeInfo: BookVolumeInfo) {
-    if (volumeInfo.description == null && volumeInfo.publisher == null && volumeInfo.categories.isEmpty()) return
+private fun SectionEyebrow(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+@Composable
+private fun CategoryChip(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        volumeInfo.description?.let { description ->
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        if (volumeInfo.publisher != null || volumeInfo.categories.isNotEmpty()) {
-            Text(
-                text = listOfNotNull(
-                    volumeInfo.publisher,
-                    volumeInfo.categories.takeIf { it.isNotEmpty() }?.joinToString(", ")
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = label,
+            modifier = Modifier.width(90.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
+}
+
+private fun metaLine(book: Book, volumeInfo: BookVolumeInfo?): String {
+    return listOfNotNull(
+        book.author,
+        book.year?.toString(),
+        book.pageCount?.let { "$it pages" },
+        volumeInfo?.publisher
+    ).joinToString(" · ")
+}
+
+private fun buildDetailRows(book: Book, volumeInfo: BookVolumeInfo?): List<Pair<Int, String>> {
+    val isbn = volumeInfo?.isbn13 ?: volumeInfo?.isbn10 ?: book.isbn
+    return listOfNotNull(
+        book.year?.let { R.string.book_field_published to it.toString() },
+        book.pageCount?.let { R.string.book_field_pages to it.toString() },
+        volumeInfo?.publisher?.let { R.string.book_field_publisher to it },
+        isbn?.let { R.string.book_field_isbn to it },
+        volumeInfo?.language?.let { R.string.book_field_language to displayLanguage(it) },
+        book.edition?.let { R.string.book_field_edition to it }
+    )
+}
+
+private fun primaryAuthor(author: String): String {
+    return author
+        .split(Regex("\\s*(?:,|&| and )\\s*", RegexOption.IGNORE_CASE))
+        .firstOrNull()
+        ?.trim()
+        ?: author
+}
+
+private val languageDisplayNames = mapOf(
+    "en" to "English", "es" to "Spanish", "fr" to "French", "de" to "German",
+    "it" to "Italian", "pt" to "Portuguese", "nl" to "Dutch", "ja" to "Japanese",
+    "zh" to "Chinese", "ko" to "Korean", "ru" to "Russian", "ar" to "Arabic",
+    "hi" to "Hindi", "pl" to "Polish", "sv" to "Swedish", "tr" to "Turkish"
+)
+
+private fun displayLanguage(code: String): String {
+    return languageDisplayNames[code.lowercase()] ?: code
 }
 
 @PreviewLightDark

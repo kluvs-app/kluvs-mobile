@@ -19,19 +19,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.model.Author
 import com.ivangarzab.kluvs.theme.ebGaramond
 
 /**
- * "About the Author" section: photo + bio. Shows a shimmer while loading, and is
- * silently omitted entirely if [author] is null once loading finishes — same
- * graceful-degradation semantics as web's `BooksPage.tsx`.
+ * "About the Author" body: photo + name row, then bio below full-width (mirrors web's
+ * vertical stack, not a side-by-side avatar/bio layout). Shows a shimmer while loading,
+ * and is silently omitted entirely if [author] is null once loading finishes — same
+ * graceful-degradation semantics as web's `BooksPage.tsx`. The section eyebrow header
+ * and surrounding divider are owned by the caller, matching the Details/More-by sections.
  */
 @Composable
 fun AuthorSection(
@@ -46,12 +48,8 @@ fun AuthorSection(
                 modifier = modifier,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "About the Author",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (author.imageUrl != null) {
@@ -59,31 +57,28 @@ fun AuthorSection(
                             model = author.imageUrl,
                             contentDescription = author.name,
                             modifier = Modifier
-                                .size(56.dp)
+                                .size(48.dp)
                                 .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val name = author.name
-                        if (name != null) {
-                            Text(
-                                text = name,
-                                fontFamily = ebGaramond,
-                                fontStyle = FontStyle.Italic,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        val bio = author.bio
-                        if (bio != null) {
-                            Text(
-                                text = bio,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    val name = author.name
+                    if (name != null) {
+                        Text(
+                            text = name,
+                            fontFamily = ebGaramond,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
+                }
+                val bio = author.bio
+                if (bio != null) {
+                    Text(
+                        text = bio,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
@@ -105,17 +100,20 @@ private fun AuthorSectionShimmer(modifier: Modifier = Modifier) {
     )
     val shimmerColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
 
-    Row(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(shimmerColor)
-        ) {}
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(shimmerColor)
+            ) {}
             Column(
                 modifier = Modifier
                     .fillMaxWidth(0.4f)
@@ -123,13 +121,20 @@ private fun AuthorSectionShimmer(modifier: Modifier = Modifier) {
                     .clip(RoundedCornerShape(4.dp))
                     .background(shimmerColor)
             ) {}
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(shimmerColor)
-            ) {}
         }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(shimmerColor)
+        ) {}
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .height(12.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(shimmerColor)
+        ) {}
     }
 }
