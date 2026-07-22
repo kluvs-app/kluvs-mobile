@@ -26,6 +26,7 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     @Published var members: [Shared.MemberListItemInfo] = []
     @Published var userRole: Shared.Role? = nil
     @Published var discussionRosters: [String: Shared.AttendanceRoster] = [:]
+    @Published var discussionNotes: [String: Shared.DiscussionNoteInfo] = [:]
     @Published var isOperationInProgress: Bool = false
     @Published var operationMessage: String? = nil
     @Published var createdClubId: String? = nil
@@ -59,6 +60,7 @@ class ClubDetailsViewModelWrapper: ObservableObject {
                 self.members = state.members
                 self.userRole = state.userRole
                 self.discussionRosters = state.discussionRosters
+                self.discussionNotes = state.discussionNotes
                 self.isOperationInProgress = state.isOperationInProgress
                 self.operationMessage = self.helper.operationResultMessage(result: state.operationResult)
                 self.createdClubId = state.createdClubId
@@ -122,6 +124,17 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     }
     func onSetAttendance(discussionId: String, status: Shared.AttendanceStatus) {
         helper.onSetAttendance(discussionId: discussionId, status: status)
+    }
+
+    // Discussion note operations
+    func onLoadDiscussionNote(discussionId: String) {
+        helper.onLoadDiscussionNote(discussionId: discussionId)
+    }
+    func onSaveDiscussionNote(discussionId: String, content: String) {
+        helper.onSaveDiscussionNote(discussionId: discussionId, content: content)
+    }
+    func onDeleteDiscussionNote(discussionId: String) {
+        helper.onDeleteDiscussionNote(discussionId: discussionId)
     }
 
     // Member operations
