@@ -22,7 +22,7 @@ class RotateInviteLinkUseCaseTest {
     private val params = RotateInviteLinkUseCase.Params(clubId = "club-1")
 
     @Test
-    fun `invoke succeeds when user is OWNER, deactivating then reactivating`() = runTest {
+    fun `invoke succeeds when user is OWNER deactivating then reactivating`() = runTest {
         val deactivatedClub = Club(id = "club-1", name = "Club", joinPolicy = JoinPolicy.PRIVATE, inviteToken = null)
         val rotatedClub = Club(id = "club-1", name = "Club", joinPolicy = JoinPolicy.INVITE_LINK, inviteToken = "tok-new")
         everySuspend {
