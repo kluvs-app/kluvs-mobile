@@ -12,33 +12,60 @@ struct BooksView: View {
     @StateObject private var viewModel = BooksViewModelWrapper()
     @State private var isSearchActive = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var path = NavigationPath()
+    // Tapped books (from shelf, search, or a "more by this author" row) are threaded through
+    // this closure rather than nav args, since they may not be back-referenceable from
+    // BooksViewModelWrapper's state — mirrors Android's `selectedBook` pattern in BooksScreen.
+    @State private var selectedBook: Shared.Book?
 
     var body: some View {
-        VStack(spacing: 0) {
-            BooksTopBar(
-                isSearchActive: isSearchActive,
-                isSearching: viewModel.isSearching,
-                query: Binding(
-                    get: { viewModel.query },
-                    set: { viewModel.onQueryChange($0) }
-                ),
-                onSearchClick: { isSearchActive = true },
-                onBackClick: {
-                    isSearchActive = false
-                    viewModel.onQueryChange("")
+        NavigationStack(path: $path) {
+            VStack(spacing: 0) {
+                BooksTopBar(
+                    isSearchActive: isSearchActive,
+                    isSearching: viewModel.isSearching,
+                    query: Binding(
+                        get: { viewModel.query },
+                        set: { viewModel.onQueryChange($0) }
+                    ),
+                    onSearchClick: { isSearchActive = true },
+                    onBackClick: {
+                        isSearchActive = false
+                        viewModel.onQueryChange("")
+                    }
+                )
+
+                if viewModel.isMutationInProgress {
+                    ProgressView()
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .tint(.brandOrange)
                 }
-            )
 
-            if viewModel.isMutationInProgress {
-                ProgressView()
-                    .progressViewStyle(LinearProgressViewStyle())
-                    .tint(.brandOrange)
+                if isSearchActive {
+                    SearchContent(viewModel: viewModel, onBookTap: { book in
+                        selectedBook = book
+                        path.append(book.id)
+                    })
+                } else {
+                    ShelfContent(viewModel: viewModel, onBookTap: { book in
+                        selectedBook = book
+                        path.append(book.id)
+                    })
+                }
             }
-
-            if isSearchActive {
-                SearchContent(viewModel: viewModel)
-            } else {
-                ShelfContent(viewModel: viewModel)
+            .navigationDestination(for: String.self) { _ in
+                if let book = selectedBook {
+                    let shelfEntry = viewModel.shelfEntries.first { $0.book.id == book.id }
+                    BookDetailView(
+                        book: book,
+                        initialShelfStatus: shelfEntry?.shelf,
+                        initialShelfSource: shelfEntry?.source,
+                        onNavigateToBook: { nextBook in
+                            selectedBook = nextBook
+                            path.append(nextBook.id)
+                        }
+                    )
+                }
             }
         }
         .onAppear { viewModel.loadShelf() }
@@ -68,6 +95,7 @@ struct BooksView: View {
 
 private struct ShelfContent: View {
     @ObservedObject var viewModel: BooksViewModelWrapper
+    let onBookTap: (Shared.Book) -> Void
 
     var body: some View {
         switch viewModel.shelfScreenState {
@@ -89,7 +117,7 @@ private struct ShelfContent: View {
                     ForEach(shelfSections, id: \.ordinal) { section in
                         let entries = viewModel.shelfEntries.filter { $0.shelf == section }
                         if !entries.isEmpty {
-                            ShelfSectionView(section: section, entries: entries, viewModel: viewModel)
+                            ShelfSectionView(section: section, entries: entries, onBookTap: onBookTap)
                         }
                     }
                 }
@@ -102,7 +130,7 @@ private struct ShelfContent: View {
 private struct ShelfSectionView: View {
     let section: Shared.ShelfStatus
     let entries: [Shared.ShelfEntry]
-    let viewModel: BooksViewModelWrapper
+    let onBookTap: (Shared.Book) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -129,15 +157,8 @@ private struct ShelfSectionView: View {
                     ForEach(entries, id: \.book.id) { entry in
                         BookCard(
                             book: entry.book,
-                            shelfStatus: entry.shelf,
                             shelfSource: entry.source,
-                            onShelfChange: { newShelf in
-                                if let newShelf {
-                                    viewModel.onAssignShelf(bookId: entry.book.id, shelf: newShelf)
-                                } else {
-                                    viewModel.onRemoveFromShelf(bookId: entry.book.id)
-                                }
-                            }
+                            onTap: { onBookTap(entry.book) }
                         )
                     }
                 }
@@ -161,6 +182,7 @@ private func sectionLabel(_ status: Shared.ShelfStatus) -> String {
 
 private struct SearchContent: View {
     @ObservedObject var viewModel: BooksViewModelWrapper
+    let onBookTap: (Shared.Book) -> Void
 
     private let gridColumns = [GridItem(.adaptive(minimum: 120), spacing: 12)]
 
@@ -186,14 +208,7 @@ private struct SearchContent: View {
                         ForEach(viewModel.searchResults, id: \.id) { book in
                             BookCard(
                                 book: book,
-                                shelfStatus: nil,
-                                onShelfChange: { newShelf in
-                                    if let newShelf {
-                                        viewModel.onAssignShelf(bookId: book.id, shelf: newShelf)
-                                    } else {
-                                        viewModel.onRemoveFromShelf(bookId: book.id)
-                                    }
-                                }
+                                onTap: { onBookTap(book) }
                             )
                         }
                     }

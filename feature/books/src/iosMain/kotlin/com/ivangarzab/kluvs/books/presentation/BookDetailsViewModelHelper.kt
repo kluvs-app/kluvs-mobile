@@ -30,8 +30,10 @@ class BookDetailsViewModelHelper : KoinComponent {
         return Closeable { job.cancel() }
     }
 
-    fun load(book: Book, shelfStatus: ShelfStatus?, shelfSource: ShelfSource?, isLiked: Boolean) =
-        viewModel.load(book, shelfStatus, shelfSource, isLiked)
+    val isRegistered: Boolean get() = viewModel.isRegistered
+
+    fun load(book: Book, shelfStatus: ShelfStatus?, shelfSource: ShelfSource?) =
+        viewModel.load(book, shelfStatus, shelfSource)
     fun onAssignShelf(shelf: ShelfStatus) = viewModel.onAssignShelf(shelf)
     fun onRemoveFromShelf() = viewModel.onRemoveFromShelf()
     fun onToggleLike() = viewModel.onToggleLike()

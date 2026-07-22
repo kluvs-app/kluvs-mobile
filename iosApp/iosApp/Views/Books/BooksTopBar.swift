@@ -25,8 +25,8 @@ struct BooksTopBar: View {
             // Title row — fades in place, no positional movement.
             HStack {
                 Text(String(localized: "books"))
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.kluvsSectionHeading)
+                    .foregroundColor(.primary)
                 Spacer()
                 Button(action: onSearchClick) {
                     Image(systemName: "magnifyingglass")
@@ -56,7 +56,7 @@ struct BooksTopBar: View {
         }
         .frame(height: 56)
         .padding(.top, safeAreaInsets.top)
-        .background(Color(UIColor.systemBackground))
+        .background(Color.kluvsBackground)
     }
 }
 
