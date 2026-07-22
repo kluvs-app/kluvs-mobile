@@ -70,6 +70,7 @@ fun ActiveSessionTab(
     onCreateDiscussion: () -> Unit = {},
     onEditDiscussion: (discussionId: String) -> Unit = {},
     onDeleteDiscussion: (discussionId: String) -> Unit = {},
+    onOpenNote: (discussionId: String) -> Unit = {},
     discussionRosters: Map<String, AttendanceRoster> = emptyMap(),
     onLoadAttendanceRoster: (discussionId: String) -> Unit = {},
     onSetAttendance: (discussionId: String, status: AttendanceStatus) -> Unit = { _, _ -> },
@@ -156,6 +157,7 @@ fun ActiveSessionTab(
                             showAdminActions = isAdminOrAbove,
                             onEdit = { onEditDiscussion(discussion.id) },
                             onDelete = { onDeleteDiscussion(discussion.id) },
+                            onOpenNote = { onOpenNote(discussion.id) },
                             attendanceRoster = discussionRosters[discussion.id],
                             onLoadRoster = { onLoadAttendanceRoster(discussion.id) },
                             onSetAttendance = { status -> onSetAttendance(discussion.id, status) }
@@ -175,6 +177,7 @@ private fun DiscussionTimelineItem(
     showAdminActions: Boolean = false,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
+    onOpenNote: () -> Unit = {},
     attendanceRoster: AttendanceRoster? = null,
     onLoadRoster: () -> Unit = {},
     onSetAttendance: (AttendanceStatus) -> Unit = {},
@@ -328,11 +331,20 @@ private fun DiscussionTimelineItem(
                 )
             }
 
-            if (showAdminActions) {
-                DiscussionOverflowMenu(
-                    onEdit = onEdit,
-                    onDelete = onDelete
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onOpenNote) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_edit),
+                        contentDescription = "Discussion note",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (showAdminActions) {
+                    DiscussionOverflowMenu(
+                        onEdit = onEdit,
+                        onDelete = onDelete
+                    )
+                }
             }
         }
     }

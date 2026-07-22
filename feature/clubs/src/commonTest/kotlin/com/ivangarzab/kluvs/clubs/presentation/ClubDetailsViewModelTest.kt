@@ -2,9 +2,11 @@ package com.ivangarzab.kluvs.clubs.presentation
 
 import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.DeleteSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.FinishSessionUseCase
@@ -12,6 +14,7 @@ import com.ivangarzab.kluvs.clubs.domain.GetActiveSessionUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubDetailsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
+import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
@@ -19,12 +22,14 @@ import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateClubUseCase
+import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateDiscussionUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateMemberRoleUseCase
 import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
+import com.ivangarzab.kluvs.data.repositories.DiscussionNoteRepository
 import com.ivangarzab.kluvs.data.repositories.DiscussionRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
@@ -36,6 +41,7 @@ import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.ClubMember
 import com.ivangarzab.kluvs.model.Discussion
+import com.ivangarzab.kluvs.model.DiscussionNote
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.ProgressStatus
 import com.ivangarzab.kluvs.model.ProgressType
@@ -100,6 +106,11 @@ class ClubDetailsViewModelTest {
     private lateinit var getAttendanceRosterUseCase: GetAttendanceRosterUseCase
     private lateinit var setAttendanceUseCase: SetAttendanceUseCase
     private lateinit var clearAttendanceUseCase: ClearAttendanceUseCase
+    private lateinit var discussionNoteRepository: DiscussionNoteRepository
+    private lateinit var getDiscussionNoteUseCase: GetDiscussionNoteUseCase
+    private lateinit var createDiscussionNoteUseCase: CreateDiscussionNoteUseCase
+    private lateinit var updateDiscussionNoteUseCase: UpdateDiscussionNoteUseCase
+    private lateinit var deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase
     private lateinit var viewModel: ClubDetailsViewModel
 
     private val formatDateTime = FormatDateTimeUseCase()
@@ -115,6 +126,7 @@ class ClubDetailsViewModelTest {
         progressRepository = mock<ProgressRepository>()
         discussionAttendanceRepository = mock<DiscussionAttendanceRepository>()
         discussionRepository = mock<DiscussionRepository>()
+        discussionNoteRepository = mock<DiscussionNoteRepository>()
 
         // Use REAL UseCases with mocked repositories
         getClubDetails = GetClubDetailsUseCase(clubRepository, formatDateTime)
@@ -139,6 +151,10 @@ class ClubDetailsViewModelTest {
         getAttendanceRosterUseCase = GetAttendanceRosterUseCase(discussionAttendanceRepository)
         setAttendanceUseCase = SetAttendanceUseCase(discussionAttendanceRepository)
         clearAttendanceUseCase = ClearAttendanceUseCase(discussionAttendanceRepository)
+        getDiscussionNoteUseCase = GetDiscussionNoteUseCase(discussionNoteRepository)
+        createDiscussionNoteUseCase = CreateDiscussionNoteUseCase(discussionNoteRepository)
+        updateDiscussionNoteUseCase = UpdateDiscussionNoteUseCase(discussionNoteRepository)
+        deleteDiscussionNoteUseCase = DeleteDiscussionNoteUseCase(discussionNoteRepository)
 
         viewModel = ClubDetailsViewModel(
             getClubDetails, getActiveSession, getClubMembers, getMemberClubs,
@@ -149,7 +165,9 @@ class ClubDetailsViewModelTest {
             updateMemberRoleUseCase, removeMemberUseCase,
             getSessionProgressUseCase, saveProgressUseCase, finishSessionUseCase,
             toggleSessionParticipationUseCase,
-            getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase
+            getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase,
+            getDiscussionNoteUseCase, createDiscussionNoteUseCase,
+            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
@@ -844,5 +862,129 @@ class ClubDetailsViewModelTest {
 
         assertNull(viewModel.state.value.discussionRosters["d1"]?.myStatus)
         assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+    }
+
+    // -------------------------------------------------------------------------
+    // Discussion note operations
+    // -------------------------------------------------------------------------
+
+    private fun note(content: String = "Great chapter") = DiscussionNote(
+        id = "n1", discussionId = "d1", memberId = "m1", content = content
+    )
+
+    @Test
+    fun `onLoadDiscussionNote stores note in state`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(note())
+
+        viewModel.onLoadDiscussionNote("d1")
+
+        val info = viewModel.state.value.discussionNotes["d1"]
+        assertEquals("n1", info?.noteId)
+        assertEquals("Great chapter", info?.content)
+    }
+
+    @Test
+    fun `onLoadDiscussionNote stores empty entry when no note exists`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(null)
+
+        viewModel.onLoadDiscussionNote("d1")
+
+        val info = viewModel.state.value.discussionNotes["d1"]
+        assertNull(info?.noteId)
+        assertEquals("", info?.content)
+    }
+
+    @Test
+    fun `onLoadDiscussionNote surfaces error on failure`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns
+            Result.failure(RuntimeException("Network error"))
+
+        viewModel.onLoadDiscussionNote("d1")
+
+        assertNotNull(viewModel.state.value.discussionNotes["d1"]?.error)
+    }
+
+    @Test
+    fun `onLoadDiscussionNote does not refetch when already cached`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(note())
+        viewModel.onLoadDiscussionNote("d1")
+
+        viewModel.onLoadDiscussionNote("d1")
+
+        verifySuspend(VerifyMode.exactly(1)) { discussionNoteRepository.getNote("d1") }
+    }
+
+    @Test
+    fun `onSaveDiscussionNote creates a note when none exists yet`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(null)
+        viewModel.onLoadDiscussionNote("d1")
+        everySuspend { discussionNoteRepository.createNote("d1", "New thoughts") } returns
+            Result.success(note(content = "New thoughts"))
+
+        viewModel.onSaveDiscussionNote("d1", "New thoughts")
+
+        val info = viewModel.state.value.discussionNotes["d1"]
+        assertEquals("n1", info?.noteId)
+        assertEquals("New thoughts", info?.content)
+        assertFalse(info?.isSaving == true)
+    }
+
+    @Test
+    fun `onSaveDiscussionNote updates an existing note`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(note())
+        viewModel.onLoadDiscussionNote("d1")
+        everySuspend { discussionNoteRepository.updateNote("n1", "Updated thoughts") } returns
+            Result.success(note(content = "Updated thoughts"))
+
+        viewModel.onSaveDiscussionNote("d1", "Updated thoughts")
+
+        assertEquals("Updated thoughts", viewModel.state.value.discussionNotes["d1"]?.content)
+        verifySuspend { discussionNoteRepository.updateNote("n1", "Updated thoughts") }
+    }
+
+    @Test
+    fun `onSaveDiscussionNote surfaces error and keeps prior content on failure`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(note())
+        viewModel.onLoadDiscussionNote("d1")
+        everySuspend { discussionNoteRepository.updateNote("n1", "Updated thoughts") } returns
+            Result.failure(RuntimeException("Save failed"))
+
+        viewModel.onSaveDiscussionNote("d1", "Updated thoughts")
+
+        val info = viewModel.state.value.discussionNotes["d1"]
+        assertNotNull(info?.error)
+        assertEquals("Great chapter", info?.content)
+    }
+
+    @Test
+    fun `onDeleteDiscussionNote resets entry to empty on success`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(note())
+        viewModel.onLoadDiscussionNote("d1")
+        everySuspend { discussionNoteRepository.deleteNote("n1") } returns Result.success(Unit)
+
+        viewModel.onDeleteDiscussionNote("d1")
+
+        val info = viewModel.state.value.discussionNotes["d1"]
+        assertNull(info?.noteId)
+        assertEquals("", info?.content)
+    }
+
+    @Test
+    fun `onDeleteDiscussionNote does nothing when no note exists`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(null)
+        viewModel.onLoadDiscussionNote("d1")
+
+        viewModel.onDeleteDiscussionNote("d1")
+
+        verifySuspend(VerifyMode.not) { discussionNoteRepository.deleteNote(any()) }
     }
 }

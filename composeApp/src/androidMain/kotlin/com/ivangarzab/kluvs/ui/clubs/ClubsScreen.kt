@@ -164,6 +164,9 @@ fun ClubsScreen(
                     onDeleteDiscussion = viewModel::onDeleteDiscussion,
                     onLoadAttendanceRoster = viewModel::onLoadAttendanceRoster,
                     onSetAttendance = viewModel::onSetAttendance,
+                    onLoadDiscussionNote = viewModel::onLoadDiscussionNote,
+                    onSaveDiscussionNote = viewModel::onSaveDiscussionNote,
+                    onDeleteDiscussionNote = viewModel::onDeleteDiscussionNote,
                     onUpdateMemberRole = { memberId, newRole ->
                         val currentMemberId = state.members.find { it.userId == userId }?.memberId ?: return@ClubsScreenContent
                         viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)
@@ -202,6 +205,9 @@ fun ClubsScreenContent(
     onDeleteDiscussion: (String) -> Unit = {},
     onLoadAttendanceRoster: (discussionId: String) -> Unit = {},
     onSetAttendance: (discussionId: String, status: AttendanceStatus) -> Unit = { _, _ -> },
+    onLoadDiscussionNote: (discussionId: String) -> Unit = {},
+    onSaveDiscussionNote: (discussionId: String, content: String) -> Unit = { _, _ -> },
+    onDeleteDiscussionNote: (discussionId: String) -> Unit = {},
     onUpdateMemberRole: (memberId: String, newRole: Role) -> Unit = { _, _ -> },
     onRemoveMember: (memberId: String) -> Unit = {},
 ) {
@@ -215,6 +221,7 @@ fun ClubsScreenContent(
     var showCreateDiscussionSheet by remember { mutableStateOf(false) }
     var editingDiscussionId by remember { mutableStateOf<String?>(null) }
     var deletingDiscussionId by remember { mutableStateOf<String?>(null) }
+    var openNoteDiscussionId by remember { mutableStateOf<String?>(null) }
     var changingRoleMemberId by remember { mutableStateOf<String?>(null) }
     var removingMemberId by remember { mutableStateOf<String?>(null) }
 
@@ -409,6 +416,7 @@ fun ClubsScreenContent(
                                     onCreateDiscussion = { showCreateDiscussionSheet = true },
                                     onEditDiscussion = { id -> editingDiscussionId = id },
                                     onDeleteDiscussion = { id -> deletingDiscussionId = id },
+                                    onOpenNote = { id -> openNoteDiscussionId = id },
                                     discussionRosters = state.discussionRosters,
                                     onLoadAttendanceRoster = onLoadAttendanceRoster,
                                     onSetAttendance = onSetAttendance
@@ -553,6 +561,19 @@ fun ClubsScreenContent(
                             deletingDiscussionId = null
                         },
                         onDismiss = { deletingDiscussionId = null }
+                    )
+                }
+
+                openNoteDiscussionId?.let { discussionId ->
+                    LaunchedEffect(discussionId) { onLoadDiscussionNote(discussionId) }
+                    DiscussionNoteSheet(
+                        note = state.discussionNotes[discussionId],
+                        onSave = { content -> onSaveDiscussionNote(discussionId, content) },
+                        onDelete = {
+                            onDeleteDiscussionNote(discussionId)
+                            openNoteDiscussionId = null
+                        },
+                        onDismiss = { openNoteDiscussionId = null }
                     )
                 }
 
