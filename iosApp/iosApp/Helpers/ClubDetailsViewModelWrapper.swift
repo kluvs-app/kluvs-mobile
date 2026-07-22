@@ -81,6 +81,8 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     // General tab
     func onUpdateClubName(_ newName: String) { helper.onUpdateClubName(newName: newName) }
     func onDeleteClub() { helper.onDeleteClub() }
+    func onUpdateJoinPolicy(_ joinPolicy: Shared.JoinPolicy) { helper.onUpdateJoinPolicy(joinPolicy: joinPolicy) }
+    func onRotateInviteLink() { helper.onRotateInviteLink() }
 
     // Session tab — dates passed as ISO strings
     func onCreateSession(book: Shared.Book, dueDateIso: String?) {

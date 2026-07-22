@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MainView: View {
     let userId: String
+    var initialClubId: String? = nil
+    var onNavigateToJoin: () -> Void = {}
     @State private var selectedTab = 0
 
     var body: some View {
@@ -14,7 +16,7 @@ struct MainView: View {
                 // Content area
                 Group {
                     if selectedTab == 0 {
-                        ClubsView(userId: userId)
+                        ClubsView(userId: userId, initialClubId: initialClubId, onNavigateToJoin: onNavigateToJoin)
                     } else if selectedTab == 1 {
                         MeView(userId: userId)
                     } else {
