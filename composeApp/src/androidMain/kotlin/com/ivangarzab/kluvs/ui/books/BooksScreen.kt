@@ -60,7 +60,7 @@ import com.ivangarzab.kluvs.designsystem.theme.foregroundLightSecondary
 import com.ivangarzab.kluvs.designsystem.theme.foregroundLightTertiary
 import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmTertiary
 import com.ivangarzab.kluvs.designsystem.theme.ibmPlexSans
-import com.ivangarzab.kluvs.ui.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel

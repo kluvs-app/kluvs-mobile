@@ -42,10 +42,10 @@ fun RoleEyebrow(
             )
         }
         Text(
-            // KluvsTheme.type.eyebrow carries size/weight/tracking only — Compose's TextStyle has
+            // KluvsTheme.typography.eyebrow carries size/weight/tracking only — Compose's TextStyle has
             // no text-transform, so callers uppercase the string themselves, same as before.
             text = role.name.uppercase(),
-            style = KluvsTheme.type.eyebrow,
+            style = KluvsTheme.typography.eyebrow,
             color = color
         )
     }

@@ -105,6 +105,6 @@ val kluvsTypography = KluvsTypography(
 /**
  * Static because typography doesn't vary per-recomposition the way ambient state (e.g. color)
  * might — matches AOSP's own `LocalTypography`/`LocalColorScheme`, both `staticCompositionLocalOf`.
- * Read via [KluvsTheme.type], not this directly.
+ * Read via [KluvsTheme.typography], not this directly.
  */
 val LocalKluvsTypography = staticCompositionLocalOf { kluvsTypography }

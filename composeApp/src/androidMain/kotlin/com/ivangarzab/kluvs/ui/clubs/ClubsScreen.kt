@@ -62,7 +62,7 @@ import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow

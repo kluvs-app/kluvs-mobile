@@ -18,6 +18,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
+            implementation(compose.preview)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -37,4 +38,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    debugImplementation(compose.uiTooling)
 }

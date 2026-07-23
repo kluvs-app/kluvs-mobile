@@ -49,7 +49,7 @@ import com.ivangarzab.kluvs.designsystem.theme.providerDiscordBg
 import com.ivangarzab.kluvs.designsystem.theme.providerGoogleBg
 import com.ivangarzab.kluvs.designsystem.theme.providerGoogleText
 import com.ivangarzab.kluvs.ui.components.InputField
-import com.ivangarzab.kluvs.ui.components.SocialButton
+import com.ivangarzab.kluvs.designsystem.components.SocialButton
 import com.ivangarzab.kluvs.ui.components.TextDivider
 
 @Composable

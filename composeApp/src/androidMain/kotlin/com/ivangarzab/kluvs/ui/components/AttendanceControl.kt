@@ -72,7 +72,9 @@ fun AttendanceControl(
         }
         Text(
             text = "${counts[AttendanceStatus.YES]} yes · ${counts[AttendanceStatus.NO]} no · ${counts[AttendanceStatus.MAYBE]} maybe",
-            style = MaterialTheme.typography.labelSmall,
+            // Caption, not Eyebrow — this is plain metadata text, not an uppercase/tracked label.
+            // Matches design-system/docs/typography.md's own "1 yes · 0 no · 0 maybe" example.
+            style = KluvsTheme.typography.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
         )

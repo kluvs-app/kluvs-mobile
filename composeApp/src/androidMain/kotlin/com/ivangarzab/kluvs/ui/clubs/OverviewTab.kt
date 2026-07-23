@@ -56,8 +56,8 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
-import com.ivangarzab.kluvs.ui.components.GhostButton
-import com.ivangarzab.kluvs.ui.components.NoTabData
+import com.ivangarzab.kluvs.designsystem.components.GhostButton
+import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import kotlinx.datetime.LocalDateTime
 
 /**

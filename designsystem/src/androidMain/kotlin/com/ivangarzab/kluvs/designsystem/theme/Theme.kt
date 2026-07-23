@@ -82,7 +82,7 @@ val LocalKluvsLabelColor = compositionLocalOf { foregroundWarmPrimary }
  * composable is no longer what this decorates — see the composable function below.
  */
 object KluvsTheme {
-    val type: KluvsTypography
+    val typography: KluvsTypography
         @Composable
         @ReadOnlyComposable
         get() = LocalKluvsTypography.current
@@ -114,7 +114,7 @@ fun KluvsTheme(
         // app (Button, Scaffold, TextField, etc.) read Material's OWN internal CompositionLocals
         // directly, which only this call can set — there is no way to redirect them from outside
         // androidx.compose.material3. `Typography` here is Type.kt's pre-existing M3-role mapping,
-        // kept only to feed this shim; it is not KluvsTheme.type and new code should never read it.
+        // kept only to feed this shim; it is not KluvsTheme.typography and new code should never read it.
         // Once every screen uses hollow Kluvs primitives instead of stock M3 widgets, this call
         // (and Type.kt) can be deleted outright.
         MaterialTheme(

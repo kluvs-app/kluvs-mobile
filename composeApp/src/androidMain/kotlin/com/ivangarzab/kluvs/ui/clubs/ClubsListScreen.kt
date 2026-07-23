@@ -47,7 +47,7 @@ import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
-import com.ivangarzab.kluvs.ui.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
 /**

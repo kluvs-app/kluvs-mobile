@@ -47,7 +47,7 @@ fun OwnProgressRow(
                 Text(
                     text = if (ownProgress != null) "Update" else "Track Progress",
                     color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge
+                    style = KluvsTheme.typography.label
                 )
             }
         }
@@ -58,12 +58,14 @@ fun OwnProgressRow(
             Text(
                 text = leftLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall
+                // Caption — status/metadata text ("40% complete"-style), matches
+                // design-system/docs/typography.md's Caption family directly.
+                style = KluvsTheme.typography.caption
             )
             Text(
                 text = ownProgress?.label ?: "Not started",
                 color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodySmall
+                style = KluvsTheme.typography.caption
             )
         }
     }

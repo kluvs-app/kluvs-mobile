@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.ui.components
+package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 @Composable
 fun SocialButton(
@@ -54,7 +54,7 @@ fun SocialButton(
             text = text,
             color = textColor,
             fontSize = 16.sp,
-            style = MaterialTheme.typography.labelLarge
+            style = KluvsTheme.typography.label
         )
     }
 }

@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.ui.components
+package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +33,7 @@ fun ErrorScreen(
         Text(
             text = message,
             color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyLarge
+            style = KluvsTheme.typography.body.large
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRetry) {

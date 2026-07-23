@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.feature
 import kotlin.math.roundToInt
 
 /**
@@ -107,12 +108,15 @@ fun ReadingProgressBottomSheet(
                 } else {
                     "Track Progress"
                 },
-                style = MaterialTheme.typography.titleMedium
+                style = KluvsTheme.typography.title.medium
             )
 
             Text(
                 text = bookTitle,
-                style = MaterialTheme.typography.bodyMedium,
+                // Title + feature (italic) — this is a book title, design-system's confirmed
+                // pattern (was plain bodyMedium before; a real visual change, not just an
+                // accessor rename, since this call site fits the model too cleanly to leave as-is).
+                style = KluvsTheme.typography.title.medium.feature(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
@@ -172,7 +176,7 @@ fun ReadingProgressBottomSheet(
             ) {
                 Text(
                     text = "Mark as finished",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = KluvsTheme.typography.body.medium
                 )
                 Switch(
                     checked = markFinished,
