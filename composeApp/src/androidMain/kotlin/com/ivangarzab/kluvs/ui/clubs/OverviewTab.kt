@@ -23,7 +23,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +57,7 @@ import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
 import com.ivangarzab.kluvs.designsystem.components.GhostButton
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
+import com.ivangarzab.kluvs.designsystem.components.OwnProgressRow
 import kotlinx.datetime.LocalDateTime
 
 /**
@@ -241,57 +241,20 @@ private fun SessionSummary(
 
         if (isOwnReading) {
             Spacer(Modifier.height(12.dp))
+            // Was a private near-duplicate of the shared OwnProgressRow (design-system
+            // primitives migration) — deleted in favor of the real shared component;
+            // leftLabelEmphasized reproduces the one real difference (italic discussion count).
             OwnProgressRow(
-                ownProgress = ownProgress,
-                discussionsCompleted = sessionDetails.discussions.count { it.isPast },
-                discussionsTotal = sessionDetails.discussions.size,
-                onUpdateProgress = onUpdateProgress
+                percent = ownProgress?.percent,
+                statusLabel = ownProgress?.label,
+                onUpdateProgress = onUpdateProgress,
+                leftLabel = stringResource(
+                    R.string.x_of_y_discussions,
+                    sessionDetails.discussions.count { it.isPast },
+                    sessionDetails.discussions.size
+                ),
+                leftLabelEmphasized = true,
             )
-        }
-    }
-}
-
-@Composable
-private fun OwnProgressRow(
-    ownProgress: OwnProgressInfo?,
-    discussionsCompleted: Int,
-    discussionsTotal: Int,
-    onUpdateProgress: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            LinearProgressIndicator(
-                progress = { (ownProgress?.percent ?: 0) / 100f },
-                modifier = Modifier.weight(1f)
-            )
-            GhostButton(
-                text = if (ownProgress != null) "Update" else "Track Progress",
-                onClick = onUpdateProgress
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.x_of_y_discussions, discussionsCompleted, discussionsTotal),
-                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ownProgress?.let {
-                Text(
-                    text = it.label,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
         }
     }
 }

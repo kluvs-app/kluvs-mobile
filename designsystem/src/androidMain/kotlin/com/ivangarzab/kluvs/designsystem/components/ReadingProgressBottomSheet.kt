@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.ui.components
+package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,29 +27,33 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.feature
 import kotlin.math.roundToInt
 
+/** Hollow tracking-mode option — decoupled from the app's `ProgressType` domain enum. */
+enum class ProgressTrackingMode { PAGE, PERCENT }
+
 /**
  * Bottom sheet for tracking/updating the signed-in member's reading progress.
  *
- * Shared component: used by the Clubs screen (session progress) and intended
- * for reuse by the Me screen. Mirrors the web app's ReadingProgressModal —
- * Page/Percent toggle, value input, auto "mark as finished" when the value
- * reaches the end of the book, and a manual finished switch.
+ * Shared component: used by the Clubs screen (session progress) and the Me screen (shelf rows).
+ * Mirrors the web app's ReadingProgressModal — Page/Percent toggle, value input, auto "mark as
+ * finished" when the value reaches the end of the book, and a manual finished switch.
+ *
+ * Hollow — takes [ProgressTrackingMode] instead of the app's `ProgressType`; [onSave] reports back
+ * in the same hollow currency, so callers translate at the boundary.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReadingProgressBottomSheet(
     bookTitle: String,
     pageCount: Int?,
-    initialType: ProgressType = ProgressType.PAGE,
+    initialType: ProgressTrackingMode = ProgressTrackingMode.PAGE,
     initialCurrentPage: Int? = null,
     initialPercentComplete: Float? = null,
     initialMarkFinished: Boolean = false,
-    onSave: (type: ProgressType, currentPage: Int?, percentComplete: Float?, markFinished: Boolean) -> Unit,
+    onSave: (type: ProgressTrackingMode, currentPage: Int?, percentComplete: Float?, markFinished: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var progressType by rememberSaveable { mutableStateOf(initialType) }
@@ -69,9 +73,9 @@ fun ReadingProgressBottomSheet(
     fun autoToggleFinished(newValue: String) {
         if (newValue == lastAutoTriggerValue) return
         val atEnd = when {
-            progressType == ProgressType.PAGE && pageCount != null && pageCount > 0 ->
+            progressType == ProgressTrackingMode.PAGE && pageCount != null && pageCount > 0 ->
                 (newValue.toIntOrNull() ?: 0) >= pageCount
-            progressType == ProgressType.PERCENT ->
+            progressType == ProgressTrackingMode.PERCENT ->
                 (newValue.toFloatOrNull() ?: 0f) >= 100f
             else -> return
         }
@@ -81,14 +85,14 @@ fun ReadingProgressBottomSheet(
         }
     }
 
-    val previewPercent = if (progressType == ProgressType.PAGE && pageCount != null && pageCount > 0) {
+    val previewPercent = if (progressType == ProgressTrackingMode.PAGE && pageCount != null && pageCount > 0) {
         val page = currentPageText.toIntOrNull()
         page?.let { minOf(100, (it * 100f / pageCount).roundToInt()) }
     } else null
 
     val canSave = when (progressType) {
-        ProgressType.PAGE -> currentPageText.toIntOrNull() != null
-        ProgressType.PERCENT -> percentText.toFloatOrNull() != null
+        ProgressTrackingMode.PAGE -> currentPageText.toIntOrNull() != null
+        ProgressTrackingMode.PERCENT -> percentText.toFloatOrNull() != null
     }
 
     ModalBottomSheet(
@@ -113,9 +117,7 @@ fun ReadingProgressBottomSheet(
 
             Text(
                 text = bookTitle,
-                // Title + feature (italic) — this is a book title, design-system's confirmed
-                // pattern (was plain bodyMedium before; a real visual change, not just an
-                // accessor rename, since this call site fits the model too cleanly to leave as-is).
+                // Title + feature (italic) — this is a book title, design-system's confirmed pattern.
                 style = KluvsTheme.typography.title.medium.feature(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -127,19 +129,19 @@ fun ReadingProgressBottomSheet(
             ) {
                 TrackByButton(
                     label = "Page",
-                    selected = progressType == ProgressType.PAGE,
+                    selected = progressType == ProgressTrackingMode.PAGE,
                     modifier = Modifier.weight(1f),
-                    onClick = { progressType = ProgressType.PAGE }
+                    onClick = { progressType = ProgressTrackingMode.PAGE }
                 )
                 TrackByButton(
                     label = "Percent",
-                    selected = progressType == ProgressType.PERCENT,
+                    selected = progressType == ProgressTrackingMode.PERCENT,
                     modifier = Modifier.weight(1f),
-                    onClick = { progressType = ProgressType.PERCENT }
+                    onClick = { progressType = ProgressTrackingMode.PERCENT }
                 )
             }
 
-            if (progressType == ProgressType.PAGE) {
+            if (progressType == ProgressTrackingMode.PAGE) {
                 OutlinedTextField(
                     value = currentPageText,
                     onValueChange = { value ->
@@ -186,8 +188,8 @@ fun ReadingProgressBottomSheet(
 
             Button(
                 onClick = {
-                    val page = if (progressType == ProgressType.PAGE) currentPageText.toIntOrNull() else null
-                    val percent = if (progressType == ProgressType.PERCENT) {
+                    val page = if (progressType == ProgressTrackingMode.PAGE) currentPageText.toIntOrNull() else null
+                    val percent = if (progressType == ProgressTrackingMode.PERCENT) {
                         percentText.toFloatOrNull()?.coerceIn(0f, 100f)
                     } else null
                     onSave(progressType, page, percent, markFinished)
@@ -234,7 +236,7 @@ private fun formatPercentInput(value: Float): String =
 
 @PreviewLightDark
 @Composable
-fun Preview_ReadingProgressBottomSheet() = KluvsTheme {
+private fun Preview_ReadingProgressBottomSheet() = KluvsTheme {
     ReadingProgressBottomSheet(
         bookTitle = "1984",
         pageCount = 328,

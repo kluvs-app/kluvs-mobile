@@ -56,10 +56,24 @@ import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmDisabled
-import com.ivangarzab.kluvs.ui.components.AttendanceControl
+import com.ivangarzab.kluvs.designsystem.components.AttendanceControl
+import com.ivangarzab.kluvs.designsystem.components.AttendanceOption
 import com.ivangarzab.kluvs.designsystem.components.GhostButton
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import kotlinx.datetime.LocalDateTime
+
+/** Translation at the boundary into the hollow [AttendanceControl] — see its call site below. */
+private fun AttendanceStatus.toOption(): AttendanceOption = when (this) {
+    AttendanceStatus.YES -> AttendanceOption.YES
+    AttendanceStatus.NO -> AttendanceOption.NO
+    AttendanceStatus.MAYBE -> AttendanceOption.MAYBE
+}
+
+private fun AttendanceOption.toDomain(): AttendanceStatus = when (this) {
+    AttendanceOption.YES -> AttendanceStatus.YES
+    AttendanceOption.NO -> AttendanceStatus.NO
+    AttendanceOption.MAYBE -> AttendanceStatus.MAYBE
+}
 
 @Composable
 fun ActiveSessionTab(
@@ -324,11 +338,18 @@ private fun DiscussionTimelineItem(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(8.dp))
-                AttendanceControl(
-                    roster = attendanceRoster,
-                    disabled = discussion.isPast,
-                    onSetAttendance = onSetAttendance
-                )
+                // AttendanceControl is hollow (design-system primitives migration) — it doesn't
+                // know about AttendanceRoster/AttendanceStatus, so we translate at the boundary.
+                if (attendanceRoster != null) {
+                    AttendanceControl(
+                        counts = AttendanceStatus.entries.associateWith { status ->
+                            attendanceRoster.responses.count { it.status == status }
+                        }.mapKeys { (status, _) -> status.toOption() },
+                        selected = attendanceRoster.myStatus?.toOption(),
+                        disabled = discussion.isPast,
+                        onSelect = { option -> onSetAttendance(option.toDomain()) }
+                    )
+                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {

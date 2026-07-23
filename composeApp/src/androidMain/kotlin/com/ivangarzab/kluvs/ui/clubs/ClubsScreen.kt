@@ -63,12 +63,24 @@ import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
-import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
+import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
+
+/** Translation at the boundary into the hollow [ReadingProgressBottomSheet] — see its call site below. */
+private fun ProgressType.toTrackingMode(): ProgressTrackingMode = when (this) {
+    ProgressType.PAGE -> ProgressTrackingMode.PAGE
+    ProgressType.PERCENT -> ProgressTrackingMode.PERCENT
+}
+
+private fun ProgressTrackingMode.toDomain(): ProgressType = when (this) {
+    ProgressTrackingMode.PAGE -> ProgressType.PAGE
+    ProgressTrackingMode.PERCENT -> ProgressType.PERCENT
+}
 
 /**
  * Entry point for the Clubs tab: owns the list → detail navigation (mirrors web's
@@ -545,15 +557,18 @@ fun ClubsScreenContent(
 
                 if (showProgressSheet) {
                     state.activeSession?.let { session ->
+                        // ReadingProgressBottomSheet is hollow (design-system primitives
+                        // migration) — it reports back in ProgressTrackingMode, translated to the
+                        // domain ProgressType at this boundary.
                         ReadingProgressBottomSheet(
                             bookTitle = session.book.title,
                             pageCount = session.book.pageCount,
-                            initialType = state.ownProgress?.type ?: ProgressType.PAGE,
+                            initialType = (state.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
                             initialCurrentPage = state.ownProgress?.currentPage,
                             initialPercentComplete = state.ownProgress?.percentComplete,
                             initialMarkFinished = state.ownProgress?.isCompleted ?: false,
                             onSave = { type, currentPage, percentComplete, markFinished ->
-                                onSaveProgress(type, currentPage, percentComplete, markFinished)
+                                onSaveProgress(type.toDomain(), currentPage, percentComplete, markFinished)
                                 showProgressSheet = false
                             },
                             onDismiss = { showProgressSheet = false }

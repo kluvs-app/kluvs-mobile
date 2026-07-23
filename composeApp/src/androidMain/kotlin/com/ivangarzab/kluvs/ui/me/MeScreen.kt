@@ -58,9 +58,21 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.components.Avatar
-import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
+import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
+import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.utils.compressImage
 import org.koin.compose.viewmodel.koinViewModel
+
+/** Translation at the boundary into the hollow [ReadingProgressBottomSheet] — see its call site below. */
+private fun ProgressType.toTrackingMode(): ProgressTrackingMode = when (this) {
+    ProgressType.PAGE -> ProgressTrackingMode.PAGE
+    ProgressType.PERCENT -> ProgressTrackingMode.PERCENT
+}
+
+private fun ProgressTrackingMode.toDomain(): ProgressType = when (this) {
+    ProgressTrackingMode.PAGE -> ProgressType.PAGE
+    ProgressTrackingMode.PERCENT -> ProgressType.PERCENT
+}
 
 @Composable
 fun MeScreen(
@@ -132,15 +144,17 @@ fun MeScreen(
             )
 
             editingShelfItem?.let { item ->
+                // ReadingProgressBottomSheet is hollow (design-system primitives migration) — it
+                // reports back in ProgressTrackingMode, translated to the domain ProgressType here.
                 ReadingProgressBottomSheet(
                     bookTitle = item.bookTitle,
                     pageCount = item.bookPageCount,
-                    initialType = item.ownProgress?.type ?: ProgressType.PAGE,
+                    initialType = (item.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
                     initialCurrentPage = item.ownProgress?.currentPage,
                     initialPercentComplete = item.ownProgress?.percentComplete,
                     initialMarkFinished = item.ownProgress?.isCompleted ?: false,
                     onSave = { type, currentPage, percentComplete, markFinished ->
-                        viewModel.onSaveProgress(item.sessionId, type, currentPage, percentComplete, markFinished)
+                        viewModel.onSaveProgress(item.sessionId, type.toDomain(), currentPage, percentComplete, markFinished)
                         editingShelfItem = null
                     },
                     onDismiss = { editingShelfItem = null }

@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.ui.components
+package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,35 +23,37 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.R
-import com.ivangarzab.kluvs.model.AttendanceResponse
-import com.ivangarzab.kluvs.model.AttendanceRoster
-import com.ivangarzab.kluvs.model.AttendanceStatus
+import com.ivangarzab.kluvs.designsystem.R
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.statusDanger
 import com.ivangarzab.kluvs.designsystem.theme.statusDangerSubtle
 import com.ivangarzab.kluvs.designsystem.theme.statusSuccess
 import com.ivangarzab.kluvs.designsystem.theme.statusSuccessSubtle
 
-private val SEGMENTS = listOf(AttendanceStatus.YES, AttendanceStatus.MAYBE, AttendanceStatus.NO)
+/** Hollow tri-state RSVP option — decoupled from the app's `AttendanceStatus` domain enum. */
+enum class AttendanceOption { YES, MAYBE, NO }
+
+private val SEGMENTS = listOf(AttendanceOption.YES, AttendanceOption.MAYBE, AttendanceOption.NO)
 
 /**
  * RSVP control for a single discussion — mirrors web's `AttendanceControl`.
  *
- * A 3-segment icon pill (yes, maybe, no); tapping the already-selected segment
- * clears the RSVP. Renders nothing until [roster] is loaded.
+ * A 3-segment icon pill (yes, maybe, no) plus a summary line. Hollow — takes plain
+ * counts/selection instead of the app's `AttendanceRoster`/`AttendanceStatus` domain types;
+ * callers compute those from their own model before calling this.
+ *
+ * @param counts per-option response count, e.g. `mapOf(AttendanceOption.YES to 4)` — missing keys
+ * render as 0.
+ * @param selected the signed-in member's current RSVP, or null if they haven't responded.
  */
 @Composable
 fun AttendanceControl(
-    roster: AttendanceRoster?,
+    counts: Map<AttendanceOption, Int>,
+    selected: AttendanceOption?,
     disabled: Boolean,
-    onSetAttendance: (AttendanceStatus) -> Unit,
+    onSelect: (AttendanceOption) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (roster == null) return
-
-    val counts = SEGMENTS.associateWith { status -> roster.responses.count { it.status == status } }
-
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -60,20 +62,20 @@ fun AttendanceControl(
                 .alpha(if (disabled) 0.7f else 1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SEGMENTS.forEachIndexed { index, status ->
+            SEGMENTS.forEachIndexed { index, option ->
                 AttendanceSegment(
-                    status = status,
-                    isSelected = roster.myStatus == status,
+                    option = option,
+                    isSelected = selected == option,
                     disabled = disabled,
                     isFirst = index == 0,
-                    onClick = { onSetAttendance(status) }
+                    onClick = { onSelect(option) }
                 )
             }
         }
         Text(
-            text = "${counts[AttendanceStatus.YES]} yes · ${counts[AttendanceStatus.NO]} no · ${counts[AttendanceStatus.MAYBE]} maybe",
-            // Caption, not Eyebrow — this is plain metadata text, not an uppercase/tracked label.
-            // Matches design-system/docs/typography.md's own "1 yes · 0 no · 0 maybe" example.
+            text = "${counts[AttendanceOption.YES] ?: 0} yes · ${counts[AttendanceOption.NO] ?: 0} no · ${counts[AttendanceOption.MAYBE] ?: 0} maybe",
+            // Caption, not Eyebrow — plain metadata, matches design-system/docs/typography.md's
+            // own "1 yes · 0 no · 0 maybe" example directly.
             style = KluvsTheme.typography.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
@@ -83,15 +85,15 @@ fun AttendanceControl(
 
 @Composable
 private fun AttendanceSegment(
-    status: AttendanceStatus,
+    option: AttendanceOption,
     isSelected: Boolean,
     disabled: Boolean,
     isFirst: Boolean,
     onClick: () -> Unit
 ) {
     val (background, tint) = when {
-        isSelected && status == AttendanceStatus.YES -> statusSuccessSubtle to statusSuccess
-        isSelected && status == AttendanceStatus.NO -> statusDangerSubtle to statusDanger
+        isSelected && option == AttendanceOption.YES -> statusSuccessSubtle to statusSuccess
+        isSelected && option == AttendanceOption.NO -> statusDangerSubtle to statusDanger
         isSelected -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurface
         else -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -112,22 +114,22 @@ private fun AttendanceSegment(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        when (status) {
-            AttendanceStatus.YES -> Icon(
+        when (option) {
+            AttendanceOption.YES -> Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "RSVP yes",
                 tint = tint,
                 modifier = Modifier.size(13.dp)
             )
 
-            AttendanceStatus.MAYBE -> Icon(
+            AttendanceOption.MAYBE -> Icon(
                 painter = painterResource(R.drawable.ic_help),
                 contentDescription = "RSVP maybe",
                 tint = tint,
                 modifier = Modifier.size(13.dp)
             )
 
-            AttendanceStatus.NO -> Icon(
+            AttendanceOption.NO -> Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "RSVP no",
                 tint = tint,
@@ -141,15 +143,9 @@ private fun AttendanceSegment(
 @Composable
 private fun Preview_AttendanceControl() = KluvsTheme {
     AttendanceControl(
-        roster = AttendanceRoster(
-            responses = listOf(
-                AttendanceResponse(memberId = "0", name = "Ivan", status = AttendanceStatus.YES),
-                AttendanceResponse(memberId = "1", name = "Sam", status = AttendanceStatus.MAYBE)
-            ),
-            myStatus = AttendanceStatus.YES,
-            totalMembers = 6
-        ),
+        counts = mapOf(AttendanceOption.YES to 1, AttendanceOption.MAYBE to 1),
+        selected = AttendanceOption.YES,
         disabled = false,
-        onSetAttendance = {}
+        onSelect = {}
     )
 }
