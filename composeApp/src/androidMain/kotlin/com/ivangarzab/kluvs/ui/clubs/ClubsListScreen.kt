@@ -15,13 +15,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +44,8 @@ import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
 import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
 /**
@@ -131,7 +129,7 @@ fun ClubsListScreen(
                 contentColor = brandOnPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    type = IconType.Add,
                     contentDescription = "New club"
                 )
             }
@@ -200,7 +198,7 @@ private fun ClubListRow(
             }
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            type = IconType.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )

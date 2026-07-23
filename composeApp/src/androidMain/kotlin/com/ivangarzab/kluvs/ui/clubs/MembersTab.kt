@@ -13,13 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +41,8 @@ import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.Avatar
 import com.ivangarzab.kluvs.designsystem.components.GhostButton
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
@@ -246,7 +245,7 @@ private fun MemberOverflowMenu(
             modifier = Modifier.size(20.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Member options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)

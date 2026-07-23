@@ -15,13 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -56,6 +53,8 @@ import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
 import com.ivangarzab.kluvs.designsystem.components.GhostButton
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import com.ivangarzab.kluvs.designsystem.components.OwnProgressRow
 import kotlinx.datetime.LocalDateTime
@@ -336,7 +335,7 @@ private fun SessionOverflowMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Session options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

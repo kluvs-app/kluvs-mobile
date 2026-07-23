@@ -18,13 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +59,8 @@ import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
@@ -321,7 +319,7 @@ fun ClubsScreenContent(
                     ) {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                type = IconType.ArrowBack,
                                 contentDescription = stringResource(R.string.navigate_back),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
@@ -714,7 +712,7 @@ private fun ClubOverflowMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Club options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

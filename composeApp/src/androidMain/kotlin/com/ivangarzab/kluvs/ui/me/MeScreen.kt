@@ -3,7 +3,6 @@ package com.ivangarzab.kluvs.ui.me
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -41,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -56,6 +53,8 @@ import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.components.Avatar
 import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
@@ -316,7 +315,7 @@ private fun ProfileSection(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Icon(
-                    painterResource(R.drawable.ic_edit),
+                    type = IconType.Edit,
                     contentDescription = stringResource(R.string.edit_profile_picture),
                     modifier = Modifier.size(14.dp)
                 )
@@ -354,7 +353,7 @@ private fun FooterSection(
     ) {
         FooterItem(
             label = stringResource(R.string.settings),
-            icon = R.drawable.ic_settings,
+            icon = IconType.Settings,
             onClick = onSettingsClick
         )
 
@@ -362,7 +361,7 @@ private fun FooterSection(
 
 //        FooterItem(
 //            label = stringResource(R.string.help_and_support),
-//            icon = R.drawable.ic_help,
+//            icon = IconType.Help,
 //            onClick = onHelpClick
 //        )
 //
@@ -371,7 +370,7 @@ private fun FooterSection(
         FooterItem(
             label = stringResource(R.string.sign_out),
             labelColor = MaterialTheme.colorScheme.error,
-            icon = R.drawable.ic_signout,
+            icon = IconType.SignOut,
             iconColor = MaterialTheme.colorScheme.error,
             onClick = onSignOutClick
         )
@@ -384,7 +383,7 @@ private fun FooterItem(
     modifier: Modifier = Modifier,
     label: String,
     labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    @DrawableRes icon: Int,
+    icon: IconType,
     iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onClick: () -> Unit,
 ) {
@@ -395,7 +394,7 @@ private fun FooterItem(
     ) {
         Icon(
             modifier = Modifier.size(20.dp),
-            painter = painterResource(icon),
+            type = icon,
             contentDescription = null,
             tint = iconColor
         )

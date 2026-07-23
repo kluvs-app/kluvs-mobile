@@ -10,7 +10,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -26,10 +25,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import kotlinx.datetime.LocalDateTime
 
@@ -96,7 +95,7 @@ fun DiscussionBottomSheet(
                 singleLine = true,
                 leadingIcon = {
                     Icon(
-                        painter = painterResource(R.drawable.ic_location),
+                        type = IconType.Location,
                         contentDescription = null
                     )
                 }

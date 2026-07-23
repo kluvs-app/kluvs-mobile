@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -21,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -29,6 +27,8 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.settings.presentation.EditableProfile
 import com.ivangarzab.kluvs.settings.presentation.SettingsState
 import com.ivangarzab.kluvs.settings.presentation.SettingsViewModel
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -82,7 +82,7 @@ fun SettingsScreenContent(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_back),
+                            type = IconType.Back,
                             contentDescription = stringResource(R.string.navigate_back)
                         )
                     }

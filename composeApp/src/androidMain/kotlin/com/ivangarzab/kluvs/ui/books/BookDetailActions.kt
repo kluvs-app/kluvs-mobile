@@ -10,14 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +25,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.model.ShelfStatus
 
 /**
@@ -121,7 +117,7 @@ private fun LikeToggle(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            type = if (isLiked) IconType.Favorite else IconType.FavoriteOutline,
             contentDescription = stringResource(if (isLiked) R.string.unlike_book else R.string.like_book),
             tint = tint,
             modifier = Modifier.size(16.dp)
@@ -160,7 +156,7 @@ private fun ShelfPill(
             color = tint
         )
         Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
+            type = IconType.ChevronDown,
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(14.dp).rotate(chevronRotation)
@@ -171,7 +167,7 @@ private fun ShelfPill(
 @Composable
 private fun SelectedCheck() {
     Icon(
-        imageVector = Icons.Default.Check,
+        type = IconType.Check,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.primary
     )

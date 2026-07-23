@@ -29,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -49,6 +48,7 @@ import com.ivangarzab.kluvs.designsystem.theme.providerDiscordBg
 import com.ivangarzab.kluvs.designsystem.theme.providerGoogleBg
 import com.ivangarzab.kluvs.designsystem.theme.providerGoogleText
 import com.ivangarzab.kluvs.ui.components.InputField
+import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.SocialButton
 import com.ivangarzab.kluvs.ui.components.TextDivider
 
@@ -122,7 +122,7 @@ fun AuthFormContent(
 
             SocialButton(
                 text = stringResource(R.string.continue_with_discord),
-                icon = painterResource(R.drawable.ic_discord),
+                icon = IconType.Discord,
                 iconSize = 20.dp,
                 backgroundColor = providerDiscordBg,
                 textColor = contentDarkPrimary,
@@ -133,7 +133,7 @@ fun AuthFormContent(
 
             SocialButton(
                 text = stringResource(R.string.continue_with_google),
-                icon = painterResource(R.drawable.ic_google),
+                icon = IconType.Google,
                 iconSize = 20.dp,
                 backgroundColor = providerGoogleBg,
                 textColor = providerGoogleText,
@@ -151,7 +151,7 @@ fun AuthFormContent(
                 label = stringResource(R.string.email),
                 value = state.emailField,
                 onValueChange = onEmailFieldChange,
-                iconRes = R.drawable.ic_email,
+                icon = IconType.Email,
                 iconDescription = stringResource(R.string.description_email_text_field),
                 supportingText = state.emailError
                     ?: stringResource(R.string.enter_valid_email_address),
@@ -174,7 +174,7 @@ fun AuthFormContent(
                 label = stringResource(R.string.password),
                 value = state.passwordField,
                 onValueChange = onPasswordFieldChange,
-                iconRes = R.drawable.ic_password,
+                icon = IconType.Password,
                 iconDescription = stringResource(R.string.description_password_text_field),
                 supportingText = state.passwordError
                     ?: stringResource(R.string.min_eight_characters),
@@ -205,7 +205,7 @@ fun AuthFormContent(
                     label = stringResource(R.string.confirm_password),
                     value = state.confirmPasswordField,
                     onValueChange = onConfirmPasswordFieldChange,
-                    iconRes = R.drawable.ic_password,
+                    icon = IconType.Password,
                     iconDescription = stringResource(R.string.description_confirm_password_text_field),
                     supportingText = state.confirmPasswordError
                         ?: stringResource(R.string.match_password_above),

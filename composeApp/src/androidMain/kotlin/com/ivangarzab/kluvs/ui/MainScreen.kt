@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -26,11 +25,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.books.BooksScreen
 import com.ivangarzab.kluvs.ui.clubs.ClubsScreen
@@ -97,7 +97,7 @@ fun MainScreenContent(
                             modifier = Modifier
                                 .size(24.dp)
                                 .scale(meScale),
-                            painter = painterResource(R.drawable.ic_user),
+                            type = IconType.User,
                             contentDescription = null
                         )
                     },
@@ -125,7 +125,7 @@ fun MainScreenContent(
                             modifier = Modifier
                                 .size(24.dp)
                                 .scale(clubScale),
-                            painter = painterResource(R.drawable.ic_club),
+                            type = IconType.Club,
                             contentDescription = null
                         )
                     },
@@ -153,7 +153,7 @@ fun MainScreenContent(
                             modifier = Modifier
                                 .size(24.dp)
                                 .scale(booksScale),
-                            painter = painterResource(R.drawable.ic_book),
+                            type = IconType.Book,
                             contentDescription = null
                         )
                     },

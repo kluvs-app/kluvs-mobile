@@ -18,13 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +54,8 @@ import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmDisabled
 import com.ivangarzab.kluvs.designsystem.components.AttendanceControl
 import com.ivangarzab.kluvs.designsystem.components.AttendanceOption
 import com.ivangarzab.kluvs.designsystem.components.GhostButton
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import kotlinx.datetime.LocalDateTime
 
@@ -106,7 +103,7 @@ fun ActiveSessionTab(
                 )
                 Button(onClick = onCreateSession) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        type = IconType.Add,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -263,7 +260,7 @@ private fun DiscussionTimelineItem(
                 ) {
                     if (discussion.isPast) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_checkmark),
+                            type = IconType.Checkmark,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.background,
                             modifier = Modifier.size(10.dp)
@@ -321,7 +318,7 @@ private fun DiscussionTimelineItem(
                 ) {
                     Icon(
                         modifier = Modifier.size(16.dp),
-                        painter = painterResource(R.drawable.ic_location),
+                        type = IconType.Location,
                         contentDescription = null,
                         tint = secondaryTextColor
                     )
@@ -355,7 +352,7 @@ private fun DiscussionTimelineItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onOpenNote) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_edit),
+                        type = IconType.Edit,
                         contentDescription = "Discussion note",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -381,7 +378,7 @@ private fun DiscussionOverflowMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Discussion options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

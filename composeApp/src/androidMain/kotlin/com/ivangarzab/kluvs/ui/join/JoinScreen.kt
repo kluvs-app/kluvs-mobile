@@ -5,11 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -25,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.join.presentation.JoinState
 import com.ivangarzab.kluvs.join.presentation.JoinViewModel
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -86,7 +85,7 @@ private fun JoinScreenContent(
     ) {
         IconButton(onClick = onNavigateBack) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                type = IconType.ArrowBack,
                 contentDescription = stringResource(R.string.navigate_back)
             )
         }

@@ -16,7 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,7 +26,7 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 fun SocialButton(
     text: String,
     height: Dp = 40.dp,
-    icon: Painter,
+    icon: IconType,
     iconSize: Dp = 20.dp,
     backgroundColor: Color,
     textColor: Color,
@@ -45,7 +45,7 @@ fun SocialButton(
         horizontalArrangement = Arrangement.Center,
     ) {
         Image(
-            painter = icon,
+            painter = painterResource(icon.toDrawableRes()),
             contentDescription = null,
             modifier = Modifier.size(iconSize)
         )

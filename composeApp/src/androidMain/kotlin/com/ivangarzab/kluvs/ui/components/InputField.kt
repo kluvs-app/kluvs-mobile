@@ -1,23 +1,21 @@
 package com.ivangarzab.kluvs.ui.components
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.designsystem.components.IconType
+import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 @Composable
@@ -27,7 +25,7 @@ fun InputField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    @DrawableRes iconRes: Int,
+    icon: IconType,
     iconDescription: String,
     supportingText: String,
     supportingTextColor: Color = Color.Gray,
@@ -49,7 +47,7 @@ fun InputField(
         keyboardActions = keyboardActions ?: KeyboardActions(),
         leadingIcon = {
             Icon(
-                painter = painterResource(iconRes),
+                type = icon,
                 contentDescription = iconDescription
             )
         },
@@ -72,7 +70,7 @@ fun Preview_InputField() = KluvsTheme {
         label = "Test input",
         value = "",
         onValueChange = { },
-        iconRes = R.drawable.ic_clubs,
+        icon = IconType.Clubs,
         iconDescription = "Test icon description",
         supportingText = "Some supporting text",
     )
@@ -89,7 +87,7 @@ fun Preview_PasswordInputField() = KluvsTheme {
         label = "Test password input",
         value = "",
         onValueChange = { },
-        iconRes = R.drawable.ic_clubs,
+        icon = IconType.Clubs,
         iconDescription = "Test icon description",
         supportingText = "Some supporting text",
     )
