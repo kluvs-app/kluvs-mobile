@@ -52,7 +52,7 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember
-import com.ivangarzab.kluvs.designsystem.components.GhostButton
+import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
 import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
@@ -231,7 +231,7 @@ private fun SessionSummary(
             }
 
             if (canToggleParticipation) {
-                GhostButton(
+                OutlinedButton(
                     text = stringResource(if (isOwnReading) R.string.opt_out else R.string.join_this_read),
                     onClick = { onToggleParticipation(!isOwnReading) }
                 )

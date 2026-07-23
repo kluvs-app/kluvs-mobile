@@ -53,7 +53,7 @@ import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmDisabled
 import com.ivangarzab.kluvs.designsystem.components.AttendanceControl
 import com.ivangarzab.kluvs.designsystem.components.AttendanceOption
-import com.ivangarzab.kluvs.designsystem.components.GhostButton
+import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
 import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
@@ -138,7 +138,7 @@ fun ActiveSessionTab(
                 )
             }
             if (isAdminOrAbove) {
-                GhostButton(
+                OutlinedButton(
                     text = stringResource(R.string.add_discussion),
                     onClick = onCreateDiscussion,
                 )
