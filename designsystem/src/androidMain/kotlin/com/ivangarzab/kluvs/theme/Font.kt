@@ -4,7 +4,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.designsystem.R
 
 // Two-register type system synced from design-system/tokens.json (typography.font-family).
 // Serif (EB Garamond): wordmark, display text, page/section headings, book titles (italic).
