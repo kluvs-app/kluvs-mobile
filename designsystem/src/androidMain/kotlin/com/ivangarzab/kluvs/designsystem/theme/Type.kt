@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.theme
+package com.ivangarzab.kluvs.designsystem.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

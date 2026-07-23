@@ -20,7 +20,7 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.member.presentation.ShelfItem
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 /**
  * "On Your Shelf" section on the Me screen: eyebrow header + book count caption,

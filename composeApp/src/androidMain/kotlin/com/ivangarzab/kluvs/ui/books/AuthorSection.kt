@@ -26,7 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.model.Author
-import com.ivangarzab.kluvs.theme.ebGaramond
+import com.ivangarzab.kluvs.designsystem.theme.ebGaramond
 
 /**
  * "About the Author" body: photo + name row, then bio below full-width (mirrors web's

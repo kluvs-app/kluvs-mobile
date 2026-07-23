@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.theme
+package com.ivangarzab.kluvs.designsystem.theme
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle

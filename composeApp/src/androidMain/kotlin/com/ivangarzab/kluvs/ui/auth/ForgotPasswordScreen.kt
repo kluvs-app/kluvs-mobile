@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.auth.presentation.AuthViewModel
 import com.ivangarzab.kluvs.auth.presentation.ForgotPasswordUiState
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.InputField
 import com.ivangarzab.kluvs.ui.extensions.toLocalizedMessage
 import org.koin.compose.viewmodel.koinViewModel

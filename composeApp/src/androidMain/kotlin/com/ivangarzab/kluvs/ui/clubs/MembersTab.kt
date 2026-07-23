@@ -41,7 +41,7 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.clubs.presentation.MemberListItemInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.Avatar
 import com.ivangarzab.kluvs.ui.components.GhostButton
 import com.ivangarzab.kluvs.ui.components.NoTabData

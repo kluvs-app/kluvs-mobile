@@ -14,10 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.roleAdminOnDark
-import com.ivangarzab.kluvs.theme.roleMemberLabel
-import com.ivangarzab.kluvs.theme.roleOwner
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.roleAdminOnDark
+import com.ivangarzab.kluvs.designsystem.theme.roleMemberLabel
+import com.ivangarzab.kluvs.designsystem.theme.roleOwner
 
 /**
  * Uppercase role label with a colored dot for Owner/Admin — mirrors web's `RoleEyebrow`.

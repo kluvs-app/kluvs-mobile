@@ -43,11 +43,11 @@ import com.ivangarzab.kluvs.auth.presentation.AuthMode
 import com.ivangarzab.kluvs.auth.presentation.AuthUiState
 import com.ivangarzab.kluvs.auth.presentation.LoginNavigation
 import com.ivangarzab.kluvs.model.AuthProvider
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.contentDarkPrimary
-import com.ivangarzab.kluvs.theme.providerDiscordBg
-import com.ivangarzab.kluvs.theme.providerGoogleBg
-import com.ivangarzab.kluvs.theme.providerGoogleText
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.contentDarkPrimary
+import com.ivangarzab.kluvs.designsystem.theme.providerDiscordBg
+import com.ivangarzab.kluvs.designsystem.theme.providerGoogleBg
+import com.ivangarzab.kluvs.designsystem.theme.providerGoogleText
 import com.ivangarzab.kluvs.ui.components.InputField
 import com.ivangarzab.kluvs.ui.components.SocialButton
 import com.ivangarzab.kluvs.ui.components.TextDivider

@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.lightBar
-import com.ivangarzab.kluvs.theme.warmDarkBar
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.lightBar
+import com.ivangarzab.kluvs.designsystem.theme.warmDarkBar
 import kotlin.math.sqrt
 
 /**

@@ -41,9 +41,9 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubListItem
 import com.ivangarzab.kluvs.clubs.presentation.MemberAvatarInfo
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.brandOnPrimary
-import com.ivangarzab.kluvs.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.brandOnPrimary
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
 import com.ivangarzab.kluvs.ui.components.AvatarStack
 import com.ivangarzab.kluvs.ui.components.AvatarStackMember

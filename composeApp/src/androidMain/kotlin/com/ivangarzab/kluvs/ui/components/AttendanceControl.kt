@@ -27,11 +27,11 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.model.AttendanceResponse
 import com.ivangarzab.kluvs.model.AttendanceRoster
 import com.ivangarzab.kluvs.model.AttendanceStatus
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.statusDanger
-import com.ivangarzab.kluvs.theme.statusDangerSubtle
-import com.ivangarzab.kluvs.theme.statusSuccess
-import com.ivangarzab.kluvs.theme.statusSuccessSubtle
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.statusDanger
+import com.ivangarzab.kluvs.designsystem.theme.statusDangerSubtle
+import com.ivangarzab.kluvs.designsystem.theme.statusSuccess
+import com.ivangarzab.kluvs.designsystem.theme.statusSuccessSubtle
 
 private val SEGMENTS = listOf(AttendanceStatus.YES, AttendanceStatus.MAYBE, AttendanceStatus.NO)
 

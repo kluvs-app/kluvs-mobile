@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.theme
+package com.ivangarzab.kluvs.designsystem.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

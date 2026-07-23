@@ -11,9 +11,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.LocalKluvsLabelColor
-import com.ivangarzab.kluvs.theme.ebGaramond
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.LocalKluvsLabelColor
+import com.ivangarzab.kluvs.designsystem.theme.ebGaramond
 
 /**
  * The "KLUVS" wordmark — typographic, EB Garamond Bold, wide tracking.

@@ -22,14 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ivangarzab.kluvs.R
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.avatarHuesDark
-import com.ivangarzab.kluvs.theme.avatarHuesLight
-import com.ivangarzab.kluvs.theme.brandOnPrimary
-import com.ivangarzab.kluvs.theme.brandPrimary
-import com.ivangarzab.kluvs.theme.ebGaramond
-import com.ivangarzab.kluvs.theme.foregroundLightLabelVariant
-import com.ivangarzab.kluvs.theme.foregroundWarmPrimary
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.avatarHuesDark
+import com.ivangarzab.kluvs.designsystem.theme.avatarHuesLight
+import com.ivangarzab.kluvs.designsystem.theme.brandOnPrimary
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.theme.ebGaramond
+import com.ivangarzab.kluvs.designsystem.theme.foregroundLightLabelVariant
+import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmPrimary
 import kotlin.math.abs
 
 /**

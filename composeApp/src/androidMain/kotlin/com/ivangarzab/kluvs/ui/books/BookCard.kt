@@ -24,7 +24,7 @@ import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ShelfSource
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 /**
  * A single book tile: cover (with a read-ribbon badge for Kluvs-session books), title,

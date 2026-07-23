@@ -47,14 +47,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.brandPrimary
-import com.ivangarzab.kluvs.theme.foregroundLightPlaceholder
-import com.ivangarzab.kluvs.theme.foregroundWarmPlaceholder
-import com.ivangarzab.kluvs.theme.lightCard
-import com.ivangarzab.kluvs.theme.lightDivider
-import com.ivangarzab.kluvs.theme.warmDarkCard
-import com.ivangarzab.kluvs.theme.warmDarkCard2
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.theme.foregroundLightPlaceholder
+import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmPlaceholder
+import com.ivangarzab.kluvs.designsystem.theme.lightCard
+import com.ivangarzab.kluvs.designsystem.theme.lightDivider
+import com.ivangarzab.kluvs.designsystem.theme.warmDarkCard
+import com.ivangarzab.kluvs.designsystem.theme.warmDarkCard2
 
 private const val TITLE_FADE_MS = 150
 private const val SEARCH_UNFURL_MS = 200
