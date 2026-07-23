@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 
@@ -69,6 +70,24 @@ private val LightColorScheme = lightColorScheme(
  */
 val LocalKluvsLabelColor = compositionLocalOf { foregroundWarmPrimary }
 
+/**
+ * Entry point for Kluvs-native theme values, shaped after AOSP's `object MaterialTheme` +
+ * `@Composable fun MaterialTheme(...)` pair (both declared under the same name — legal in Kotlin
+ * since types/objects and functions live in separate namespaces; androidx.compose.material3 relies
+ * on exactly this to let `MaterialTheme.colorScheme` and `MaterialTheme { ... }` coexist).
+ *
+ * Every property here is Compose-callable only ([ReadOnlyComposable], reading a
+ * [androidx.compose.runtime.CompositionLocal]) — there is no plain-Kotlin escape hatch, matching
+ * AOSP's own contract. [KluvsTheme] (this object) is the source of truth; the [MaterialTheme]
+ * composable is no longer what this decorates — see the composable function below.
+ */
+object KluvsTheme {
+    val type: KluvsTypography
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalKluvsTypography.current
+}
+
 @Composable
 fun KluvsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -87,7 +106,17 @@ fun KluvsTheme(
     }
     val labelColor = if (darkTheme) foregroundWarmPrimary else foregroundLightLabelVariant
 
-    CompositionLocalProvider(LocalKluvsLabelColor provides labelColor) {
+    CompositionLocalProvider(
+        LocalKluvsLabelColor provides labelColor,
+        LocalKluvsTypography provides kluvsTypography,
+    ) {
+        // Compat shim only, not the source of truth: stock M3 widgets still in use throughout the
+        // app (Button, Scaffold, TextField, etc.) read Material's OWN internal CompositionLocals
+        // directly, which only this call can set — there is no way to redirect them from outside
+        // androidx.compose.material3. `Typography` here is Type.kt's pre-existing M3-role mapping,
+        // kept only to feed this shim; it is not KluvsTheme.type and new code should never read it.
+        // Once every screen uses hollow Kluvs primitives instead of stock M3 widgets, this call
+        // (and Type.kt) can be deleted outright.
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

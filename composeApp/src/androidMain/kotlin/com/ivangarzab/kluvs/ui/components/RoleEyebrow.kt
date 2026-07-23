@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,8 +42,10 @@ fun RoleEyebrow(
             )
         }
         Text(
+            // KluvsTheme.type.eyebrow carries size/weight/tracking only — Compose's TextStyle has
+            // no text-transform, so callers uppercase the string themselves, same as before.
             text = role.name.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
+            style = KluvsTheme.type.eyebrow,
             color = color
         )
     }
