@@ -25,7 +25,7 @@ import com.ivangarzab.kluvs.member.presentation.ShelfItem
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.BookCoverPlaceholder
 import com.ivangarzab.kluvs.designsystem.components.OwnProgressRow
 
 /**

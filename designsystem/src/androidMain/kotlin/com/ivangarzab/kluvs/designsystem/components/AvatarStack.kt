@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.ui.components
+package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

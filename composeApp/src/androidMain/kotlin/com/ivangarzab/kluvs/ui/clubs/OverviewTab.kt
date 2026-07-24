@@ -49,9 +49,9 @@ import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
-import com.ivangarzab.kluvs.ui.components.AvatarStack
-import com.ivangarzab.kluvs.ui.components.AvatarStackMember
+import com.ivangarzab.kluvs.designsystem.components.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.AvatarStack
+import com.ivangarzab.kluvs.designsystem.components.AvatarStackMember
 import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
 import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.Icon

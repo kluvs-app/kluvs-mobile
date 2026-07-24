@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Drives spinner_group: rotation + scaleX + scaleY.
+  Drop into res/animator/spinner_kluvs_group.xml
+
+  Timing mirrors the web keyframes exactly:
+    0%  → 35%  (0–1400ms)  : eased inhale   cubic-bezier(0.4, 0, 0.4, 1)
+    35% → 50%  (1400–2000ms): held at apex   linear
+    50% → 85%  (2000–3400ms): eased exhale   cubic-bezier(0.4, 0, 0.4, 1)
+    85% → 100% (3400–4000ms): held at rest   linear
+
+  Each <keyframe> interpolator controls the curve OUT OF that keyframe.
+-->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="together">
+
+    <objectAnimator
+        android:propertyName="rotation"
+        android:duration="4000"
+        android:repeatCount="-1">
+        <propertyValuesHolder android:propertyName="rotation">
+            <keyframe android:fraction="0.00" android:value="0"
+                android:interpolator="@interpolator/kluvs_breathe_tidal"/>
+            <keyframe android:fraction="0.35" android:value="120"
+                android:interpolator="@android:interpolator/linear"/>
+            <keyframe android:fraction="0.50" android:value="120"
+                android:interpolator="@interpolator/kluvs_breathe_tidal"/>
+            <keyframe android:fraction="0.85" android:value="240"
+                android:interpolator="@android:interpolator/linear"/>
+            <keyframe android:fraction="1.00" android:value="240"/>
+        </propertyValuesHolder>
+    </objectAnimator>
+
+    <objectAnimator
+        android:propertyName="scaleX"
+        android:duration="4000"
+        android:repeatCount="-1">
+        <propertyValuesHolder android:propertyName="scaleX">
+            <keyframe android:fraction="0.00" android:value="0.96"
+                android:interpolator="@interpolator/kluvs_breathe_tidal"/>
+            <keyframe android:fraction="0.35" android:value="1.08"
+                android:interpolator="@android:interpolator/linear"/>
+            <keyframe android:fraction="0.50" android:value="1.08"
+                android:interpolator="@interpolator/kluvs_breathe_tidal"/>
+            <keyframe android:fraction="0.85" android:value="0.96"
+                android:interpolator="@android:interpolator/linear"/>
+            <keyframe android:fraction="1.00" android:value="0.96"/>
+        </propertyValuesHolder>
+    </objectAnimator>
+
+    <objectAnimator
+        android:propertyName="scaleY"
+        android:duration="4000"
+        android:repeatCount="-1">
+        <propertyValuesHolder android:propertyName="scaleY">
+            <keyframe android:fraction="0.00" android:value="0.96"
+                android:interpolator="@interpolator/kluvs_breathe_tidal"/>
+            <keyframe android:fraction="0.35" android:value="1.08"
+                android:interpolator="@android:interpolator/linear"/>
+            <keyframe android:fraction="0.50" android:value="1.08"
+                android:interpolator="@interpolator/kluvs_breathe_tidal"/>
+            <keyframe android:fraction="0.85" android:value="0.96"
+                android:interpolator="@android:interpolator/linear"/>
+            <keyframe android:fraction="1.00" android:value="0.96"/>
+        </propertyValuesHolder>
+    </objectAnimator>
+
+</set>

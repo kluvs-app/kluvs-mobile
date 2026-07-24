@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.ui.components
+package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.designsystem.R
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.avatarHuesDark
 import com.ivangarzab.kluvs.designsystem.theme.avatarHuesLight

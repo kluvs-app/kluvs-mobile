@@ -56,7 +56,7 @@ import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
 import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.Icon
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
-import com.ivangarzab.kluvs.ui.components.Avatar
+import com.ivangarzab.kluvs.designsystem.components.Avatar
 import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
 import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.utils.compressImage

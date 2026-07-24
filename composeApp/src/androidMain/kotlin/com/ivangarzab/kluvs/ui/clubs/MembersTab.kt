@@ -39,7 +39,7 @@ import com.ivangarzab.kluvs.clubs.presentation.MemberListItemInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.components.Avatar
+import com.ivangarzab.kluvs.designsystem.components.Avatar
 import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
 import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.Icon
