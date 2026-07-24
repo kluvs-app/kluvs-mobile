@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.icons
 
 /**
  * Every icon in active use across the app, custom-drawable or Material-backed.

@@ -49,12 +49,12 @@ import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.designsystem.components.BookCoverPlaceholder
-import com.ivangarzab.kluvs.designsystem.components.AvatarStack
-import com.ivangarzab.kluvs.designsystem.components.AvatarStackMember
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStack
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStackMember
 import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
-import com.ivangarzab.kluvs.designsystem.components.IconType
-import com.ivangarzab.kluvs.designsystem.components.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import com.ivangarzab.kluvs.designsystem.components.OwnProgressRow
 import kotlinx.datetime.LocalDateTime

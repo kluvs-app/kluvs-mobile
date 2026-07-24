@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.join.presentation.JoinState
 import com.ivangarzab.kluvs.join.presentation.JoinViewModel
-import com.ivangarzab.kluvs.designsystem.components.IconType
-import com.ivangarzab.kluvs.designsystem.components.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import org.koin.compose.viewmodel.koinViewModel
 

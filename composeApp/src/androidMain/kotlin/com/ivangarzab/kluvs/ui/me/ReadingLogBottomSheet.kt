@@ -33,7 +33,7 @@ import com.ivangarzab.kluvs.model.ClubPreview
 import com.ivangarzab.kluvs.model.ReadingLog
 import com.ivangarzab.kluvs.model.ReadingLogEntry
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.designsystem.components.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
 
 /**
  * Bottom sheet showing the signed-in member's reading log: sessions grouped

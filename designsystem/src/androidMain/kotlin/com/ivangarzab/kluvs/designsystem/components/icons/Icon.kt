@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.icons
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack

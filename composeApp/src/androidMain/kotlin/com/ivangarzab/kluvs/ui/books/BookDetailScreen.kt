@@ -43,12 +43,13 @@ import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.books.presentation.BookDetailsState
 import com.ivangarzab.kluvs.books.presentation.BookDetailsViewModel
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.BookVolumeInfo
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
-import com.ivangarzab.kluvs.designsystem.components.IconType
-import com.ivangarzab.kluvs.designsystem.components.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.ebGaramond
 import org.koin.compose.viewmodel.koinViewModel

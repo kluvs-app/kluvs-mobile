@@ -27,8 +27,8 @@ import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.settings.presentation.EditableProfile
 import com.ivangarzab.kluvs.settings.presentation.SettingsState
 import com.ivangarzab.kluvs.settings.presentation.SettingsViewModel
-import com.ivangarzab.kluvs.designsystem.components.IconType
-import com.ivangarzab.kluvs.designsystem.components.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import org.koin.compose.viewmodel.koinViewModel
 

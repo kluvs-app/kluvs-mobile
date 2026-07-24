@@ -40,12 +40,12 @@ import com.ivangarzab.kluvs.presentation.state.ScreenState
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.brandOnPrimary
 import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
-import com.ivangarzab.kluvs.designsystem.components.BookCoverPlaceholder
-import com.ivangarzab.kluvs.designsystem.components.AvatarStack
-import com.ivangarzab.kluvs.designsystem.components.AvatarStackMember
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStack
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStackMember
 import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
-import com.ivangarzab.kluvs.designsystem.components.IconType
-import com.ivangarzab.kluvs.designsystem.components.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
 /**

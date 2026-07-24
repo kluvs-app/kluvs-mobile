@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.avatars
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -54,8 +54,8 @@ import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmDisabled
 import com.ivangarzab.kluvs.designsystem.components.controls.AttendanceControl
 import com.ivangarzab.kluvs.designsystem.components.controls.AttendanceOption
 import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
-import com.ivangarzab.kluvs.designsystem.components.IconType
-import com.ivangarzab.kluvs.designsystem.components.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import kotlinx.datetime.LocalDateTime
 

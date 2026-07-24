@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.bookcover
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

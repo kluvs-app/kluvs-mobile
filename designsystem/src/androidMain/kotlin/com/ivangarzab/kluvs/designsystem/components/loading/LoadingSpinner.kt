@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.loading
 
 import android.widget.ImageView
 import androidx.compose.foundation.layout.size
