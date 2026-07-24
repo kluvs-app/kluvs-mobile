@@ -1,24 +1,35 @@
 package com.ivangarzab.kluvs.designsystem.components.fields
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.designsystem.components.buttons.IconButton
 import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.components.icons.IconType
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
@@ -30,6 +41,12 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
  * empty. Distinct from the (separate, unbuilt) search-and-select combobox: this only filters
  * what's already on screen, it never triggers a network search or produces a "selected result"
  * state — see design-system/docs/inputs.md.
+ *
+ * Built on [BasicTextField] with hand-drawn border/background rather than wrapping
+ * `OutlinedTextField` (as [InputField]/[PickerField] do) — M3's text field composables enforce
+ * an internal ~56dp minimum height that can't be shrunk by squeezing the outer container, and
+ * this field needs to be genuinely compact for use inside [com.ivangarzab.kluvs.designsystem.components.appbars.SearchTopAppBar]'s
+ * collapsed single-row height.
  */
 @Composable
 fun SearchField(
@@ -40,40 +57,63 @@ fun SearchField(
     enabled: Boolean = true,
     isLoading: Boolean = false,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        enabled = enabled,
-        placeholder = { Text(placeholder) },
-        leadingIcon = {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            } else {
-                Icon(type = IconType.Search, contentDescription = null)
-            }
-        },
-        trailingIcon = {
-            if (value.isNotEmpty()) {
-                IconButton(
-                    type = IconType.Close,
-                    contentDescription = "Clear search",
-                    onClick = { onValueChange("") },
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        animationSpec = tween(150),
+        label = "SearchFieldBorderColor",
+    )
+    val accentColor = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = accentColor)
+        } else {
+            Icon(type = IconType.Search, contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = KluvsTheme.typography.body.medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        shape = RoundedCornerShape(8.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            disabledContainerColor = MaterialTheme.colorScheme.background,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            cursorColor = MaterialTheme.colorScheme.primary,
-        ),
-    )
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = enabled,
+                singleLine = true,
+                textStyle = KluvsTheme.typography.body.medium.copy(color = MaterialTheme.colorScheme.onSurface),
+                interactionSource = interactionSource,
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            )
+        }
+
+        if (value.isNotEmpty()) {
+            Icon(
+                type = IconType.Close,
+                contentDescription = "Clear search",
+                tint = accentColor,
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable(enabled = enabled) { onValueChange("") },
+            )
+        }
+    }
 }
 
 @PreviewLightDark
