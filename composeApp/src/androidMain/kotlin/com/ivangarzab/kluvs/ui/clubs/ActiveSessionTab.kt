@@ -51,8 +51,8 @@ import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmDisabled
-import com.ivangarzab.kluvs.designsystem.components.AttendanceControl
-import com.ivangarzab.kluvs.designsystem.components.AttendanceOption
+import com.ivangarzab.kluvs.designsystem.components.controls.AttendanceControl
+import com.ivangarzab.kluvs.designsystem.components.controls.AttendanceOption
 import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
 import com.ivangarzab.kluvs.designsystem.components.IconType
 import com.ivangarzab.kluvs.designsystem.components.Icon

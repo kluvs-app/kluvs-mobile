@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -27,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ivangarzab.kluvs.designsystem.components.controls.ToggleControl
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.feature
 import kotlin.math.roundToInt
@@ -123,23 +122,13 @@ fun ReadingProgressBottomSheet(
             )
 
             // Track By toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TrackByButton(
-                    label = "Page",
-                    selected = progressType == ProgressTrackingMode.PAGE,
-                    modifier = Modifier.weight(1f),
-                    onClick = { progressType = ProgressTrackingMode.PAGE }
-                )
-                TrackByButton(
-                    label = "Percent",
-                    selected = progressType == ProgressTrackingMode.PERCENT,
-                    modifier = Modifier.weight(1f),
-                    onClick = { progressType = ProgressTrackingMode.PERCENT }
-                )
-            }
+            ToggleControl(
+                options = listOf(ProgressTrackingMode.PAGE, ProgressTrackingMode.PERCENT),
+                selected = progressType,
+                onSelect = { progressType = it },
+                label = { if (it == ProgressTrackingMode.PAGE) "Page" else "Percent" },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             if (progressType == ProgressTrackingMode.PAGE) {
                 OutlinedTextField(
@@ -202,31 +191,6 @@ fun ReadingProgressBottomSheet(
                     color = MaterialTheme.colorScheme.background
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun TrackByButton(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    if (selected) {
-        Button(
-            onClick = onClick,
-            modifier = modifier,
-            colors = ButtonDefaults.buttonColors()
-        ) {
-            Text(text = label, color = MaterialTheme.colorScheme.background)
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier
-        ) {
-            Text(text = label)
         }
     }
 }

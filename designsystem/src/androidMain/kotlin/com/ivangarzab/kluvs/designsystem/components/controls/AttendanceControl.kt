@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.controls
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,6 +16,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -142,10 +146,11 @@ private fun AttendanceSegment(
 @PreviewLightDark
 @Composable
 private fun Preview_AttendanceControl() = KluvsTheme {
+    var selected by remember { mutableStateOf<AttendanceOption?>(AttendanceOption.YES) }
     AttendanceControl(
         counts = mapOf(AttendanceOption.YES to 1, AttendanceOption.MAYBE to 1),
-        selected = AttendanceOption.YES,
+        selected = selected,
         disabled = false,
-        onSelect = {}
+        onSelect = { selected = it }
     )
 }
