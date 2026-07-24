@@ -14,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -43,7 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.auth.presentation.AuthViewModel
 import com.ivangarzab.kluvs.auth.presentation.ForgotPasswordUiState
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
 import com.ivangarzab.kluvs.ui.components.InputField
 import com.ivangarzab.kluvs.ui.extensions.toLocalizedMessage
 import org.koin.compose.viewmodel.koinViewModel
@@ -97,7 +97,7 @@ fun ForgotPasswordScreenContent(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_back),
+                            type = IconType.Back,
                             contentDescription = stringResource(R.string.navigate_back)
                         )
                     }
@@ -144,7 +144,7 @@ fun ForgotPasswordScreenContent(
                     label = stringResource(R.string.email),
                     value = state.emailField,
                     onValueChange = onEmailFieldChange,
-                    iconRes = R.drawable.ic_email,
+                    icon = IconType.Email,
                     iconDescription = stringResource(R.string.description_email_text_field),
                     supportingText = state.emailError
                         ?: stringResource(R.string.enter_valid_email_address),

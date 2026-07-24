@@ -25,7 +25,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.model.JoinPolicy
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 /** Web app domain used to build shareable invite links — mobile does not yet handle this URL via deep link. */
 private const val WEB_APP_DOMAIN = "https://kluvs.com"

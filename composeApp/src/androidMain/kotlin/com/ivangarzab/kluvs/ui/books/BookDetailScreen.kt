@@ -19,10 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -46,12 +43,15 @@ import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.books.presentation.BookDetailsState
 import com.ivangarzab.kluvs.books.presentation.BookDetailsViewModel
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.BookVolumeInfo
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.ebGaramond
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.ebGaramond
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -129,7 +129,7 @@ fun BookDetailScreenContent(
         ) {
             IconButton(onClick = onNavigateBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    type = IconType.ArrowBack,
                     contentDescription = stringResource(R.string.navigate_back),
                     tint = MaterialTheme.colorScheme.onSurface
                 )

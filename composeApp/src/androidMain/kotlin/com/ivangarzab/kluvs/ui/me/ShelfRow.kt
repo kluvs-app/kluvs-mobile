@@ -24,9 +24,9 @@ import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.member.presentation.ShelfItem
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
-import com.ivangarzab.kluvs.ui.components.OwnProgressRow
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.progress.OwnProgressRow
 
 /**
  * A single "On Your Shelf" row: the active-session book for one of the
@@ -90,7 +90,8 @@ fun ShelfRow(
             Spacer(Modifier.height(12.dp))
 
             OwnProgressRow(
-                ownProgress = item.ownProgress,
+                percent = item.ownProgress?.percent,
+                statusLabel = item.ownProgress?.label,
                 onUpdateProgress = { onUpdateProgress(item.sessionId) },
                 leftLabel = item.nextDiscussionDate?.let { "Next · $it" } ?: "Your progress"
             )

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Path interpolator matching the web easing: cubic-bezier(0.4, 0, 0.4, 1)
+  Drop into res/interpolator/kluvs_breathe_tidal.xml
+
+  This curve is used for the eased transitions (inhale and exhale).
+  The held segments use @android:interpolator/linear instead.
+-->
+<pathInterpolator xmlns:android="http://schemas.android.com/apk/res/android"
+    android:controlX1="0.4"
+    android:controlY1="0.0"
+    android:controlX2="0.4"
+    android:controlY2="1.0"/>

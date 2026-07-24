@@ -15,13 +15,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,13 +37,15 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubListItem
 import com.ivangarzab.kluvs.clubs.presentation.MemberAvatarInfo
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.brandOnPrimary
-import com.ivangarzab.kluvs.theme.brandPrimary
-import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
-import com.ivangarzab.kluvs.ui.components.AvatarStack
-import com.ivangarzab.kluvs.ui.components.AvatarStackMember
-import com.ivangarzab.kluvs.ui.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.brandOnPrimary
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStack
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStackMember
+import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 
 /**
@@ -131,7 +129,7 @@ fun ClubsListScreen(
                 contentColor = brandOnPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    type = IconType.Add,
                     contentDescription = "New club"
                 )
             }
@@ -200,7 +198,7 @@ private fun ClubListRow(
             }
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            type = IconType.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )

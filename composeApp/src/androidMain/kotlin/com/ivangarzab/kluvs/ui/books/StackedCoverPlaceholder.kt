@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.lightDivider
-import com.ivangarzab.kluvs.theme.warmDarkCard2
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.lightDivider
+import com.ivangarzab.kluvs.designsystem.theme.warmDarkCard2
 
 private data class TiltedCover(val tiltDegrees: Float, val offsetXFraction: Float)
 

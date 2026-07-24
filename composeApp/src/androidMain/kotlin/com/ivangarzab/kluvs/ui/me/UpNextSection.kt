@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.member.presentation.UpNextItem
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 /**
  * "Up Next" section: the nearest upcoming discussion across all of the

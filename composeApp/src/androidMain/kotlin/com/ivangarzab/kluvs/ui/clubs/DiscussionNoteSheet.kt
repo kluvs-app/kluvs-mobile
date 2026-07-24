@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.clubs.presentation.DiscussionNoteInfo
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 private const val NOTE_MAX_LENGTH = 4000
 

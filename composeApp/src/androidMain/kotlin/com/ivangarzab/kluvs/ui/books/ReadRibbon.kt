@@ -14,8 +14,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 
 /** Ribbon size, matching the [book-cover sizes][design-system/docs/book-cover.md] it's overlaid on. */
 enum class ReadRibbonSize(val width: Dp, val height: Dp) {

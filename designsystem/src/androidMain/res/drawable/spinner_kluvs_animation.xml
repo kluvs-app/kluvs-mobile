@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Kluvs Loading Spinner — AnimatedVectorDrawable
+  Drop into res/drawable/spinner_kluvs_animation.xml
+
+  References:
+    @drawable/spinner_kluvs          — the static VectorDrawable
+    @animator/spinner_kluvs_group    — rotation + scale for the <group>
+    @animator/spinner_kluvs_root     — alpha for the root <vector>
+    @interpolator/kluvs_breathe_tidal — cubic-bezier(0.4, 0, 0.4, 1)
+
+  Usage in XML layout:
+    <ImageView android:src="@drawable/spinner_kluvs_animation" ... />
+
+  Usage in Kotlin:
+    val avd = AnimatedVectorDrawableCompat.create(context, R.drawable.spinner_kluvs_animation)
+    imageView.setImageDrawable(avd)
+    avd?.start()
+
+  Reduced motion: check Settings.Global.ANIMATOR_DURATION_SCALE == 0 or
+  Settings.Secure.REDUCE_TRANSITION_ANIMATION == 1 before calling avd.start().
+  Show the static @drawable/spinner_kluvs at rest pose when reduced motion is on.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/spinner_kluvs">
+
+    <target
+        android:name="root"
+        android:animation="@animator/spinner_kluvs_root"/>
+
+    <target
+        android:name="spinner_group"
+        android:animation="@animator/spinner_kluvs_group"/>
+
+</animated-vector>

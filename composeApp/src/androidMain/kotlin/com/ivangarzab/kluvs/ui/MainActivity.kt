@@ -30,7 +30,7 @@ import com.ivangarzab.kluvs.app.AppCoordinator
 import com.ivangarzab.kluvs.app.AutoJoinResult
 import com.ivangarzab.kluvs.app.NavigationState
 import com.ivangarzab.kluvs.app.PendingJoinCoordinator
-import com.ivangarzab.kluvs.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.auth.ForgotPasswordScreen
 import com.ivangarzab.kluvs.ui.auth.LoginScreen
 import com.ivangarzab.kluvs.ui.auth.SignupScreen

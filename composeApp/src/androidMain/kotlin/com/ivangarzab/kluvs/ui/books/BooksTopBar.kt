@@ -21,11 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,14 +43,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.brandPrimary
-import com.ivangarzab.kluvs.theme.foregroundLightPlaceholder
-import com.ivangarzab.kluvs.theme.foregroundWarmPlaceholder
-import com.ivangarzab.kluvs.theme.lightCard
-import com.ivangarzab.kluvs.theme.lightDivider
-import com.ivangarzab.kluvs.theme.warmDarkCard
-import com.ivangarzab.kluvs.theme.warmDarkCard2
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.theme.foregroundLightPlaceholder
+import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmPlaceholder
+import com.ivangarzab.kluvs.designsystem.theme.lightCard
+import com.ivangarzab.kluvs.designsystem.theme.lightDivider
+import com.ivangarzab.kluvs.designsystem.theme.warmDarkCard
+import com.ivangarzab.kluvs.designsystem.theme.warmDarkCard2
 
 private const val TITLE_FADE_MS = 150
 private const val SEARCH_UNFURL_MS = 200
@@ -118,7 +116,7 @@ fun BooksTopBar(
             )
             IconButton(onClick = onSearchClick, enabled = !isSearchActive) {
                 Icon(
-                    imageVector = Icons.Default.Search,
+                    type = IconType.Search,
                     contentDescription = stringResource(R.string.search_books)
                 )
             }
@@ -139,7 +137,7 @@ fun BooksTopBar(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    type = IconType.ArrowBack,
                     contentDescription = stringResource(R.string.navigate_back)
                 )
             }
@@ -219,7 +217,7 @@ private fun SearchInputBox(
                 modifier = Modifier
                     .padding(start = 8.dp)
                     .size(18.dp),
-                imageVector = Icons.Default.Search,
+                type = IconType.Search,
                 contentDescription = null,
                 tint = accentColor
             )

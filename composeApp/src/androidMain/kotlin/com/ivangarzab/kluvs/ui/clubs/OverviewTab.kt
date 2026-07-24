@@ -15,15 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,12 +48,15 @@ import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.books.BookCoverPlaceholder
-import com.ivangarzab.kluvs.ui.components.AvatarStack
-import com.ivangarzab.kluvs.ui.components.AvatarStackMember
-import com.ivangarzab.kluvs.ui.components.GhostButton
-import com.ivangarzab.kluvs.ui.components.NoTabData
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStack
+import com.ivangarzab.kluvs.designsystem.components.avatars.AvatarStackMember
+import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
+import com.ivangarzab.kluvs.designsystem.components.NoTabData
+import com.ivangarzab.kluvs.designsystem.components.progress.OwnProgressRow
 import kotlinx.datetime.LocalDateTime
 
 /**
@@ -232,7 +231,7 @@ private fun SessionSummary(
             }
 
             if (canToggleParticipation) {
-                GhostButton(
+                OutlinedButton(
                     text = stringResource(if (isOwnReading) R.string.opt_out else R.string.join_this_read),
                     onClick = { onToggleParticipation(!isOwnReading) }
                 )
@@ -241,57 +240,20 @@ private fun SessionSummary(
 
         if (isOwnReading) {
             Spacer(Modifier.height(12.dp))
+            // Was a private near-duplicate of the shared OwnProgressRow (design-system
+            // primitives migration) — deleted in favor of the real shared component;
+            // leftLabelEmphasized reproduces the one real difference (italic discussion count).
             OwnProgressRow(
-                ownProgress = ownProgress,
-                discussionsCompleted = sessionDetails.discussions.count { it.isPast },
-                discussionsTotal = sessionDetails.discussions.size,
-                onUpdateProgress = onUpdateProgress
+                percent = ownProgress?.percent,
+                statusLabel = ownProgress?.label,
+                onUpdateProgress = onUpdateProgress,
+                leftLabel = stringResource(
+                    R.string.x_of_y_discussions,
+                    sessionDetails.discussions.count { it.isPast },
+                    sessionDetails.discussions.size
+                ),
+                leftLabelEmphasized = true,
             )
-        }
-    }
-}
-
-@Composable
-private fun OwnProgressRow(
-    ownProgress: OwnProgressInfo?,
-    discussionsCompleted: Int,
-    discussionsTotal: Int,
-    onUpdateProgress: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            LinearProgressIndicator(
-                progress = { (ownProgress?.percent ?: 0) / 100f },
-                modifier = Modifier.weight(1f)
-            )
-            GhostButton(
-                text = if (ownProgress != null) "Update" else "Track Progress",
-                onClick = onUpdateProgress
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.x_of_y_discussions, discussionsCompleted, discussionsTotal),
-                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ownProgress?.let {
-                Text(
-                    text = it.label,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
         }
     }
 }
@@ -373,7 +335,7 @@ private fun SessionOverflowMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Session options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

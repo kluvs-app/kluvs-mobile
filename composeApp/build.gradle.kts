@@ -19,6 +19,7 @@ kotlin {
     
     sourceSets {
         androidMain.dependencies {
+            implementation(projects.designsystem)
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.splashscreen)

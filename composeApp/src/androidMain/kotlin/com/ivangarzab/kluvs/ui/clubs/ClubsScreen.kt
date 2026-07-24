@@ -18,13 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -61,14 +57,28 @@ import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.presentation.state.ScreenState
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.ui.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.components.ErrorScreen
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
+import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
-import com.ivangarzab.kluvs.ui.components.ReadingProgressBottomSheet
+import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
+
+/** Translation at the boundary into the hollow [ReadingProgressBottomSheet] — see its call site below. */
+private fun ProgressType.toTrackingMode(): ProgressTrackingMode = when (this) {
+    ProgressType.PAGE -> ProgressTrackingMode.PAGE
+    ProgressType.PERCENT -> ProgressTrackingMode.PERCENT
+}
+
+private fun ProgressTrackingMode.toDomain(): ProgressType = when (this) {
+    ProgressTrackingMode.PAGE -> ProgressType.PAGE
+    ProgressTrackingMode.PERCENT -> ProgressType.PERCENT
+}
 
 /**
  * Entry point for the Clubs tab: owns the list → detail navigation (mirrors web's
@@ -309,7 +319,7 @@ fun ClubsScreenContent(
                     ) {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                type = IconType.ArrowBack,
                                 contentDescription = stringResource(R.string.navigate_back),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
@@ -545,15 +555,18 @@ fun ClubsScreenContent(
 
                 if (showProgressSheet) {
                     state.activeSession?.let { session ->
+                        // ReadingProgressBottomSheet is hollow (design-system primitives
+                        // migration) — it reports back in ProgressTrackingMode, translated to the
+                        // domain ProgressType at this boundary.
                         ReadingProgressBottomSheet(
                             bookTitle = session.book.title,
                             pageCount = session.book.pageCount,
-                            initialType = state.ownProgress?.type ?: ProgressType.PAGE,
+                            initialType = (state.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
                             initialCurrentPage = state.ownProgress?.currentPage,
                             initialPercentComplete = state.ownProgress?.percentComplete,
                             initialMarkFinished = state.ownProgress?.isCompleted ?: false,
                             onSave = { type, currentPage, percentComplete, markFinished ->
-                                onSaveProgress(type, currentPage, percentComplete, markFinished)
+                                onSaveProgress(type.toDomain(), currentPage, percentComplete, markFinished)
                                 showProgressSheet = false
                             },
                             onDismiss = { showProgressSheet = false }
@@ -699,7 +712,7 @@ private fun ClubOverflowMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Club options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

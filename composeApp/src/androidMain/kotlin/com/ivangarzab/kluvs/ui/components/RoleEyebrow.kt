@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,10 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.roleAdminOnDark
-import com.ivangarzab.kluvs.theme.roleMemberLabel
-import com.ivangarzab.kluvs.theme.roleOwner
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.roleAdminOnDark
+import com.ivangarzab.kluvs.designsystem.theme.roleMemberLabel
+import com.ivangarzab.kluvs.designsystem.theme.roleOwner
 
 /**
  * Uppercase role label with a colored dot for Owner/Admin — mirrors web's `RoleEyebrow`.
@@ -43,8 +42,10 @@ fun RoleEyebrow(
             )
         }
         Text(
+            // KluvsTheme.typography.eyebrow carries size/weight/tracking only — Compose's TextStyle has
+            // no text-transform, so callers uppercase the string themselves, same as before.
             text = role.name.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
+            style = KluvsTheme.typography.eyebrow,
             color = color
         )
     }

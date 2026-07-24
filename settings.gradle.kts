@@ -30,6 +30,7 @@ dependencyResolutionManagement {
 
 include(":composeApp")
 include(":shared")
+include(":designsystem")
 // core
 include(":core:model")
 include(":core:api")

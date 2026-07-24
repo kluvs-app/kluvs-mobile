@@ -18,13 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -53,13 +48,29 @@ import com.ivangarzab.kluvs.model.AttendanceRoster
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.clubs.presentation.SessionParticipantInfo
-import com.ivangarzab.kluvs.theme.KluvsTheme
-import com.ivangarzab.kluvs.theme.brandPrimary
-import com.ivangarzab.kluvs.theme.foregroundWarmDisabled
-import com.ivangarzab.kluvs.ui.components.AttendanceControl
-import com.ivangarzab.kluvs.ui.components.GhostButton
-import com.ivangarzab.kluvs.ui.components.NoTabData
+import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
+import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmDisabled
+import com.ivangarzab.kluvs.designsystem.components.controls.AttendanceControl
+import com.ivangarzab.kluvs.designsystem.components.controls.AttendanceOption
+import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
+import com.ivangarzab.kluvs.designsystem.components.icons.IconType
+import com.ivangarzab.kluvs.designsystem.components.icons.Icon
+import com.ivangarzab.kluvs.designsystem.components.NoTabData
 import kotlinx.datetime.LocalDateTime
+
+/** Translation at the boundary into the hollow [AttendanceControl] — see its call site below. */
+private fun AttendanceStatus.toOption(): AttendanceOption = when (this) {
+    AttendanceStatus.YES -> AttendanceOption.YES
+    AttendanceStatus.NO -> AttendanceOption.NO
+    AttendanceStatus.MAYBE -> AttendanceOption.MAYBE
+}
+
+private fun AttendanceOption.toDomain(): AttendanceStatus = when (this) {
+    AttendanceOption.YES -> AttendanceStatus.YES
+    AttendanceOption.NO -> AttendanceStatus.NO
+    AttendanceOption.MAYBE -> AttendanceStatus.MAYBE
+}
 
 @Composable
 fun ActiveSessionTab(
@@ -92,7 +103,7 @@ fun ActiveSessionTab(
                 )
                 Button(onClick = onCreateSession) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        type = IconType.Add,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -127,7 +138,7 @@ fun ActiveSessionTab(
                 )
             }
             if (isAdminOrAbove) {
-                GhostButton(
+                OutlinedButton(
                     text = stringResource(R.string.add_discussion),
                     onClick = onCreateDiscussion,
                 )
@@ -249,7 +260,7 @@ private fun DiscussionTimelineItem(
                 ) {
                     if (discussion.isPast) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_checkmark),
+                            type = IconType.Checkmark,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.background,
                             modifier = Modifier.size(10.dp)
@@ -307,7 +318,7 @@ private fun DiscussionTimelineItem(
                 ) {
                     Icon(
                         modifier = Modifier.size(16.dp),
-                        painter = painterResource(R.drawable.ic_location),
+                        type = IconType.Location,
                         contentDescription = null,
                         tint = secondaryTextColor
                     )
@@ -324,17 +335,24 @@ private fun DiscussionTimelineItem(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(8.dp))
-                AttendanceControl(
-                    roster = attendanceRoster,
-                    disabled = discussion.isPast,
-                    onSetAttendance = onSetAttendance
-                )
+                // AttendanceControl is hollow (design-system primitives migration) — it doesn't
+                // know about AttendanceRoster/AttendanceStatus, so we translate at the boundary.
+                if (attendanceRoster != null) {
+                    AttendanceControl(
+                        counts = AttendanceStatus.entries.associateWith { status ->
+                            attendanceRoster.responses.count { it.status == status }
+                        }.mapKeys { (status, _) -> status.toOption() },
+                        selected = attendanceRoster.myStatus?.toOption(),
+                        disabled = discussion.isPast,
+                        onSelect = { option -> onSetAttendance(option.toDomain()) }
+                    )
+                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onOpenNote) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_edit),
+                        type = IconType.Edit,
                         contentDescription = "Discussion note",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -360,7 +378,7 @@ private fun DiscussionOverflowMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.MoreVert,
+                type = IconType.MoreVert,
                 contentDescription = "Discussion options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
