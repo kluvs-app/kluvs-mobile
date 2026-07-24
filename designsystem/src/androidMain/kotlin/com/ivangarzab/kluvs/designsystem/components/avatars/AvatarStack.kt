@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,7 +40,7 @@ fun AvatarStack(
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
     max: Int = 3,
-    ringColor: Color = MaterialTheme.colorScheme.background,
+    ringColor: Color = KluvsTheme.colors.background,
 ) {
     val shown = members.take(max)
     val extra = members.size - shown.size
@@ -87,7 +86,7 @@ fun AvatarStack(
 fun Preview_AvatarStack() = KluvsTheme {
     Box(
         modifier = Modifier
-            .background(color = MaterialTheme.colorScheme.background)
+            .background(color = KluvsTheme.colors.background)
     ) {
         AvatarStack(
             members = listOf(

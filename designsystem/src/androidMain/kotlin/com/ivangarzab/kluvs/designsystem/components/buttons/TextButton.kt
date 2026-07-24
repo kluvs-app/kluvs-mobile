@@ -3,7 +3,6 @@ package com.ivangarzab.kluvs.designsystem.components.buttons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -29,7 +28,7 @@ fun TextButton(
         modifier = modifier,
         enabled = enabled,
         colors = ButtonDefaults.textButtonColors(
-            contentColor = if (emphasized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            contentColor = if (emphasized) KluvsTheme.colors.accent else KluvsTheme.colors.contentMuted
         ),
     ) {
         Text(text = text, style = KluvsTheme.typography.label)

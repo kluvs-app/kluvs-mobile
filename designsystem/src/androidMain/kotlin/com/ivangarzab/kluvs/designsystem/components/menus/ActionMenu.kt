@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,13 +57,13 @@ fun ActionMenu(
             type = icon,
             contentDescription = contentDescription,
             onClick = { expanded = true },
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = KluvsTheme.colors.contentMuted,
         )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             shape = RoundedCornerShape(8.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = KluvsTheme.colors.cardAlt,
         ) {
             items.forEach { item ->
                 DropdownMenuItem(
@@ -72,7 +71,7 @@ fun ActionMenu(
                         Text(
                             text = item.label.uppercase(),
                             style = KluvsTheme.typography.eyebrow,
-                            color = if (item.isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                            color = if (item.isDestructive) KluvsTheme.colors.danger else KluvsTheme.colors.content,
                         )
                     },
                     onClick = {
@@ -99,14 +98,14 @@ private fun ActionMenuPreviewShape(items: List<ActionMenuItem>) {
     Column(
         modifier = Modifier
             .widthIn(min = 112.dp, max = 280.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+            .background(KluvsTheme.colors.cardAlt, RoundedCornerShape(8.dp))
             .padding(vertical = 4.dp),
     ) {
         items.forEach { item ->
             Text(
                 text = item.label.uppercase(),
                 style = KluvsTheme.typography.eyebrow,
-                color = if (item.isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                color = if (item.isDestructive) KluvsTheme.colors.danger else KluvsTheme.colors.content,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {}

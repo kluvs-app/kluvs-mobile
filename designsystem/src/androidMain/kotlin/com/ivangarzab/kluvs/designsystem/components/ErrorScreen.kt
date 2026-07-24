@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,7 +31,7 @@ fun ErrorScreen(
     ) {
         Text(
             text = message,
-            color = MaterialTheme.colorScheme.error,
+            color = KluvsTheme.colors.danger,
             style = KluvsTheme.typography.body.large
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -46,7 +45,7 @@ fun ErrorScreen(
 @Composable
 fun Preview_ErrorScreen() = KluvsTheme {
     ErrorScreen(
-        modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+        modifier = Modifier.background(color = KluvsTheme.colors.background),
         message = "This is an error",
         onRetry = { }
     )

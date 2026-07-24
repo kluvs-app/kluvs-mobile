@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -33,13 +32,13 @@ fun DangerZoneBox(
         modifier = modifier
             .fillMaxWidth()
             .background(statusDangerSubtle, RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+            .border(1.dp, KluvsTheme.colors.danger.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(
             text = "DANGER ZONE",
             style = KluvsTheme.typography.eyebrow,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = KluvsTheme.colors.contentMuted,
             modifier = Modifier.padding(bottom = 8.dp),
         )
         OutlinedButton(text = actionLabel, onClick = onActionClick)

@@ -3,7 +3,6 @@
 package com.ivangarzab.kluvs.designsystem.components.modals
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
@@ -24,8 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.designsystem.components.buttons.PrimaryButton
 import com.ivangarzab.kluvs.designsystem.components.buttons.TextButton
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.designsystem.theme.lightBar
-import com.ivangarzab.kluvs.designsystem.theme.warmDarkBar
 
 /**
  * Three-zone modal shell — design-system "Modal" (see design-system/docs/modal.md): a header
@@ -49,8 +45,8 @@ fun BottomSheet(
     footer: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val accentColor = if (isDestructiveHeader) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val containerColor = if (isSystemInDarkTheme()) warmDarkBar else lightBar
+    val accentColor = if (isDestructiveHeader) KluvsTheme.colors.danger else KluvsTheme.colors.accent
+    val containerColor = KluvsTheme.colors.bar
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -69,14 +65,14 @@ fun BottomSheet(
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 20.dp),
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = KluvsTheme.colors.divider)
 
             Column(modifier = Modifier.padding(24.dp)) {
                 content()
             }
 
             if (footer != null) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KluvsTheme.colors.divider)
                 footer()
             }
         }
@@ -114,21 +110,21 @@ fun BottomSheetFooter(
 @PreviewLightDark
 @Composable
 private fun Preview_BottomSheet() = KluvsTheme {
-    val containerColor = if (isSystemInDarkTheme()) warmDarkBar else lightBar
+    val containerColor = KluvsTheme.colors.bar
     Column(
         modifier = Modifier.background(containerColor, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
     ) {
         Text(
             text = "EDIT CLUB",
             style = KluvsTheme.typography.eyebrow,
-            color = MaterialTheme.colorScheme.primary,
+            color = KluvsTheme.colors.accent,
             modifier = Modifier.padding(24.dp),
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = KluvsTheme.colors.divider)
         Column(modifier = Modifier.padding(24.dp)) {
             Text(text = "{form fields would go here}", style = KluvsTheme.typography.body.medium)
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = KluvsTheme.colors.divider)
         BottomSheetFooter(actionLabel = "Save", onAction = {}, onCancel = {})
     }
 }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -63,12 +62,12 @@ fun OwnProgressRow(
         ) {
             Text(
                 text = leftLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = KluvsTheme.colors.contentMuted,
                 style = if (leftLabelEmphasized) KluvsTheme.typography.caption.feature() else KluvsTheme.typography.caption
             )
             Text(
                 text = statusLabel ?: "Not started",
-                color = MaterialTheme.colorScheme.primary,
+                color = KluvsTheme.colors.accent,
                 style = KluvsTheme.typography.caption
             )
         }

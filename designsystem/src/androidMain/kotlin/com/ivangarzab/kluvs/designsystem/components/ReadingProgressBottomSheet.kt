@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -118,7 +117,7 @@ fun ReadingProgressBottomSheet(
                 text = bookTitle,
                 // Title + feature (italic) — this is a book title, design-system's confirmed pattern.
                 style = KluvsTheme.typography.title.medium.feature(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = KluvsTheme.colors.contentMuted
             )
 
             // Track By toggle
@@ -188,7 +187,7 @@ fun ReadingProgressBottomSheet(
             ) {
                 Text(
                     text = "Save Progress",
-                    color = MaterialTheme.colorScheme.background
+                    color = KluvsTheme.colors.background
                 )
             }
         }

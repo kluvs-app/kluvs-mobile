@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,7 +108,7 @@ fun SearchTopAppBar(
                 type = IconType.ArrowBack,
                 contentDescription = "Close search",
                 onClick = { onSearchActiveChange(false) },
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = KluvsTheme.colors.content,
             )
             SearchField(
                 value = searchQuery,
@@ -128,7 +127,7 @@ private fun Preview_SearchTopAppBar_Full() = KluvsTheme {
     var isSearchActive by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     SearchTopAppBar(
-        modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+        modifier = Modifier.background(color = KluvsTheme.colors.background),
         header = "Library",
         title = "My Shelf",
         onNavigateBack = {},
@@ -145,7 +144,7 @@ private fun Preview_SearchTopAppBar_Full() = KluvsTheme {
 private fun Preview_SearchTopAppBar_Active() = KluvsTheme {
     var query by remember { mutableStateOf("Kluvs") }
     SearchTopAppBar(
-        modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+        modifier = Modifier.background(color = KluvsTheme.colors.background),
         header = "Library",
         title = "My Shelf",
         onNavigateBack = {},

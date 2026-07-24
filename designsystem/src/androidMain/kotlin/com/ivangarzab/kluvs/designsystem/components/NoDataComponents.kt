@@ -1,7 +1,6 @@
 package com.ivangarzab.kluvs.designsystem.components
 
 import androidx.annotation.StringRes
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +17,7 @@ fun NoTabData(
     Text(
         modifier = modifier,
         text = stringResource(text),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = KluvsTheme.colors.contentMuted,
         // Italic Title at empty-state scale — design-system/docs/typography.md's confirmed pattern
         // for empty-states (feature() bakes the italic, no separate fontStyle param needed).
         style = KluvsTheme.typography.title.medium.feature(),
@@ -34,7 +33,7 @@ fun NoSectionData(
     Text(
         modifier = modifier,
         text = stringResource(text),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = KluvsTheme.colors.contentMuted,
         // Smaller, section-scoped empty-state aside — Caption (not Body: Body has no feature
         // modifier in the design-system model; this is muted/secondary emphasis, Caption's job).
         style = KluvsTheme.typography.caption.feature(),

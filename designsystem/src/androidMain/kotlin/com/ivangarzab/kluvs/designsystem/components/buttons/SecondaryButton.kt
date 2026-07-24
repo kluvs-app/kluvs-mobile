@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,8 +30,8 @@ fun SecondaryButton(
         modifier = modifier,
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+        border = androidx.compose.foundation.BorderStroke(1.dp, KluvsTheme.colors.accent),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = KluvsTheme.colors.accent),
     ) {
         Text(text = text, style = KluvsTheme.typography.label)
     }

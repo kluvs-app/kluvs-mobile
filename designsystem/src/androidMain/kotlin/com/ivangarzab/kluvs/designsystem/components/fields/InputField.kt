@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -64,15 +63,15 @@ fun InputField(
         keyboardOptions = keyboardOptions,
         shape = RoundedCornerShape(8.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            disabledContainerColor = MaterialTheme.colorScheme.background,
-            errorContainerColor = MaterialTheme.colorScheme.surface,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedContainerColor = KluvsTheme.colors.card,
+            unfocusedContainerColor = KluvsTheme.colors.card,
+            disabledContainerColor = KluvsTheme.colors.background,
+            errorContainerColor = KluvsTheme.colors.card,
+            focusedBorderColor = KluvsTheme.colors.accent,
+            unfocusedBorderColor = KluvsTheme.colors.divider,
+            focusedLabelColor = KluvsTheme.colors.accent,
+            unfocusedLabelColor = KluvsTheme.colors.contentMuted,
+            cursorColor = KluvsTheme.colors.accent,
         ),
     )
 }

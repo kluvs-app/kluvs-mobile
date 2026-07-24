@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,7 +61,7 @@ fun AttendanceControl(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
+                .border(1.dp, KluvsTheme.colors.divider, RoundedCornerShape(50))
                 .alpha(if (disabled) 0.7f else 1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -81,7 +80,7 @@ fun AttendanceControl(
             // Caption, not Eyebrow — plain metadata, matches design-system/docs/typography.md's
             // own "1 yes · 0 no · 0 maybe" example directly.
             style = KluvsTheme.typography.caption,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = KluvsTheme.colors.contentMuted,
             modifier = Modifier.padding(top = 4.dp)
         )
     }
@@ -98,8 +97,8 @@ private fun AttendanceSegment(
     val (background, tint) = when {
         isSelected && option == AttendanceOption.YES -> statusSuccessSubtle to statusSuccess
         isSelected && option == AttendanceOption.NO -> statusDangerSubtle to statusDanger
-        isSelected -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurface
-        else -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurfaceVariant
+        isSelected -> KluvsTheme.colors.cardAlt to KluvsTheme.colors.content
+        else -> KluvsTheme.colors.card to KluvsTheme.colors.contentMuted
     }
 
     Row(
@@ -109,7 +108,7 @@ private fun AttendanceSegment(
                 if (!isFirst) {
                     Modifier.border(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = KluvsTheme.colors.divider
                     )
                 } else Modifier
             )

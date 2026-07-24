@@ -2,12 +2,10 @@ package com.ivangarzab.kluvs.designsystem.components.bookcover
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,13 +15,11 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.designsystem.theme.lightBar
-import com.ivangarzab.kluvs.designsystem.theme.warmDarkBar
 import kotlin.math.sqrt
 
 /**
  * The design system's "no cover available" fallback: a tessellating hexagon
- * hive grid on the [warmDarkBar]/[lightBar] surface. See design-system/docs/book-cover.md.
+ * hive grid on the [KluvsTheme.colors.bar] surface. See design-system/docs/book-cover.md.
  *
  * Pointy-top hexagon tiling where [hexWidth] is the vertex-to-vertex column spacing
  * (matches the web token's 28px tile width at book-cover--md scale).
@@ -33,8 +29,8 @@ fun BookCoverPlaceholder(
     modifier: Modifier = Modifier,
     hexWidth: Dp = 14.dp
 ) {
-    val strokeColor = MaterialTheme.colorScheme.outline
-    val backgroundColor = if (isSystemInDarkTheme()) warmDarkBar else lightBar
+    val strokeColor = KluvsTheme.colors.divider
+    val backgroundColor = KluvsTheme.colors.bar
 
     Canvas(
         modifier = modifier
@@ -81,7 +77,7 @@ private fun addHexagon(path: Path, center: Offset, radius: Float) {
 @PreviewLightDark
 @Composable
 fun Preview_BookCoverPlaceholder() = KluvsTheme {
-    Box(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+    Box(modifier = Modifier.background(KluvsTheme.colors.background)) {
         BookCoverPlaceholder(
             modifier = Modifier
                 .width(120.dp)

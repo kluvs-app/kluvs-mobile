@@ -10,7 +10,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 
 // Dark-by-default product surfaces — warm near-black scale from design-system/tokens.json.
@@ -63,14 +62,6 @@ private val LightColorScheme = lightColorScheme(
 
 
 /**
- * Cream on dark / dark-chocolate on light — the "label/variant/accent" role for wordmark,
- * avatar initials, role labels, and input labels (design-system foreground-warm.primary /
- * foreground-light.label-variant). Distinct from [MaterialTheme.colorScheme.onSurfaceVariant],
- * which carries meta/supporting text instead.
- */
-val LocalKluvsLabelColor = compositionLocalOf { foregroundWarmPrimary }
-
-/**
  * Entry point for Kluvs-native theme values, shaped after AOSP's `object MaterialTheme` +
  * `@Composable fun MaterialTheme(...)` pair (both declared under the same name — legal in Kotlin
  * since types/objects and functions live in separate namespaces; androidx.compose.material3 relies
@@ -86,6 +77,11 @@ object KluvsTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalKluvsTypography.current
+
+    val colors: KluvsColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalKluvsColors.current
 }
 
 @Composable
@@ -104,10 +100,10 @@ fun KluvsTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-    val labelColor = if (darkTheme) foregroundWarmPrimary else foregroundLightLabelVariant
+    val kluvsColors = if (darkTheme) kluvsColorsDark else kluvsColorsLight
 
     CompositionLocalProvider(
-        LocalKluvsLabelColor provides labelColor,
+        LocalKluvsColors provides kluvsColors,
         LocalKluvsTypography provides kluvsTypography,
     ) {
         // Compat shim only, not the source of truth: stock M3 widgets still in use throughout the

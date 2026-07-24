@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,8 +52,8 @@ fun <T> Dropdown(
     enabled: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val tint = if (selected != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val borderColor = if (selected != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val tint = if (selected != null) KluvsTheme.colors.accent else KluvsTheme.colors.contentMuted
+    val borderColor = if (selected != null) KluvsTheme.colors.accent else KluvsTheme.colors.divider
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "DropdownChevronRotation")
 
     Row(
@@ -98,7 +97,7 @@ fun <T> Dropdown(
                     text = { Text(label(option)) },
                     trailingIcon = {
                         if (option == selected) {
-                            Icon(type = IconType.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(type = IconType.Check, contentDescription = null, tint = KluvsTheme.colors.accent)
                         }
                     },
                     onClick = {

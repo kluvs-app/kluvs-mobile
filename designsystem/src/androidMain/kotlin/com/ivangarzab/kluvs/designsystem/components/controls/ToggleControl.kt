@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,7 +43,7 @@ fun <T> ToggleControl(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(50))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50)),
+            .border(1.dp, KluvsTheme.colors.divider, RoundedCornerShape(50)),
     ) {
         options.forEachIndexed { index, option ->
             val isSelected = option == selected
@@ -53,10 +52,10 @@ fun <T> ToggleControl(
                     .weight(1f)
                     .then(
                         if (index != 0) {
-                            Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            Modifier.border(1.dp, KluvsTheme.colors.divider)
                         } else Modifier
                     )
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .background(if (isSelected) KluvsTheme.colors.accent else Color.Transparent)
                     .clickable { onSelect(option) }
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.Center,
@@ -64,7 +63,7 @@ fun <T> ToggleControl(
                 Text(
                     text = label(option),
                     style = KluvsTheme.typography.label,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSelected) KluvsTheme.colors.onAccent else KluvsTheme.colors.contentMuted,
                 )
             }
         }

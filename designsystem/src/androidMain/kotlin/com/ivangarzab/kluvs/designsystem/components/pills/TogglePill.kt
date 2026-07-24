@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,8 +37,8 @@ fun TogglePill(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val borderColor = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val tint = if (checked) KluvsTheme.colors.accent else KluvsTheme.colors.contentMuted
+    val borderColor = if (checked) KluvsTheme.colors.accent else KluvsTheme.colors.divider
 
     Box(
         modifier = modifier

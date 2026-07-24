@@ -1,7 +1,6 @@
 package com.ivangarzab.kluvs.designsystem.components.modals
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
-import com.ivangarzab.kluvs.designsystem.theme.lightBar
-import com.ivangarzab.kluvs.designsystem.theme.warmDarkBar
 
 /**
  * Centered confirm/cancel dialog — design-system "Modal", centered-dialog form (see
@@ -41,8 +37,8 @@ fun ConfirmationDialog(
     dismissLabel: String = "Cancel",
     isDestructive: Boolean = false,
 ) {
-    val accentColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val containerColor = if (isSystemInDarkTheme()) warmDarkBar else lightBar
+    val accentColor = if (isDestructive) KluvsTheme.colors.danger else KluvsTheme.colors.accent
+    val containerColor = KluvsTheme.colors.bar
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(16.dp),
@@ -58,7 +54,7 @@ fun ConfirmationDialog(
             Text(
                 text = message,
                 style = KluvsTheme.typography.body.medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = KluvsTheme.colors.contentMuted,
             )
         },
         confirmButton = {
@@ -72,7 +68,7 @@ fun ConfirmationDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                colors = ButtonDefaults.textButtonColors(contentColor = KluvsTheme.colors.contentMuted),
             ) {
                 Text(dismissLabel)
             }
@@ -94,9 +90,9 @@ private fun ConfirmationDialogPreviewShape(
     dismissLabel: String,
     isDestructive: Boolean,
 ) {
-    val accentColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val containerColor = if (isSystemInDarkTheme()) warmDarkBar else lightBar
-    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+    val accentColor = if (isDestructive) KluvsTheme.colors.danger else KluvsTheme.colors.accent
+    val containerColor = KluvsTheme.colors.bar
+    val dividerColor = KluvsTheme.colors.divider
 
     Column(
         modifier = Modifier
@@ -118,7 +114,7 @@ private fun ConfirmationDialogPreviewShape(
         Text(
             text = message,
             style = KluvsTheme.typography.body.medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = KluvsTheme.colors.contentMuted,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
@@ -134,7 +130,7 @@ private fun ConfirmationDialogPreviewShape(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            TextButton(onClick = {}, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)) {
+            TextButton(onClick = {}, colors = ButtonDefaults.textButtonColors(contentColor = KluvsTheme.colors.contentMuted)) {
                 Text(dismissLabel)
             }
             TextButton(onClick = {}, colors = ButtonDefaults.textButtonColors(contentColor = accentColor)) {

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,8 +27,6 @@ import com.ivangarzab.kluvs.designsystem.theme.avatarHuesLight
 import com.ivangarzab.kluvs.designsystem.theme.brandOnPrimary
 import com.ivangarzab.kluvs.designsystem.theme.brandPrimary
 import com.ivangarzab.kluvs.designsystem.theme.ebGaramond
-import com.ivangarzab.kluvs.designsystem.theme.foregroundLightLabelVariant
-import com.ivangarzab.kluvs.designsystem.theme.foregroundWarmPrimary
 import kotlin.math.abs
 
 /**
@@ -80,16 +77,9 @@ fun Avatar(
                 contentScale = ContentScale.Crop
             )
         } else {
-            val isDark = isSystemInDarkTheme()
-            val hues = if (isDark) avatarHuesDark else avatarHuesLight
+            val hues = if (isSystemInDarkTheme()) avatarHuesDark else avatarHuesLight
             val backgroundColor = if (isOwn) brandPrimary else hues[hueIndex(memberId)]
-            val textColor = if (isOwn) {
-                brandOnPrimary
-            } else if (isDark) {
-                foregroundWarmPrimary
-            } else {
-                foregroundLightLabelVariant
-            }
+            val textColor = if (isOwn) brandOnPrimary else KluvsTheme.colors.labelVariant
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -110,12 +100,12 @@ fun Avatar(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                    .background(KluvsTheme.colors.card.copy(alpha = 0.7f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(size * 0.5f),
-                    color = MaterialTheme.colorScheme.primary
+                    color = KluvsTheme.colors.accent
                 )
             }
         }
@@ -137,7 +127,7 @@ private fun initialsOf(name: String): String {
 @PreviewLightDark
 @Composable
 fun Preview_Avatar() = KluvsTheme {
-    Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surface)) {
+    Box(modifier = Modifier.background(color = KluvsTheme.colors.card)) {
         Avatar(
             name = "Jane Doe",
             memberId = "42",

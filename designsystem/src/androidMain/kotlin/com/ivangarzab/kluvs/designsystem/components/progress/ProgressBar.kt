@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,14 +35,14 @@ fun ProgressBar(
             .fillMaxWidth()
             .height(4.dp)
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(KluvsTheme.colors.cardAlt),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(fraction)
                 .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.primary),
+                .background(KluvsTheme.colors.accent),
         )
     }
 }

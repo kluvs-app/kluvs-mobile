@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,7 +36,7 @@ fun TriggerPill(
     successText: String = text,
     enabled: Boolean = true,
 ) {
-    val tint = if (success) statusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = if (success) statusSuccess else KluvsTheme.colors.contentMuted
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(50))

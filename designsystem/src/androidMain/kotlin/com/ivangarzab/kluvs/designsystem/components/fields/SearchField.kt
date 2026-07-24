@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,16 +60,16 @@ fun SearchField(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val borderColor by animateColorAsState(
-        targetValue = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        targetValue = if (isFocused) KluvsTheme.colors.accent else KluvsTheme.colors.divider,
         animationSpec = tween(150),
         label = "SearchFieldBorderColor",
     )
-    val accentColor = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val accentColor = if (isFocused) KluvsTheme.colors.accent else KluvsTheme.colors.contentMuted
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+            .background(KluvsTheme.colors.card, RoundedCornerShape(8.dp))
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -87,7 +86,7 @@ fun SearchField(
                 Text(
                     text = placeholder,
                     style = KluvsTheme.typography.body.medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = KluvsTheme.colors.contentMuted,
                 )
             }
             BasicTextField(
@@ -96,9 +95,9 @@ fun SearchField(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = enabled,
                 singleLine = true,
-                textStyle = KluvsTheme.typography.body.medium.copy(color = MaterialTheme.colorScheme.onSurface),
+                textStyle = KluvsTheme.typography.body.medium.copy(color = KluvsTheme.colors.content),
                 interactionSource = interactionSource,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                cursorBrush = SolidColor(KluvsTheme.colors.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             )
         }

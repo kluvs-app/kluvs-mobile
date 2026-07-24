@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -46,7 +45,7 @@ fun TopAppBar(
     action: @Composable () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+        CompositionLocalProvider(LocalContentColor provides KluvsTheme.colors.content) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -62,7 +61,7 @@ fun TopAppBar(
                 Text(
                     text = header.uppercase(),
                     style = KluvsTheme.typography.eyebrow,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = KluvsTheme.colors.contentMuted,
                     modifier = Modifier.weight(1f),
                 )
                 action()
@@ -72,7 +71,7 @@ fun TopAppBar(
             Text(
                 text = title,
                 style = KluvsTheme.typography.headline.small,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = KluvsTheme.colors.content,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
@@ -89,7 +88,7 @@ private fun Preview_TopAppBar_Full() = KluvsTheme {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TopAppBar(
-            modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+            modifier = Modifier.background(color = KluvsTheme.colors.background),
             header = "Club",
             title = "The Great Gatsby Book Club",
             onNavigateBack = null,
@@ -102,7 +101,7 @@ private fun Preview_TopAppBar_Full() = KluvsTheme {
             },
         )
         TopAppBar(
-            modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+            modifier = Modifier.background(color = KluvsTheme.colors.background),
             header = "Club",
             title = "The Great Gatsby Book Club",
             onNavigateBack = {},
@@ -124,12 +123,12 @@ private fun Preview_TopAppBar_SingleRow() = KluvsTheme {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TopAppBar(
-            modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+            modifier = Modifier.background(color = KluvsTheme.colors.background),
             header = "Settings",
             onNavigateBack = {}
         )
         TopAppBar(
-            modifier = Modifier.background(color = MaterialTheme.colorScheme.background),
+            modifier = Modifier.background(color = KluvsTheme.colors.background),
             header = "Settings",
             onNavigateBack = null
         )

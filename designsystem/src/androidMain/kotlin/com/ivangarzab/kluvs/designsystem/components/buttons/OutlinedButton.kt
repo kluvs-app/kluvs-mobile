@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +32,7 @@ fun OutlinedButton(
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
         contentPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = KluvsTheme.colors.contentMuted),
     ) {
         Text(text = text, style = KluvsTheme.typography.label)
     }
