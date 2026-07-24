@@ -29,6 +29,7 @@ enum class IconType {
     ChevronRight,
     ChevronDown,
     Check,
+    Close,
     Favorite,
     FavoriteOutline,
 }

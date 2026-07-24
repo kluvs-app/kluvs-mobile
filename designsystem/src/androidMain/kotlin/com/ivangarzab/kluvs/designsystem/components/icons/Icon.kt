@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
@@ -55,6 +56,7 @@ private fun IconType.toImageVectorOrNull(): ImageVector? = when (this) {
     IconType.ChevronRight -> Icons.AutoMirrored.Filled.KeyboardArrowRight
     IconType.ChevronDown -> Icons.Filled.KeyboardArrowDown
     IconType.Check -> Icons.Filled.Check
+    IconType.Close -> Icons.Filled.Close
     IconType.Favorite -> Icons.Filled.Favorite
     IconType.FavoriteOutline -> Icons.Outlined.FavoriteBorder
     else -> null
