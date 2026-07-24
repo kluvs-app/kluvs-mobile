@@ -1,10 +1,9 @@
-package com.ivangarzab.kluvs.designsystem.components
+package com.ivangarzab.kluvs.designsystem.components.progress
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,8 +48,8 @@ fun OwnProgressRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LinearProgressIndicator(
-                progress = { (percent ?: 0) / 100f },
+            ProgressBar(
+                percent = percent ?: 0,
                 modifier = Modifier.weight(1f)
             )
             OutlinedButton(

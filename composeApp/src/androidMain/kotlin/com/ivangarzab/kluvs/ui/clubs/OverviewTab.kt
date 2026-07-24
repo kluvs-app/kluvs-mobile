@@ -56,7 +56,7 @@ import com.ivangarzab.kluvs.designsystem.components.buttons.OutlinedButton
 import com.ivangarzab.kluvs.designsystem.components.icons.IconType
 import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.components.NoTabData
-import com.ivangarzab.kluvs.designsystem.components.OwnProgressRow
+import com.ivangarzab.kluvs.designsystem.components.progress.OwnProgressRow
 import kotlinx.datetime.LocalDateTime
 
 /**

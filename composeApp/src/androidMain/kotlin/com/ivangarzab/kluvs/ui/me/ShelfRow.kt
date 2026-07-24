@@ -26,7 +26,7 @@ import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.OwnProgressInfo
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlaceholder
-import com.ivangarzab.kluvs.designsystem.components.OwnProgressRow
+import com.ivangarzab.kluvs.designsystem.components.progress.OwnProgressRow
 
 /**
  * A single "On Your Shelf" row: the active-session book for one of the
