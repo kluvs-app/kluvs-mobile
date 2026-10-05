@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthError
+import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.data.error.toAppError
 import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
+import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateUserProfileUseCase
@@ -25,7 +27,9 @@ class SettingsViewModel(
     private val getEditableProfile: GetEditableProfileUseCase,
     private val updateUserProfile: UpdateUserProfileUseCase,
     private val updateAvatarUseCase: UpdateAvatarUseCase,
-    private val changePasswordUseCase: ChangePasswordUseCase
+    private val changePasswordUseCase: ChangePasswordUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val signOutUseCase: SignOutUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -237,6 +241,49 @@ class SettingsViewModel(
 
     fun onDismissChangePasswordSuccess() {
         _state.update { it.copy(changePasswordSuccess = false) }
+    }
+
+    fun onDeleteAccountClicked() {
+        _state.update { it.copy(isDeleteAccountDialogOpen = true) }
+    }
+
+    fun onDeleteAccountDialogDismissed() {
+        _state.update { it.copy(isDeleteAccountDialogOpen = false) }
+    }
+
+    /**
+     * Deletes the signed-in member's account, then signs out and clears local data on success.
+     * AppCoordinator observes auth state and navigates to the auth flow automatically — the same
+     * path taken after a normal sign-out (see MeViewModel.onSignOutDialogConfirmed).
+     */
+    fun onDeleteAccountConfirmed() {
+        val state = _state.value
+        if (state.isDeletingAccount) return
+        val memberId = state.profile?.memberId ?: return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isDeletingAccount = true, deleteAccountError = null) }
+
+            deleteAccountUseCase(memberId)
+                .onSuccess {
+                    Bark.i("Account deleted successfully (Member ID: $memberId)")
+                    signOutUseCase()
+                }
+                .onFailure { error ->
+                    Bark.e("Failed to delete account (Member ID: $memberId).", error)
+                    _state.update {
+                        it.copy(
+                            isDeletingAccount = false,
+                            isDeleteAccountDialogOpen = false,
+                            deleteAccountError = error.toAppError().toUserMessage()
+                        )
+                    }
+                }
+        }
+    }
+
+    fun clearDeleteAccountError() {
+        _state.update { it.copy(deleteAccountError = null) }
     }
 
     private fun computeHasChanges(state: SettingsState): Boolean {

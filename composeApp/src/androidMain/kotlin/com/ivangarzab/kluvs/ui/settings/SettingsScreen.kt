@@ -82,6 +82,15 @@ fun SettingsScreen(
         }
     }
 
+    LaunchedEffect(state.deleteAccountError) {
+        state.deleteAccountError?.let { error ->
+            snackbarHostState.showSnackbar(
+                KluvsSnackbarVisuals(message = error, variant = SnackbarVariant.DANGER)
+            )
+            viewModel.clearDeleteAccountError()
+        }
+    }
+
     LaunchedEffect(state.changePasswordSuccess) {
         if (state.changePasswordSuccess) {
             // Close the sheet before awaiting the snackbar — showSnackbar suspends until it
@@ -113,6 +122,9 @@ fun SettingsScreen(
         onNewPasswordFieldChange = viewModel::onNewPasswordFieldChanged,
         onConfirmPasswordFieldChange = viewModel::onConfirmPasswordFieldChanged,
         onSubmitChangePassword = viewModel::onSubmitChangePassword,
+        onDeleteAccountClick = viewModel::onDeleteAccountClicked,
+        onDeleteAccountDialogDismiss = viewModel::onDeleteAccountDialogDismissed,
+        onDeleteAccountConfirmed = viewModel::onDeleteAccountConfirmed,
     )
 }
 
@@ -131,6 +143,9 @@ fun SettingsScreenContent(
     onNewPasswordFieldChange: (String) -> Unit = {},
     onConfirmPasswordFieldChange: (String) -> Unit = {},
     onSubmitChangePassword: () -> Unit = {},
+    onDeleteAccountClick: () -> Unit = {},
+    onDeleteAccountDialogDismiss: () -> Unit = {},
+    onDeleteAccountConfirmed: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -167,7 +182,10 @@ fun SettingsScreenContent(
                 onSaveProfile = onSaveProfile,
             )
 
-            AccountSection(onChangePasswordClick = onChangePasswordClick)
+            AccountSection(
+                onChangePasswordClick = onChangePasswordClick,
+                onDeleteAccountClick = onDeleteAccountClick,
+            )
 
             LegalSection(context = context)
 
@@ -181,6 +199,13 @@ fun SettingsScreenContent(
                 onConfirmPasswordFieldChange = onConfirmPasswordFieldChange,
                 onSubmit = onSubmitChangePassword,
                 onDismiss = onChangePasswordSheetDismiss,
+            )
+        }
+
+        if (state.isDeleteAccountDialogOpen) {
+            DeleteAccountConfirmationDialog(
+                onConfirm = onDeleteAccountConfirmed,
+                onDismiss = onDeleteAccountDialogDismiss,
             )
         }
     }

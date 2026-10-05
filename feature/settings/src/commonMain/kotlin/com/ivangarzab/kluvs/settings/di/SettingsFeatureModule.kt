@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.settings.di
 
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
+import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateUserProfileUseCase
@@ -13,5 +14,6 @@ val settingsFeatureModule = module {
     factoryOf(::UpdateUserProfileUseCase)
     factoryOf(::UpdateAvatarUseCase)
     factoryOf(::ChangePasswordUseCase)
+    factoryOf(::DeleteAccountUseCase)
     factoryOf(::SettingsViewModel)
 }

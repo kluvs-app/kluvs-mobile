@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,7 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 fun AccountSection(
     modifier: Modifier = Modifier,
     onChangePasswordClick: () -> Unit = {},
+    onDeleteAccountClick: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 12.dp)) {
         Text(
@@ -37,6 +39,14 @@ fun AccountSection(
         )
 
         HorizontalDivider(color = KluvsTheme.colors.divider)
+
+        AccountRow(
+            label = stringResource(R.string.delete_account),
+            onClick = onDeleteAccountClick,
+            textColor = KluvsTheme.colors.danger
+        )
+
+        HorizontalDivider(color = KluvsTheme.colors.divider)
     }
 }
 
@@ -44,6 +54,7 @@ fun AccountSection(
 private fun AccountRow(
     label: String,
     onClick: () -> Unit,
+    textColor: Color = KluvsTheme.colors.accent,
 ) {
     Row(
         modifier = Modifier
@@ -55,7 +66,7 @@ private fun AccountRow(
         Text(
             text = label,
             style = KluvsTheme.typography.body.large,
-            color = KluvsTheme.colors.accent,
+            color = textColor,
         )
     }
 }
