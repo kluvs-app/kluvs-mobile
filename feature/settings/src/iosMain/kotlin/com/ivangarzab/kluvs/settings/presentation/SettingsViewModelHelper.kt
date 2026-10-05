@@ -55,4 +55,12 @@ class SettingsViewModelHelper : KoinComponent {
     fun onSubmitChangePassword() = viewModel.onSubmitChangePassword()
 
     fun onDismissChangePasswordSuccess() = viewModel.onDismissChangePasswordSuccess()
+
+    fun onDeleteAccountClicked() = viewModel.onDeleteAccountClicked()
+
+    fun onDeleteAccountDialogDismissed() = viewModel.onDeleteAccountDialogDismissed()
+
+    fun onDeleteAccountConfirmed() = viewModel.onDeleteAccountConfirmed()
+
+    fun clearDeleteAccountError() = viewModel.clearDeleteAccountError()
 }
