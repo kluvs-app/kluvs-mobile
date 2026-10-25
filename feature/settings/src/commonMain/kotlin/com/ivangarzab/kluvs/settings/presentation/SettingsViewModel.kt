@@ -12,11 +12,13 @@ import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateUserProfileUseCase
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel for the Settings screen.
@@ -255,6 +257,10 @@ class SettingsViewModel(
      * Deletes the signed-in member's account, then signs out and clears local data on success.
      * AppCoordinator observes auth state and navigates to the auth flow automatically — the same
      * path taken after a normal sign-out (see MeViewModel.onSignOutDialogConfirmed).
+     *
+     * Runs [NonCancellable] so that if this ViewModel is cleared mid-request, the deletion and
+     * the sign-out that follows still finish together. Otherwise the server could delete the
+     * account while the client never signs out.
      */
     fun onDeleteAccountConfirmed() {
         val state = _state.value
@@ -262,19 +268,26 @@ class SettingsViewModel(
         val memberId = state.profile?.memberId ?: return
 
         viewModelScope.launch {
-            _state.update { it.copy(isDeletingAccount = true, deleteAccountError = null) }
+            // Close the dialog up front (same as MeViewModel's sign-out) — on iOS the dialog's
+            // binding hides itself locally on confirm, so leaving this true would re-present it.
+            _state.update {
+                it.copy(isDeleteAccountDialogOpen = false, isDeletingAccount = true, deleteAccountError = null)
+            }
 
-            deleteAccountUseCase(memberId)
+            withContext(NonCancellable) { deleteAccountUseCase(memberId) }
                 .onSuccess {
                     Bark.i("Account deleted successfully (Member ID: $memberId)")
-                    signOutUseCase()
+                    // SignOutUseCase clears the local session and cache even if the server call
+                    // fails, so the user always lands on the auth flow from here.
+                    withContext(NonCancellable) { signOutUseCase() }.onFailure { error ->
+                        Bark.w("Server sign-out after account deletion failed; local session cleared anyway.", error)
+                    }
+                    _state.update { it.copy(isDeletingAccount = false) }
                 }
                 .onFailure { error ->
-                    Bark.e("Failed to delete account (Member ID: $memberId).", error)
                     _state.update {
                         it.copy(
                             isDeletingAccount = false,
-                            isDeleteAccountDialogOpen = false,
                             deleteAccountError = error.toAppError().toUserMessage()
                         )
                     }

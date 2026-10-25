@@ -648,6 +648,7 @@ class SettingsViewModelTest {
         // Given: profile loaded and deletion succeeds
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
+        viewModel.onDeleteAccountClicked()
         everySuspend { memberRepository.deleteMember(memberId) } returns Result.success("Account deleted")
         everySuspend { authRepository.signOut() } returns Result.success(Unit)
 
@@ -657,6 +658,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
+        assertFalse(state.isDeleteAccountDialogOpen)
         assertNull(state.deleteAccountError)
         verifySuspend { memberRepository.deleteMember(memberId) }
         verifySuspend { authRepository.signOut() }

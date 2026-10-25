@@ -56,6 +56,16 @@ struct SettingsView: View {
             }
         }
         .background(KluvsTheme.colors.background)
+        .overlay {
+            // Deletion is irreversible once sent — cover the whole screen (including the back
+            // button) and block sheet swipe-dismiss so the user can't leave mid-request and end
+            // up back in the app with a deleted account. Matches Android's `SettingsScreen`.
+            if viewModel.isDeletingAccount {
+                LoadingView()
+                    .background(KluvsTheme.colors.background)
+            }
+        }
+        .interactiveDismissDisabled(viewModel.isDeletingAccount)
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             viewModel.loadProfile(userId: userId)

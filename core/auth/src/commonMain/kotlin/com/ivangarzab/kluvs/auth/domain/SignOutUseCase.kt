@@ -14,10 +14,10 @@ class SignOutUseCase(
         // Sign out from auth first
         val result = authRepository.signOut()
 
-        // Clear local database on successful sign-out
-        if (result.isSuccess) {
-            clearLocalData()
-        }
+        // Always clear the local database — AuthRepository drops the local session even when
+        // the server call fails, so the user is signed out locally either way and the cache
+        // must not outlive that session.
+        clearLocalData()
         return result
     }
 
