@@ -10,6 +10,7 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verify
 import dev.mokkery.verifySuspend
+import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -300,5 +301,45 @@ class AuthRepositoryImplTest {
         verify { secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN) }
         verify { secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN) }
         verify { secureStorage.remove(SecureStorage.KEY_USER_ID) }
+    }
+
+    // ========== Current User Exists Tests ==========
+
+    @Test
+    @OptIn(kotlin.time.ExperimentalTime::class)
+    fun `currentUserExists returns true when the server returns the user`() = runTest {
+        // Given
+        everySuspend { authService.retrieveCurrentUser() } returns UserInfo(aud = "authenticated", id = "user-1")
+
+        // When
+        val result = repository.currentUserExists()
+
+        // Then
+        assertEquals(true, result.getOrNull())
+    }
+
+    @Test
+    fun `currentUserExists returns false when the server reports the user is gone`() = runTest {
+        // Given
+        everySuspend { authService.retrieveCurrentUser() } throws Exception("User not found")
+
+        // When
+        val result = repository.currentUserExists()
+
+        // Then
+        assertEquals(false, result.getOrNull())
+    }
+
+    @Test
+    fun `currentUserExists fails when the server is unreachable`() = runTest {
+        // Given
+        everySuspend { authService.retrieveCurrentUser() } throws Exception("Unable to resolve host")
+
+        // When
+        val result = repository.currentUserExists()
+
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals(AuthError.NoConnection, result.exceptionOrNull())
     }
 }

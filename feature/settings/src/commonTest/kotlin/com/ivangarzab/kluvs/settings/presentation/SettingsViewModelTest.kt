@@ -131,7 +131,7 @@ class SettingsViewModelTest {
         updateUserProfile = UpdateUserProfileUseCase(memberRepository)
         updateAvatarUseCase = UpdateAvatarUseCase(avatarRepository, memberRepository)
         changePasswordUseCase = ChangePasswordUseCase(authRepository)
-        deleteAccountUseCase = DeleteAccountUseCase(memberRepository)
+        deleteAccountUseCase = DeleteAccountUseCase(memberRepository, authRepository)
         signOutUseCase = SignOutUseCase(authRepository, database)
         viewModel = SettingsViewModel(
             getEditableProfile,
@@ -665,14 +665,15 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `onDeleteAccountConfirmed failure surfaces inline error, closes dialog, and does not sign out`() = runTest {
-        // Given: profile loaded and deletion fails
+    fun `onDeleteAccountConfirmed failure surfaces inline error and closes dialog without signing out`() = runTest {
+        // Given: profile loaded, deletion fails, and the account still exists
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
         viewModel.onDeleteAccountClicked()
         everySuspend {
             memberRepository.deleteMember(memberId)
         } returns Result.failure(Exception("Deletion failed"))
+        everySuspend { authRepository.currentUserExists() } returns Result.success(true)
 
         // When
         viewModel.onDeleteAccountConfirmed()
@@ -686,6 +687,27 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `onDeleteAccountConfirmed failure still signs out when the account no longer exists`() = runTest {
+        // Given: the backend deleted the account, but the delete response never made it back
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
+        viewModel.loadProfile(userId)
+        everySuspend {
+            memberRepository.deleteMember(memberId)
+        } returns Result.failure(Exception("Request timed out"))
+        everySuspend { authRepository.currentUserExists() } returns Result.success(false)
+        everySuspend { authRepository.signOut() } returns Result.success(Unit)
+
+        // When
+        viewModel.onDeleteAccountConfirmed()
+
+        // Then
+        val state = viewModel.state.value
+        assertFalse(state.isDeletingAccount)
+        assertNull(state.deleteAccountError)
+        verifySuspend { authRepository.signOut() }
+    }
+
+    @Test
     fun `clearDeleteAccountError clears the error state`() = runTest {
         // Given: profile loaded and a failed deletion
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
@@ -693,6 +715,7 @@ class SettingsViewModelTest {
         everySuspend {
             memberRepository.deleteMember(memberId)
         } returns Result.failure(Exception("Deletion failed"))
+        everySuspend { authRepository.currentUserExists() } returns Result.success(true)
         viewModel.onDeleteAccountConfirmed()
         assertTrue(viewModel.state.value.deleteAccountError != null)
 
