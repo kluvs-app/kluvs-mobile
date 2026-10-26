@@ -43,4 +43,24 @@ class SettingsViewModelHelper : KoinComponent {
     fun onAvatarPickFailed(reason: String?) = viewModel.onAvatarPickFailed(reason)
 
     fun clearAvatarError() = viewModel.clearAvatarError()
+
+    fun onChangePasswordSheetOpened() = viewModel.onChangePasswordSheetOpened()
+
+    fun onChangePasswordSheetDismissed() = viewModel.onChangePasswordSheetDismissed()
+
+    fun onNewPasswordFieldChanged(value: String) = viewModel.onNewPasswordFieldChanged(value)
+
+    fun onConfirmPasswordFieldChanged(value: String) = viewModel.onConfirmPasswordFieldChanged(value)
+
+    fun onSubmitChangePassword() = viewModel.onSubmitChangePassword()
+
+    fun onDismissChangePasswordSuccess() = viewModel.onDismissChangePasswordSuccess()
+
+    fun onDeleteAccountClicked() = viewModel.onDeleteAccountClicked()
+
+    fun onDeleteAccountDialogDismissed() = viewModel.onDeleteAccountDialogDismissed()
+
+    fun onDeleteAccountConfirmed() = viewModel.onDeleteAccountConfirmed()
+
+    fun clearDeleteAccountError() = viewModel.clearDeleteAccountError()
 }

@@ -200,6 +200,19 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun changePassword(newPassword: String): Result<Unit> {
+        Bark.v("Password change requested")
+
+        return try {
+            authService.updatePassword(newPassword)
+            Bark.i("Password changed successfully")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Bark.e("Password change failed. User may need to retry.", e)
+            Result.failure(e.toAuthError())
+        }
+    }
+
     override suspend fun signOut(): Result<Unit> {
         Bark.v("Sign out initiated")
 
@@ -256,6 +269,26 @@ class AuthRepositoryImpl(
         secureStorage.save(SecureStorage.KEY_ACCESS_TOKEN, accessToken)
         secureStorage.save(SecureStorage.KEY_REFRESH_TOKEN, refreshToken)
         Bark.v("Session tokens stored")
+    }
+
+    override suspend fun currentUserExists(): Result<Boolean> {
+        Bark.v("Checking whether current user still exists")
+
+        return try {
+            authService.retrieveCurrentUser()
+            Result.success(true)
+        } catch (e: Exception) {
+            when (val error = e.toAuthError()) {
+                AuthError.UserNotFound -> {
+                    Bark.i("Current user no longer exists on server")
+                    Result.success(false)
+                }
+                else -> {
+                    Bark.w("Could not verify whether current user exists.", e)
+                    Result.failure(error)
+                }
+            }
+        }
     }
 
     /**

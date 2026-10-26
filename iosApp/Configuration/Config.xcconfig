@@ -6,4 +6,4 @@ PRODUCT_BUNDLE_IDENTIFIER=com.ivangarzab.kluvs
 // Intentionally commented out: Xcode Cloud auto-increments the build number when this is unset.
 // Uncommenting this would override that behavior and require manual increments on every build.
 //CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=0.0.6
+MARKETING_VERSION=0.0.7

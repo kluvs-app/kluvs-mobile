@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.auth.remote
 
+import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.auth.user.UserSession
 
 /**
@@ -77,6 +78,17 @@ interface AuthService {
     suspend fun resetPasswordForEmail(email: String)
 
     /**
+     * Updates the password of the currently authenticated user.
+     *
+     * Requires a valid active session — unlike [resetPasswordForEmail], this does not send an
+     * email; it applies the change immediately using the current session's access token.
+     *
+     * @param newPassword The new password to set
+     * @throws Exception if the update fails (e.g., weak password, no active session)
+     */
+    suspend fun updatePassword(newPassword: String)
+
+    /**
      * Signs out the current user.
      *
      * Invalidates the current session on the server.
@@ -110,4 +122,15 @@ interface AuthService {
      * @param refreshToken The stored refresh token
      */
     suspend fun setSession(accessToken: String, refreshToken: String)
+
+    /**
+     * Fetches the current session's user from the server, rather than the locally cached copy.
+     *
+     * Used to confirm the account still exists server-side.
+     *
+     * @return The server's [UserInfo] for the current session
+     * @throws Exception if the request fails — a deleted account surfaces as an
+     * [io.github.jan.supabase.auth.exception.AuthRestException] with `user_not_found`
+     */
+    suspend fun retrieveCurrentUser(): UserInfo
 }

@@ -32,6 +32,7 @@ fun EditProfileSection(
     onAvatarClick: () -> Unit = {},
     editedName: String,
     editedHandle: String,
+    handleError: String? = null,
     hasChanges: Boolean,
     isSaving: Boolean,
     saveError: String?,
@@ -97,6 +98,7 @@ fun EditProfileSection(
             value = editedHandle,
             onValueChange = onHandleChanged,
             prefix = "@",
+            error = handleError,
         )
 
         if (saveError != null) {
@@ -113,7 +115,7 @@ fun EditProfileSection(
         PrimaryButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = onSaveProfile,
-            enabled = hasChanges && !isSaving,
+            enabled = hasChanges && !isSaving && handleError == null,
             text = if (isSaving) stringResource(R.string.button_save) + "…"
                 else stringResource(R.string.button_save),
         )
@@ -144,10 +146,28 @@ fun Preview_EditProfileSection_WithError() = KluvsTheme {
         avatarUrl = null,
         name = "Alice",
         editedName = "Alice",
-        editedHandle = "invalid handle!",
+        editedHandle = "alice-reads",
         hasChanges = true,
         isSaving = false,
-        saveError = "Handle must be 2–30 characters: letters, numbers, or underscores only",
+        saveError = "That handle is already taken",
+        onNameChanged = {},
+        onHandleChanged = {},
+        onSaveProfile = {},
+    )
+}
+
+@PreviewLightDark
+@Composable
+fun Preview_EditProfileSection_WithHandleError() = KluvsTheme {
+    EditProfileSection(
+        avatarUrl = null,
+        name = "Alice",
+        editedName = "Alice",
+        editedHandle = "alice_reads",
+        handleError = "Handles can only contain lowercase letters, numbers, and hyphens",
+        hasChanges = true,
+        isSaving = false,
+        saveError = null,
         onNameChanged = {},
         onHandleChanged = {},
         onSaveProfile = {},

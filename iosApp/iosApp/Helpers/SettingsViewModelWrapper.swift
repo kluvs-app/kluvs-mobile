@@ -15,10 +15,22 @@ class SettingsViewModelWrapper: ObservableObject {
     @Published var editedHandle: String = ""
     @Published var isSaving: Bool = false
     @Published var saveError: String? = nil
+    @Published var handleError: String? = nil
     @Published var saveSuccess: Bool = false
     @Published var hasChanges: Bool = false
     @Published var isUploadingAvatar: Bool = false
     @Published var avatarError: String? = nil
+    @Published var isChangePasswordSheetOpen: Bool = false
+    @Published var newPasswordField: String = ""
+    @Published var confirmPasswordField: String = ""
+    @Published var newPasswordError: String? = nil
+    @Published var confirmPasswordError: String? = nil
+    @Published var isChangingPassword: Bool = false
+    @Published var changePasswordGeneralError: Shared.AuthError? = nil
+    @Published var changePasswordSuccess: Bool = false
+    @Published var isDeleteAccountDialogOpen: Bool = false
+    @Published var isDeletingAccount: Bool = false
+    @Published var deleteAccountError: String? = nil
 
     private let helper: SettingsViewModelHelper
     private var cancellables: [Shared.Closeable] = []
@@ -39,10 +51,22 @@ class SettingsViewModelWrapper: ObservableObject {
                 self.editedHandle = state.editedHandle
                 self.isSaving = state.isSaving
                 self.saveError = state.saveError
+                self.handleError = state.handleError
                 self.saveSuccess = state.saveSuccess
                 self.hasChanges = state.hasChanges
                 self.isUploadingAvatar = state.isUploadingAvatar
                 self.avatarError = state.avatarError
+                self.isChangePasswordSheetOpen = state.isChangePasswordSheetOpen
+                self.newPasswordField = state.newPasswordField
+                self.confirmPasswordField = state.confirmPasswordField
+                self.newPasswordError = state.newPasswordError
+                self.confirmPasswordError = state.confirmPasswordError
+                self.isChangingPassword = state.isChangingPassword
+                self.changePasswordGeneralError = state.changePasswordGeneralError
+                self.changePasswordSuccess = state.changePasswordSuccess
+                self.isDeleteAccountDialogOpen = state.isDeleteAccountDialogOpen
+                self.isDeletingAccount = state.isDeletingAccount
+                self.deleteAccountError = state.deleteAccountError
             }
         }
         cancellables.append(stateCancellable)
@@ -86,6 +110,46 @@ class SettingsViewModelWrapper: ObservableObject {
 
     func clearAvatarError() {
         helper.clearAvatarError()
+    }
+
+    func onChangePasswordSheetOpened() {
+        helper.onChangePasswordSheetOpened()
+    }
+
+    func onChangePasswordSheetDismissed() {
+        helper.onChangePasswordSheetDismissed()
+    }
+
+    func onNewPasswordFieldChanged(_ value: String) {
+        helper.onNewPasswordFieldChanged(value: value)
+    }
+
+    func onConfirmPasswordFieldChanged(_ value: String) {
+        helper.onConfirmPasswordFieldChanged(value: value)
+    }
+
+    func onSubmitChangePassword() {
+        helper.onSubmitChangePassword()
+    }
+
+    func onDismissChangePasswordSuccess() {
+        helper.onDismissChangePasswordSuccess()
+    }
+
+    func onDeleteAccountClicked() {
+        helper.onDeleteAccountClicked()
+    }
+
+    func onDeleteAccountDialogDismissed() {
+        helper.onDeleteAccountDialogDismissed()
+    }
+
+    func onDeleteAccountConfirmed() {
+        helper.onDeleteAccountConfirmed()
+    }
+
+    func clearDeleteAccountError() {
+        helper.clearDeleteAccountError()
     }
 
     deinit {

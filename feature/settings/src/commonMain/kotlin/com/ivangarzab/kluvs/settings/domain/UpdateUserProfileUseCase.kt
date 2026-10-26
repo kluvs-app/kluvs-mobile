@@ -9,7 +9,10 @@ import com.ivangarzab.kluvs.data.repositories.MemberRepository
  * Validation rules:
  * - Name must not be blank
  * - Handle must not be blank
- * - Handle must be 2–30 characters: letters, digits, or underscores only (no "@", no spaces)
+ * - Handle must be 2–30 characters: lowercase letters, digits, and single hyphens between
+ *   segments only (no leading/trailing hyphen, no "@", no spaces) — matches the backend's
+ *   handle format exactly, so a handle the backend would reject is also rejected here before
+ *   any network call.
  */
 class UpdateUserProfileUseCase(
     private val memberRepository: MemberRepository
@@ -31,10 +34,12 @@ class UpdateUserProfileUseCase(
             Bark.w("Update rejected: handle is blank")
             return Result.failure(IllegalArgumentException("Handle must not be blank"))
         }
-        if (!HANDLE_REGEX.matches(handle)) {
+        if (handle.length !in 2..30 || !HANDLE_REGEX.matches(handle)) {
             Bark.w("Update rejected: handle has invalid format ($handle)")
             return Result.failure(
-                IllegalArgumentException("Handle must be 2–30 characters: letters, numbers, or underscores only")
+                IllegalArgumentException(
+                    "Handle must be 2–30 characters: lowercase letters, numbers, and hyphens only"
+                )
             )
         }
 
@@ -52,6 +57,6 @@ class UpdateUserProfileUseCase(
     }
 
     companion object {
-        private val HANDLE_REGEX = Regex("^[a-zA-Z0-9_]{2,30}$")
+        private val HANDLE_REGEX = Regex("^[a-z0-9]+(-[a-z0-9]+)*$")
     }
 }

@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +36,7 @@ import com.ivangarzab.kluvs.settings.presentation.SettingsState
 import com.ivangarzab.kluvs.settings.presentation.SettingsViewModel
 import com.ivangarzab.kluvs.designsystem.components.appbars.TopAppBar
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.utils.readAndCompressAvatar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -82,6 +84,29 @@ fun SettingsScreen(
         }
     }
 
+    LaunchedEffect(state.deleteAccountError) {
+        state.deleteAccountError?.let { error ->
+            snackbarHostState.showSnackbar(
+                KluvsSnackbarVisuals(message = error, variant = SnackbarVariant.DANGER)
+            )
+            viewModel.clearDeleteAccountError()
+        }
+    }
+
+    LaunchedEffect(state.changePasswordSuccess) {
+        if (state.changePasswordSuccess) {
+            // Close the sheet before awaiting the snackbar — showSnackbar suspends until it
+            // auto-dismisses, so doing this after would leave the sheet open the whole time.
+            // isChangePasswordSheetOpen isn't this effect's key, so clearing it here doesn't
+            // cancel the coroutine — but changePasswordSuccess IS the key, so it must stay
+            // untouched until after showSnackbar returns, or the recomposition it triggers
+            // would cancel the in-flight snackbar before it's shown.
+            viewModel.onChangePasswordSheetDismissed()
+            snackbarHostState.showSnackbar(context.getString(R.string.password_updated))
+            viewModel.onDismissChangePasswordSuccess()
+        }
+    }
+
     SettingsScreenContent(
         state = state,
         snackbarHostState = snackbarHostState,
@@ -94,6 +119,14 @@ fun SettingsScreen(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
             )
         },
+        onChangePasswordClick = viewModel::onChangePasswordSheetOpened,
+        onChangePasswordSheetDismiss = viewModel::onChangePasswordSheetDismissed,
+        onNewPasswordFieldChange = viewModel::onNewPasswordFieldChanged,
+        onConfirmPasswordFieldChange = viewModel::onConfirmPasswordFieldChanged,
+        onSubmitChangePassword = viewModel::onSubmitChangePassword,
+        onDeleteAccountClick = viewModel::onDeleteAccountClicked,
+        onDeleteAccountDialogDismiss = viewModel::onDeleteAccountDialogDismissed,
+        onDeleteAccountConfirmed = viewModel::onDeleteAccountConfirmed,
     )
 }
 
@@ -107,8 +140,24 @@ fun SettingsScreenContent(
     onHandleChanged: (String) -> Unit = {},
     onSaveProfile: () -> Unit = {},
     onAvatarClick: () -> Unit = {},
+    onChangePasswordClick: () -> Unit = {},
+    onChangePasswordSheetDismiss: () -> Unit = {},
+    onNewPasswordFieldChange: (String) -> Unit = {},
+    onConfirmPasswordFieldChange: (String) -> Unit = {},
+    onSubmitChangePassword: () -> Unit = {},
+    onDeleteAccountClick: () -> Unit = {},
+    onDeleteAccountDialogDismiss: () -> Unit = {},
+    onDeleteAccountConfirmed: () -> Unit = {},
 ) {
     val context = LocalContext.current
+
+    // Deletion is irreversible once sent — swallow back presses so the user can't leave
+    // Settings mid-request and end up back in the app with a deleted account.
+    if (state.isDeletingAccount) {
+        BackHandler {}
+        LoadingScreen()
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -134,6 +183,7 @@ fun SettingsScreenContent(
                 onAvatarClick = onAvatarClick,
                 editedName = state.editedName,
                 editedHandle = state.editedHandle,
+                handleError = state.handleError,
                 hasChanges = state.hasChanges,
                 isSaving = state.isSaving,
                 saveError = state.saveError,
@@ -142,9 +192,31 @@ fun SettingsScreenContent(
                 onSaveProfile = onSaveProfile,
             )
 
+            AccountSection(
+                onChangePasswordClick = onChangePasswordClick,
+                onDeleteAccountClick = onDeleteAccountClick,
+            )
+
             LegalSection(context = context)
 
             AboutSection()
+        }
+
+        if (state.isChangePasswordSheetOpen) {
+            ChangePasswordSheet(
+                state = state,
+                onNewPasswordFieldChange = onNewPasswordFieldChange,
+                onConfirmPasswordFieldChange = onConfirmPasswordFieldChange,
+                onSubmit = onSubmitChangePassword,
+                onDismiss = onChangePasswordSheetDismiss,
+            )
+        }
+
+        if (state.isDeleteAccountDialogOpen) {
+            DeleteAccountConfirmationDialog(
+                onConfirm = onDeleteAccountConfirmed,
+                onDismiss = onDeleteAccountDialogDismiss,
+            )
         }
     }
 }
@@ -155,9 +227,9 @@ fun Preview_SettingsScreen() = KluvsTheme {
     SettingsScreenContent(
         state = SettingsState(
             isLoading = false,
-            profile = EditableProfile(memberId = "1", name = "Alice", handle = "alice_reads"),
+            profile = EditableProfile(memberId = "1", name = "Alice", handle = "alice-reads"),
             editedName = "Alice",
-            editedHandle = "alice_reads",
+            editedHandle = "alice-reads",
             hasChanges = false,
         )
     )
@@ -169,9 +241,9 @@ fun Preview_SettingsScreen_WithChanges() = KluvsTheme {
     SettingsScreenContent(
         state = SettingsState(
             isLoading = false,
-            profile = EditableProfile(memberId = "1", name = "Alice", handle = "alice_reads"),
+            profile = EditableProfile(memberId = "1", name = "Alice", handle = "alice-reads"),
             editedName = "Alice Updated",
-            editedHandle = "alice_reads",
+            editedHandle = "alice-reads",
             hasChanges = true,
         )
     )

@@ -103,6 +103,17 @@ interface AuthRepository {
     suspend fun resetPasswordForEmail(email: String): Result<Unit>
 
     /**
+     * Changes the password of the currently authenticated user.
+     *
+     * Applies immediately using the current session, unlike [resetPasswordForEmail] which sends
+     * an email-based reset link instead.
+     *
+     * @param newPassword The new password to set
+     * @return Result with success or error
+     */
+    suspend fun changePassword(newPassword: String): Result<Unit>
+
+    /**
      * Signs out the current user.
      *
      * - Clears session on server
@@ -122,4 +133,14 @@ interface AuthRepository {
      * @return Result with updated User if successful, or error
      */
     suspend fun refreshSession(): Result<User>
+
+    /**
+     * Asks the server whether the signed-in user's account still exists.
+     *
+     * Does not change local auth state — callers decide what to do with the answer.
+     *
+     * @return Result with true if the server returns the user, false if the server reports the
+     * account no longer exists, or failure if that can't be determined (e.g. no connection)
+     */
+    suspend fun currentUserExists(): Result<Boolean>
 }

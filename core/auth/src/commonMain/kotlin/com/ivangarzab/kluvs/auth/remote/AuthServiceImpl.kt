@@ -12,6 +12,7 @@ import io.github.jan.supabase.auth.providers.Apple
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.auth.user.UserSession
 import io.ktor.http.Url
 import io.ktor.http.parseQueryString
@@ -199,6 +200,20 @@ class AuthServiceImpl(
         }
     }
 
+    override suspend fun updatePassword(newPassword: String) {
+        Bark.v("Password update initiated")
+
+        try {
+            auth.updateUser {
+                password = newPassword
+            }
+            Bark.i("Password updated")
+        } catch (e: Exception) {
+            Bark.e("Password update failed. User may need to retry.", e)
+            throw e
+        }
+    }
+
     override suspend fun signOut() {
         Bark.v("Sign out initiated")
 
@@ -258,6 +273,19 @@ class AuthServiceImpl(
             Bark.d("Session restored")
         } catch (e: Exception) {
             Bark.e("Session restoration failed. Stored credentials may be invalid.", e)
+            throw e
+        }
+    }
+
+    override suspend fun retrieveCurrentUser(): UserInfo {
+        Bark.v("Retrieving current user from server")
+
+        try {
+            return auth.retrieveUserForCurrentSession(updateSession = false)
+        } catch (e: Exception) {
+            // Warn, not error — callers use this to detect an already-deleted account, so a
+            // failure here is often the expected outcome.
+            Bark.w("Current user retrieval failed.", e)
             throw e
         }
     }

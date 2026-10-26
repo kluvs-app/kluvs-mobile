@@ -121,6 +121,16 @@
     <string name="terms_of_use">Terms of Use</string>
     <string name="data_deletion">Data Deletion</string>
 
+    <!-- Account Section -->
+    <string name="account_title">Account</string>
+    <string name="change_password">Change Password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_new_password">Confirm New Password</string>
+    <string name="update_password">Update Password</string>
+    <string name="password_updated">Password updated</string>
+    <string name="delete_account">Delete Account</string>
+    <string name="delete_account_confirmation_message">This will permanently delete your account. This action is immediate and cannot be undone. If you\'re the sole admin of a club, ownership will automatically transfer to another member — or the club will be deleted if you\'re its only member.</string>
+
     <string name="navigate_back">Navigate back</string>
 
     <!-- Avatar -->

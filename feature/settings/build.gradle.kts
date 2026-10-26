@@ -18,6 +18,8 @@ kotlin {
             implementation(libs.bark)
         }
         commonTest.dependencies {
+            implementation(project(":core:database"))
+
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }

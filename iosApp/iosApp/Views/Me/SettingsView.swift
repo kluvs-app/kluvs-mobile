@@ -7,6 +7,7 @@ struct SettingsView: View {
     let userId: String
     @StateObject private var viewModel = SettingsViewModelWrapper()
     @State private var showSaveSuccess = false
+    @State private var showChangePasswordSuccess = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -37,7 +38,13 @@ struct SettingsView: View {
                         hasChanges: viewModel.hasChanges,
                         isSaving: viewModel.isSaving,
                         saveError: viewModel.saveError,
+                        handleError: viewModel.handleError,
                         onSaveProfile: { viewModel.onSaveProfile() }
+                    )
+
+                    AccountSection(
+                        onChangePasswordClick: { viewModel.onChangePasswordSheetOpened() },
+                        onDeleteAccountClick: { viewModel.onDeleteAccountClicked() }
                     )
 
                     LegalSection()
@@ -49,6 +56,16 @@ struct SettingsView: View {
             }
         }
         .background(KluvsTheme.colors.background)
+        .overlay {
+            // Deletion is irreversible once sent — cover the whole screen (including the back
+            // button) and block sheet swipe-dismiss so the user can't leave mid-request and end
+            // up back in the app with a deleted account. Matches Android's `SettingsScreen`.
+            if viewModel.isDeletingAccount {
+                LoadingView()
+                    .background(KluvsTheme.colors.background)
+            }
+        }
+        .interactiveDismissDisabled(viewModel.isDeletingAccount)
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             viewModel.loadProfile(userId: userId)
@@ -59,10 +76,25 @@ struct SettingsView: View {
                 viewModel.onDismissSaveSuccess()
             }
         }
+        .onChange(of: viewModel.changePasswordSuccess) { success in
+            if success {
+                // Close the sheet before the toast appears, matching Android's ordering —
+                // otherwise the sheet would stay open while the toast is visible.
+                viewModel.onChangePasswordSheetDismissed()
+                showChangePasswordSuccess = true
+                viewModel.onDismissChangePasswordSuccess()
+            }
+        }
         .overlay(alignment: .bottom) {
             if showSaveSuccess {
                 SaveSuccessToast {
                     showSaveSuccess = false
+                }
+                .padding()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if showChangePasswordSuccess {
+                SaveSuccessToast(message: String(localized: "password_updated")) {
+                    showChangePasswordSuccess = false
                 }
                 .padding()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -72,10 +104,34 @@ struct SettingsView: View {
                 }
                 .padding()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if let deleteAccountError = viewModel.deleteAccountError {
+                SnackbarView(message: deleteAccountError) {
+                    viewModel.clearDeleteAccountError()
+                }
+                .padding()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showSaveSuccess)
+        .animation(.easeInOut(duration: 0.3), value: showChangePasswordSuccess)
         .animation(.easeInOut(duration: 0.3), value: viewModel.avatarError)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.deleteAccountError)
+        .kluvsConfirmationDialog(
+            isPresented: $viewModel.isDeleteAccountDialogOpen,
+            title: String(localized: "delete_account"),
+            message: String(localized: "delete_account_confirmation_message"),
+            confirmLabel: String(localized: "delete_account"),
+            isDestructive: true,
+            onDismiss: { viewModel.onDeleteAccountDialogDismissed() },
+            onConfirm: { viewModel.onDeleteAccountConfirmed() }
+        )
+        .changePasswordSheet(
+            isPresented: Binding(
+                get: { viewModel.isChangePasswordSheetOpen },
+                set: { if !$0 { viewModel.onChangePasswordSheetDismissed() } }
+            ),
+            viewModel: viewModel
+        )
     }
 }
 
@@ -91,6 +147,7 @@ struct EditProfileSection: View {
     let hasChanges: Bool
     let isSaving: Bool
     let saveError: String?
+    let handleError: String?
     let onSaveProfile: () -> Void
 
     @State private var selectedItem: PhotosPickerItem? = nil
@@ -147,7 +204,7 @@ struct EditProfileSection: View {
 
             InputField(label: String(localized: "label_name"), value: $editedName)
 
-            InputField(label: String(localized: "label_handle"), value: $editedHandle, prefix: "@")
+            InputField(label: String(localized: "label_handle"), value: $editedHandle, prefix: "@", error: handleError)
 
             if let saveError = saveError {
                 Text(saveError)
@@ -159,12 +216,60 @@ struct EditProfileSection: View {
             PrimaryButton(
                 text: isSaving ? String(localized: "button_save") + "…" : String(localized: "button_save"),
                 action: onSaveProfile,
-                enabled: hasChanges && !isSaving
+                enabled: hasChanges && !isSaving && handleError == nil
             )
             .frame(maxWidth: .infinity)
             .padding(.top, 4)
         }
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - Account Section
+
+struct AccountSection: View {
+    let onChangePasswordClick: () -> Void
+    var onDeleteAccountClick: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(String(localized: "account_title").uppercased())
+                .kluvsStyle(KluvsTheme.typography.eyebrow)
+                .foregroundColor(KluvsTheme.colors.contentMuted)
+                .padding(.bottom, 8)
+
+            AccountRow(label: String(localized: "change_password"), action: onChangePasswordClick)
+            Divider().overlay(KluvsTheme.colors.divider)
+
+            AccountRow(
+                label: String(localized: "delete_account"),
+                action: onDeleteAccountClick,
+                textColor: KluvsTheme.colors.danger
+            )
+            Divider().overlay(KluvsTheme.colors.divider)
+        }
+        .padding(.vertical, 12)
+    }
+}
+
+private struct AccountRow: View {
+    let label: String
+    let action: () -> Void
+    var textColor: Color = KluvsTheme.colors.accent
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(label)
+                    .kluvsStyle(KluvsTheme.typography.body.large)
+                    .foregroundColor(textColor)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(KluvsTheme.colors.contentMuted)
+            }
+            .padding(.vertical, 12)
+        }
     }
 }
 
@@ -265,11 +370,12 @@ struct AboutSection: View {
 // MARK: - Save Success Toast
 
 private struct SaveSuccessToast: View {
+    var message: String = String(localized: "save_success")
     let onDismiss: () -> Void
 
     var body: some View {
         HStack {
-            Text(String(localized: "save_success"))
+            Text(message)
                 .font(.body)
                 .foregroundColor(.white)
                 .lineLimit(2)
