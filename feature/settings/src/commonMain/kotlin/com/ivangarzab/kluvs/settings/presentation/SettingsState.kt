@@ -28,5 +28,9 @@ data class SettingsState(
     val confirmPasswordError: String? = null,
     val isChangingPassword: Boolean = false,
     val changePasswordGeneralError: AuthError? = null,
-    val changePasswordSuccess: Boolean = false
+    val changePasswordSuccess: Boolean = false,
+    // Delete account state
+    val isDeleteAccountDialogOpen: Boolean = false,
+    val isDeletingAccount: Boolean = false,
+    val deleteAccountError: String? = null
 )

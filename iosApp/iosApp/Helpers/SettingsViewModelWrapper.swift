@@ -28,6 +28,9 @@ class SettingsViewModelWrapper: ObservableObject {
     @Published var isChangingPassword: Bool = false
     @Published var changePasswordGeneralError: Shared.AuthError? = nil
     @Published var changePasswordSuccess: Bool = false
+    @Published var isDeleteAccountDialogOpen: Bool = false
+    @Published var isDeletingAccount: Bool = false
+    @Published var deleteAccountError: String? = nil
 
     private let helper: SettingsViewModelHelper
     private var cancellables: [Shared.Closeable] = []
@@ -61,6 +64,9 @@ class SettingsViewModelWrapper: ObservableObject {
                 self.isChangingPassword = state.isChangingPassword
                 self.changePasswordGeneralError = state.changePasswordGeneralError
                 self.changePasswordSuccess = state.changePasswordSuccess
+                self.isDeleteAccountDialogOpen = state.isDeleteAccountDialogOpen
+                self.isDeletingAccount = state.isDeletingAccount
+                self.deleteAccountError = state.deleteAccountError
             }
         }
         cancellables.append(stateCancellable)
@@ -128,6 +134,22 @@ class SettingsViewModelWrapper: ObservableObject {
 
     func onDismissChangePasswordSuccess() {
         helper.onDismissChangePasswordSuccess()
+    }
+
+    func onDeleteAccountClicked() {
+        helper.onDeleteAccountClicked()
+    }
+
+    func onDeleteAccountDialogDismissed() {
+        helper.onDeleteAccountDialogDismissed()
+    }
+
+    func onDeleteAccountConfirmed() {
+        helper.onDeleteAccountConfirmed()
+    }
+
+    func clearDeleteAccountError() {
+        helper.clearDeleteAccountError()
     }
 
     deinit {

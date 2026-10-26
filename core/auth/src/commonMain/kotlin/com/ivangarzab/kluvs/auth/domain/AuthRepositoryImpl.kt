@@ -271,6 +271,26 @@ class AuthRepositoryImpl(
         Bark.v("Session tokens stored")
     }
 
+    override suspend fun currentUserExists(): Result<Boolean> {
+        Bark.v("Checking whether current user still exists")
+
+        return try {
+            authService.retrieveCurrentUser()
+            Result.success(true)
+        } catch (e: Exception) {
+            when (val error = e.toAuthError()) {
+                AuthError.UserNotFound -> {
+                    Bark.i("Current user no longer exists on server")
+                    Result.success(false)
+                }
+                else -> {
+                    Bark.w("Could not verify whether current user exists.", e)
+                    Result.failure(error)
+                }
+            }
+        }
+    }
+
     /**
      * Clears stored session tokens.
      */

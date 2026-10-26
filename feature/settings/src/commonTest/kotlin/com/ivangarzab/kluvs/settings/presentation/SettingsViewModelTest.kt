@@ -2,11 +2,25 @@ package com.ivangarzab.kluvs.settings.presentation
 
 import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
+import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
+import com.ivangarzab.kluvs.database.KluvsDatabase
+import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.ClubDao
+import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
+import com.ivangarzab.kluvs.database.dao.DiscussionDao
+import com.ivangarzab.kluvs.database.dao.DiscussionNoteDao
+import com.ivangarzab.kluvs.database.dao.LikeDao
+import com.ivangarzab.kluvs.database.dao.MemberDao
+import com.ivangarzab.kluvs.database.dao.ProgressDao
+import com.ivangarzab.kluvs.database.dao.ServerDao
+import com.ivangarzab.kluvs.database.dao.SessionDao
+import com.ivangarzab.kluvs.database.dao.ShelfDao
 import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
+import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateUserProfileUseCase
@@ -15,6 +29,8 @@ import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -35,10 +51,13 @@ class SettingsViewModelTest {
     private lateinit var memberRepository: MemberRepository
     private lateinit var avatarRepository: AvatarRepository
     private lateinit var authRepository: AuthRepository
+    private lateinit var database: KluvsDatabase
     private lateinit var getEditableProfile: GetEditableProfileUseCase
     private lateinit var updateUserProfile: UpdateUserProfileUseCase
     private lateinit var updateAvatarUseCase: UpdateAvatarUseCase
     private lateinit var changePasswordUseCase: ChangePasswordUseCase
+    private lateinit var deleteAccountUseCase: DeleteAccountUseCase
+    private lateinit var signOutUseCase: SignOutUseCase
     private lateinit var viewModel: SettingsViewModel
 
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -68,11 +87,60 @@ class SettingsViewModelTest {
         memberRepository = mock<MemberRepository>()
         avatarRepository = mock<AvatarRepository>()
         authRepository = mock<AuthRepository>()
+
+        // SignOutUseCase clears every DAO on sign-out (see SignOutUseCaseTest for the same setup).
+        val clubDao = mock<ClubDao>()
+        val serverDao = mock<ServerDao>()
+        val memberDao = mock<MemberDao>()
+        val sessionDao = mock<SessionDao>()
+        val bookDao = mock<BookDao>()
+        val discussionDao = mock<DiscussionDao>()
+        val shelfDao = mock<ShelfDao>()
+        val likeDao = mock<LikeDao>()
+        val progressDao = mock<ProgressDao>()
+        val discussionNoteDao = mock<DiscussionNoteDao>()
+        val discussionAttendanceDao = mock<DiscussionAttendanceDao>()
+
+        database = mock<KluvsDatabase>()
+        every { database.clubDao() } returns clubDao
+        every { database.serverDao() } returns serverDao
+        every { database.memberDao() } returns memberDao
+        every { database.sessionDao() } returns sessionDao
+        every { database.bookDao() } returns bookDao
+        every { database.discussionDao() } returns discussionDao
+        every { database.shelfDao() } returns shelfDao
+        every { database.likeDao() } returns likeDao
+        every { database.progressDao() } returns progressDao
+        every { database.discussionNoteDao() } returns discussionNoteDao
+        every { database.discussionAttendanceDao() } returns discussionAttendanceDao
+
+        everySuspend { clubDao.deleteAll() } returns Unit
+        everySuspend { serverDao.deleteAll() } returns Unit
+        everySuspend { memberDao.deleteAll() } returns Unit
+        everySuspend { memberDao.deleteAllCrossRefs() } returns Unit
+        everySuspend { sessionDao.deleteAll() } returns Unit
+        everySuspend { bookDao.deleteAll() } returns Unit
+        everySuspend { discussionDao.deleteAll() } returns Unit
+        everySuspend { shelfDao.deleteAll() } returns Unit
+        everySuspend { likeDao.deleteAll() } returns Unit
+        everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { discussionNoteDao.deleteAll() } returns Unit
+        everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
+
         getEditableProfile = GetEditableProfileUseCase(memberRepository, avatarRepository)
         updateUserProfile = UpdateUserProfileUseCase(memberRepository)
         updateAvatarUseCase = UpdateAvatarUseCase(avatarRepository, memberRepository)
         changePasswordUseCase = ChangePasswordUseCase(authRepository)
-        viewModel = SettingsViewModel(getEditableProfile, updateUserProfile, updateAvatarUseCase, changePasswordUseCase)
+        deleteAccountUseCase = DeleteAccountUseCase(memberRepository, authRepository)
+        signOutUseCase = SignOutUseCase(authRepository, database)
+        viewModel = SettingsViewModel(
+            getEditableProfile,
+            updateUserProfile,
+            updateAvatarUseCase,
+            changePasswordUseCase,
+            deleteAccountUseCase,
+            signOutUseCase
+        )
         every { avatarRepository.getAvatarUrl(null) } returns null
     }
 
@@ -537,5 +605,124 @@ class SettingsViewModelTest {
         assertNull(state.newPasswordError)
         assertNull(state.confirmPasswordError)
         assertNull(state.changePasswordGeneralError)
+    }
+
+    // ========================================
+    // DELETE ACCOUNT
+    // ========================================
+
+    @Test
+    fun `onDeleteAccountClicked opens the confirmation dialog`() = runTest {
+        // When
+        viewModel.onDeleteAccountClicked()
+
+        // Then
+        assertTrue(viewModel.state.value.isDeleteAccountDialogOpen)
+    }
+
+    @Test
+    fun `onDeleteAccountDialogDismissed closes the confirmation dialog`() = runTest {
+        // Given
+        viewModel.onDeleteAccountClicked()
+        assertTrue(viewModel.state.value.isDeleteAccountDialogOpen)
+
+        // When
+        viewModel.onDeleteAccountDialogDismissed()
+
+        // Then
+        assertFalse(viewModel.state.value.isDeleteAccountDialogOpen)
+    }
+
+    @Test
+    fun `onDeleteAccountConfirmed with no profile loaded is a no-op`() = runTest {
+        // When: no profile has been loaded, so memberId is unknown
+        viewModel.onDeleteAccountConfirmed()
+
+        // Then
+        assertFalse(viewModel.state.value.isDeletingAccount)
+        verifySuspend(mode = VerifyMode.not) { memberRepository.deleteMember(any()) }
+    }
+
+    @Test
+    fun `onDeleteAccountConfirmed success signs out and clears dialog state`() = runTest {
+        // Given: profile loaded and deletion succeeds
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
+        viewModel.loadProfile(userId)
+        viewModel.onDeleteAccountClicked()
+        everySuspend { memberRepository.deleteMember(memberId) } returns Result.success("Account deleted")
+        everySuspend { authRepository.signOut() } returns Result.success(Unit)
+
+        // When
+        viewModel.onDeleteAccountConfirmed()
+
+        // Then
+        val state = viewModel.state.value
+        assertFalse(state.isDeletingAccount)
+        assertFalse(state.isDeleteAccountDialogOpen)
+        assertNull(state.deleteAccountError)
+        verifySuspend { memberRepository.deleteMember(memberId) }
+        verifySuspend { authRepository.signOut() }
+    }
+
+    @Test
+    fun `onDeleteAccountConfirmed failure surfaces inline error and closes dialog without signing out`() = runTest {
+        // Given: profile loaded, deletion fails, and the account still exists
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
+        viewModel.loadProfile(userId)
+        viewModel.onDeleteAccountClicked()
+        everySuspend {
+            memberRepository.deleteMember(memberId)
+        } returns Result.failure(Exception("Deletion failed"))
+        everySuspend { authRepository.currentUserExists() } returns Result.success(true)
+
+        // When
+        viewModel.onDeleteAccountConfirmed()
+
+        // Then
+        val state = viewModel.state.value
+        assertFalse(state.isDeletingAccount)
+        assertFalse(state.isDeleteAccountDialogOpen)
+        assertTrue(state.deleteAccountError != null)
+        verifySuspend(mode = VerifyMode.not) { authRepository.signOut() }
+    }
+
+    @Test
+    fun `onDeleteAccountConfirmed failure still signs out when the account no longer exists`() = runTest {
+        // Given: the backend deleted the account, but the delete response never made it back
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
+        viewModel.loadProfile(userId)
+        everySuspend {
+            memberRepository.deleteMember(memberId)
+        } returns Result.failure(Exception("Request timed out"))
+        everySuspend { authRepository.currentUserExists() } returns Result.success(false)
+        everySuspend { authRepository.signOut() } returns Result.success(Unit)
+
+        // When
+        viewModel.onDeleteAccountConfirmed()
+
+        // Then
+        val state = viewModel.state.value
+        assertFalse(state.isDeletingAccount)
+        assertNull(state.deleteAccountError)
+        verifySuspend { authRepository.signOut() }
+    }
+
+    @Test
+    fun `clearDeleteAccountError clears the error state`() = runTest {
+        // Given: profile loaded and a failed deletion
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
+        viewModel.loadProfile(userId)
+        everySuspend {
+            memberRepository.deleteMember(memberId)
+        } returns Result.failure(Exception("Deletion failed"))
+        everySuspend { authRepository.currentUserExists() } returns Result.success(true)
+        viewModel.onDeleteAccountConfirmed()
+        assertTrue(viewModel.state.value.deleteAccountError != null)
+
+        // When
+        viewModel.clearDeleteAccountError()
+
+        // Then
+        assertNull(viewModel.state.value.deleteAccountError)
     }
 }

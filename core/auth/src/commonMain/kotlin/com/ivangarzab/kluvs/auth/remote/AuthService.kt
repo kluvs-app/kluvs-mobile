@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.auth.remote
 
+import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.auth.user.UserSession
 
 /**
@@ -121,4 +122,15 @@ interface AuthService {
      * @param refreshToken The stored refresh token
      */
     suspend fun setSession(accessToken: String, refreshToken: String)
+
+    /**
+     * Fetches the current session's user from the server, rather than the locally cached copy.
+     *
+     * Used to confirm the account still exists server-side.
+     *
+     * @return The server's [UserInfo] for the current session
+     * @throws Exception if the request fails — a deleted account surfaces as an
+     * [io.github.jan.supabase.auth.exception.AuthRestException] with `user_not_found`
+     */
+    suspend fun retrieveCurrentUser(): UserInfo
 }

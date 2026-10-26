@@ -28,6 +28,7 @@ class SignOutUseCaseTest {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var database: KluvsDatabase
+    private lateinit var clubDao: ClubDao
     private lateinit var useCase: SignOutUseCase
 
     @BeforeTest
@@ -35,7 +36,7 @@ class SignOutUseCaseTest {
         authRepository = mock<AuthRepository>()
 
         // Set up mock DAOs that SignOutUseCase will call
-        val clubDao = mock<ClubDao>()
+        clubDao = mock<ClubDao>()
         val serverDao = mock<ServerDao>()
         val memberDao = mock<MemberDao>()
         val sessionDao = mock<SessionDao>()
@@ -118,5 +119,17 @@ class SignOutUseCaseTest {
         assertTrue(result.isFailure)
         assertEquals(AuthError.NoConnection, result.exceptionOrNull())
         verifySuspend { authRepository.signOut() }
+    }
+
+    @Test
+    fun `clears local data even when repository fails`() = runTest {
+        // Given: the server sign-out fails, but AuthRepository has already dropped the local session
+        everySuspend { authRepository.signOut() } returns Result.failure(AuthError.NoConnection)
+
+        // When
+        useCase()
+
+        // Then
+        verifySuspend { clubDao.deleteAll() }
     }
 }

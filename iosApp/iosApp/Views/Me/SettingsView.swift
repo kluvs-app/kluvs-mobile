@@ -42,7 +42,10 @@ struct SettingsView: View {
                         onSaveProfile: { viewModel.onSaveProfile() }
                     )
 
-                    AccountSection(onChangePasswordClick: { viewModel.onChangePasswordSheetOpened() })
+                    AccountSection(
+                        onChangePasswordClick: { viewModel.onChangePasswordSheetOpened() },
+                        onDeleteAccountClick: { viewModel.onDeleteAccountClicked() }
+                    )
 
                     LegalSection()
 
@@ -53,6 +56,16 @@ struct SettingsView: View {
             }
         }
         .background(KluvsTheme.colors.background)
+        .overlay {
+            // Deletion is irreversible once sent — cover the whole screen (including the back
+            // button) and block sheet swipe-dismiss so the user can't leave mid-request and end
+            // up back in the app with a deleted account. Matches Android's `SettingsScreen`.
+            if viewModel.isDeletingAccount {
+                LoadingView()
+                    .background(KluvsTheme.colors.background)
+            }
+        }
+        .interactiveDismissDisabled(viewModel.isDeletingAccount)
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             viewModel.loadProfile(userId: userId)
@@ -91,11 +104,27 @@ struct SettingsView: View {
                 }
                 .padding()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if let deleteAccountError = viewModel.deleteAccountError {
+                SnackbarView(message: deleteAccountError) {
+                    viewModel.clearDeleteAccountError()
+                }
+                .padding()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showSaveSuccess)
         .animation(.easeInOut(duration: 0.3), value: showChangePasswordSuccess)
         .animation(.easeInOut(duration: 0.3), value: viewModel.avatarError)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.deleteAccountError)
+        .kluvsConfirmationDialog(
+            isPresented: $viewModel.isDeleteAccountDialogOpen,
+            title: String(localized: "delete_account"),
+            message: String(localized: "delete_account_confirmation_message"),
+            confirmLabel: String(localized: "delete_account"),
+            isDestructive: true,
+            onDismiss: { viewModel.onDeleteAccountDialogDismissed() },
+            onConfirm: { viewModel.onDeleteAccountConfirmed() }
+        )
         .changePasswordSheet(
             isPresented: Binding(
                 get: { viewModel.isChangePasswordSheetOpen },
@@ -200,6 +229,7 @@ struct EditProfileSection: View {
 
 struct AccountSection: View {
     let onChangePasswordClick: () -> Void
+    var onDeleteAccountClick: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -210,6 +240,13 @@ struct AccountSection: View {
 
             AccountRow(label: String(localized: "change_password"), action: onChangePasswordClick)
             Divider().overlay(KluvsTheme.colors.divider)
+
+            AccountRow(
+                label: String(localized: "delete_account"),
+                action: onDeleteAccountClick,
+                textColor: KluvsTheme.colors.danger
+            )
+            Divider().overlay(KluvsTheme.colors.divider)
         }
         .padding(.vertical, 12)
     }
@@ -218,13 +255,14 @@ struct AccountSection: View {
 private struct AccountRow: View {
     let label: String
     let action: () -> Void
+    var textColor: Color = KluvsTheme.colors.accent
 
     var body: some View {
         Button(action: action) {
             HStack {
                 Text(label)
                     .kluvsStyle(KluvsTheme.typography.body.large)
-                    .foregroundColor(KluvsTheme.colors.accent)
+                    .foregroundColor(textColor)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)

@@ -133,4 +133,14 @@ interface AuthRepository {
      * @return Result with updated User if successful, or error
      */
     suspend fun refreshSession(): Result<User>
+
+    /**
+     * Asks the server whether the signed-in user's account still exists.
+     *
+     * Does not change local auth state — callers decide what to do with the answer.
+     *
+     * @return Result with true if the server returns the user, false if the server reports the
+     * account no longer exists, or failure if that can't be determined (e.g. no connection)
+     */
+    suspend fun currentUserExists(): Result<Boolean>
 }
