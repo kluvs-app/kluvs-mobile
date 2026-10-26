@@ -7,11 +7,16 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class CachePolicyTest {
 
-    private val cachePolicy = CachePolicy()
+    // Pinned so the test's "now" and CachePolicy's "now" can't drift apart mid-test
+    private val fixedNow = Instant.fromEpochMilliseconds(1_750_000_000_000)
+    private val cachePolicy = CachePolicy(clock = object : Clock {
+        override fun now(): Instant = fixedNow
+    })
 
     @Test
     fun testIsStale_withNullTimestamp_returnsTrue() {
@@ -29,7 +34,7 @@ class CachePolicyTest {
     @Test
     fun testIsStale_withFreshData_returnsFalse() {
         // Given - data fetched 1 hour ago
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = fixedNow.toEpochMilliseconds()
         val lastFetchedAt = now - 1.hours.inWholeMilliseconds
         val ttl = 24.hours
 
@@ -43,7 +48,7 @@ class CachePolicyTest {
     @Test
     fun testIsStale_withStaleData_returnsTrue() {
         // Given - data fetched 25 hours ago
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = fixedNow.toEpochMilliseconds()
         val lastFetchedAt = now - 25.hours.inWholeMilliseconds
         val ttl = 24.hours
 
@@ -57,7 +62,7 @@ class CachePolicyTest {
     @Test
     fun testIsStale_exactlyAtTTL_returnsFalse() {
         // Given - data fetched exactly 24 hours ago
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = fixedNow.toEpochMilliseconds()
         val lastFetchedAt = now - 24.hours.inWholeMilliseconds
         val ttl = 24.hours
 
@@ -84,7 +89,7 @@ class CachePolicyTest {
     @Test
     fun testIsFresh_withFreshData_returnsTrue() {
         // Given - data fetched 30 minutes ago
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = fixedNow.toEpochMilliseconds()
         val lastFetchedAt = now - 30.minutes.inWholeMilliseconds
         val ttl = 24.hours
 
@@ -98,7 +103,7 @@ class CachePolicyTest {
     @Test
     fun testIsFresh_withStaleData_returnsFalse() {
         // Given - data fetched 7 days ago
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = fixedNow.toEpochMilliseconds()
         val lastFetchedAt = now - (7 * 24).hours.inWholeMilliseconds
         val ttl = 24.hours
 
