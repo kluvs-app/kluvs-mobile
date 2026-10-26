@@ -19,8 +19,8 @@ import kotlinx.coroutines.test.setMain
  * The member row is auto-created by the on_auth_user_created trigger and enriched
  * by the seed, so this account always maps to member_id 1.
  */
-const val TEST_USER_EMAIL = "ivan@example.com"
-const val TEST_USER_PASSWORD = "12345678"
+const val TEST_USER_EMAIL = "ivan@test.com"
+const val TEST_USER_PASSWORD = "password"
 const val TEST_USER_MEMBER_ID = 1
 
 /**
