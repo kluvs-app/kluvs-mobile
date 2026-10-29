@@ -3,6 +3,11 @@ plugins {
     alias(libs.plugins.mokkery)
 }
 
+// The convention plugin's name-derived namespace collides with :core:auth, which AGP 9 rejects.
+android {
+    namespace = "com.ivangarzab.kluvs.feature.auth"
+}
+
 kotlin {
     sourceSets {
         commonMain.dependencies {

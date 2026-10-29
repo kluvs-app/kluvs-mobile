@@ -1,15 +1,15 @@
 [versions]
-android-compileSdk = "36"
+android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "36"
 
-agp = "8.13.0"
+agp = "9.1.1"
 ksp = "2.2.0-2.0.2"
 kotlin = "2.2.0"
 kotlin-coroutines = "1.10.2"
 kotlinSerialization = "1.9.0"
 kotlinxCoroutinesTest = "1.10.1"
-kotlinxDatetime = "0.6.1"
+kotlinxDatetime = "0.7.1"
 compose-multiplatform = "1.8.2"
 androidx-activity = "1.10.1"
 androidx-appcompat = "1.7.1"
@@ -38,6 +38,7 @@ room = "2.8.4"
 sqlite = "2.6.2"
 sentry = "0.23.0"
 openapiGenerator = "7.16.0"
+appfunctions = "1.0.0-beta01"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "kotlin-coroutines" }
@@ -89,6 +90,8 @@ coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "
 
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-appfunctions = { module = "androidx.appfunctions:appfunctions", version.ref = "appfunctions" }
+androidx-appfunctions-compiler = { module = "androidx.appfunctions:appfunctions-compiler", version.ref = "appfunctions" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 
 

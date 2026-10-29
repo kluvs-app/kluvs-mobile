@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
+    appfn:instructions="Kluvs is a book club app. A club reads one book at a time in its active session, and members meet at scheduled discussions for that session.
+    Constraints:
+    - Every function acts as the signed-in Kluvs user and only on clubs that user belongs to."
+    appfn:displayDescription="@string/app_functions_display_description" />
