@@ -101,11 +101,11 @@ When including build or test steps in plans or agent execution, use `--quiet` fl
 
 ### Run Integration Tests
 
-Integration tests require a local Supabase instance. They live in the `:shared` module:
+Integration tests require a local Supabase instance. They live in the `:core:data` module:
 
 ```bash
-# Run ALL tests including integration tests
-./gradlew :shared:testDebugUnitTest
+# Run only the integration tests
+./gradlew :core:data:testDebugUnitTest --tests "*IntegrationTest"
 ```
 
 **Note**: Integration tests connect to a Supabase instance specified by `TEST_SUPABASE_URL` and `TEST_SUPABASE_KEY` environment variables.
@@ -307,7 +307,7 @@ Tests are co-located with their implementations in each module:
   - `:feature:join` - JoinViewModel tests
 
 - **Integration Tests** - Tests against real Supabase instance
-  - Located in `shared/src/commonTest/`
+  - Located in `core/data/src/`
   - Suffixed with `*IntegrationTest.kt`
   - Require local Supabase instance running
   - Excluded from quick test runs via `excludeTests` property
@@ -338,7 +338,7 @@ These are scoped to this repo (not portable — see `../CLAUDE.md`'s Skills sect
 The project uses GitHub Actions:
 
 - **Unit Tests** (`.github/workflows/unit-tests.yml`) - Fast feedback on PRs, excludes integration tests
-- **Full Tests** (`.github/workflows/full-tests.yml`) - Runs on `main` branch with local Supabase instance
+- **Full Tests** (`.github/workflows/full-tests.yml`) - Runs on pushes to `main` and `develop` with local Supabase instance
   - Checks out both `kluvs-mobile` and `kluvs-backend` repos
   - Starts local Supabase instance
   - Applies migrations and seed data
