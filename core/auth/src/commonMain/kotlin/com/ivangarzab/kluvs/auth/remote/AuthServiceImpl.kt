@@ -37,6 +37,8 @@ class AuthServiceImpl internal constructor(
 
     // Concurrent restores (e.g. AppCoordinator and AuthViewModel at startup) must not both
     // reload a paused session, which would refresh twice with the same refresh token.
+    // The lock is held for the whole restore (up to ~11s offline), so later callers wait behind
+    // it: don't call restoreSession() from anywhere that blocks the UI.
     private val restoreMutex = Mutex()
 
     override suspend fun signUpWithEmail(email: String, password: String): UserSession {
@@ -271,11 +273,12 @@ class AuthServiceImpl internal constructor(
             }
             status = auth.sessionStatus.value.takeUnless { it is SessionStatus.Initializing }
         }
+        var saved: UserSession? = null
         if (status == null) {
             // Supabase is still refreshing. It only reports a failed refresh once the token has
             // expired, so offline with a still-valid token it would stay Initializing for the whole
             // timeout. That token still works, so wait only briefly before using it.
-            val saved = auth.sessionManager.loadSession()
+            saved = auth.sessionManager.loadSession()
             val tokenStillValid = saved != null && saved.expiresAt > Clock.System.now()
             status = awaitSettledStatus(if (tokenStillValid) PENDING_REFRESH_WAIT_MS else RESTORE_TIMEOUT_MS)
         }
@@ -287,7 +290,8 @@ class AuthServiceImpl internal constructor(
             // Supabase keeps retrying the refresh in the background.
             is SessionStatus.RefreshFailure, SessionStatus.Initializing, null -> {
                 Bark.w("Session refresh still pending (status: $status); using the saved session")
-                auth.sessionManager.loadSession()
+                // No refresh has landed if we're here, so a session loaded above is still current
+                saved ?: auth.sessionManager.loadSession()
             }
         }
     }

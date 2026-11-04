@@ -127,6 +127,22 @@ class AuthServiceImplTest {
     }
 
     @Test
+    fun `restoreSession waits for a pending refresh after reloading a paused session`() = runTest {
+        // Given
+        every { auth.isAutoRefreshRunning } returns false
+        everySuspend { auth.loadFromStorage(any()) } returns true
+
+        // When
+        val result = service.restoreSession()
+
+        // Then
+        assertEquals(savedSession, result)
+        assertEquals(3_000L, testScheduler.currentTime)
+        verifySuspend(VerifyMode.exactly(1)) { auth.loadFromStorage(any()) }
+        verifySuspend(VerifyMode.exactly(1)) { sessionManager.loadSession() }
+    }
+
+    @Test
     fun `restoreSession waits only briefly for a pending refresh when the saved token is still valid`() = runTest {
         // Given
         every { auth.isAutoRefreshRunning } returns true
