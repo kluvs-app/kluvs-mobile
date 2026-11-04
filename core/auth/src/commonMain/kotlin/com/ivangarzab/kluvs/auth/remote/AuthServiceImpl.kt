@@ -24,12 +24,18 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * Implementation of [AuthService] using Supabase GoTrue.
  */
-class AuthServiceImpl(
-    private val supabaseClient: SupabaseClient
+class AuthServiceImpl internal constructor(
+    private val authProvider: () -> Auth
 ) : AuthService {
 
+    constructor(supabaseClient: SupabaseClient) : this({ supabaseClient.auth })
+
     private val auth: Auth
-        get() = supabaseClient.auth
+        get() = authProvider()
+
+    // Concurrent restores (e.g. AppCoordinator and AuthViewModel at startup) must not both
+    // reload a paused session, which would refresh twice with the same refresh token.
+    private val restoreMutex = Mutex()
 
     override suspend fun signUpWithEmail(email: String, password: String): UserSession {
         Bark.v("Email sign up initiated")
@@ -252,6 +258,9 @@ class AuthServiceImpl(
             // On Android, Supabase pauses the session whenever the app is backgrounded (status
             // back to Initializing, auto-refresh stopped) and only reloads it on the next
             // foreground start — so background callers must reload it themselves.
+            // The mutex can't stop this racing Supabase's own startup load if reading storage
+            // takes longer than the grace period. Then both may refresh with the same token, which
+            // the server's refresh-token reuse interval (10s by default) still accepts.
             Bark.d("Session paused; reloading it from storage")
             if (!auth.loadFromStorage()) {
                 Bark.v("No saved session to restore")
@@ -287,10 +296,6 @@ class AuthServiceImpl(
             throw e
         }
     }
-
-    // Concurrent restores (e.g. AppCoordinator and AuthViewModel at startup) must not both
-    // reload a paused session, which would refresh twice with the same refresh token.
-    private val restoreMutex = Mutex()
 
     companion object {
         const val REDIRECT_URL = "kluvs://auth/callback"
