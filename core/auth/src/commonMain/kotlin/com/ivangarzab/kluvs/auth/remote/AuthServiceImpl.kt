@@ -37,8 +37,8 @@ class AuthServiceImpl internal constructor(
 
     // Concurrent restores (e.g. AppCoordinator and AuthViewModel at startup) must not both
     // reload a paused session, which would refresh twice with the same refresh token.
-    // The lock is held for the whole restore (up to ~11s offline), so later callers wait behind
-    // it: don't call restoreSession() from anywhere that blocks the UI.
+    // The lock is held for the whole restore (up to ~11s on a slow network), so later callers
+    // wait behind it: don't call restoreSession() from anywhere that blocks the UI.
     private val restoreMutex = Mutex()
 
     override suspend fun signUpWithEmail(email: String, password: String): UserSession {
