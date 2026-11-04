@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Coordinates between:
  * - [AuthService] for Supabase authentication
- * - [SecureStorage] for persistent token storage
+ * - [SecureStorage] for the signed-in user ID (Supabase persists the session itself)
  * - StateFlow for reactive auth state
  */
 class AuthRepositoryImpl(
@@ -33,39 +33,23 @@ class AuthRepositoryImpl(
         Bark.v("Auth initialization started")
 
         return try {
-            // Check if we have stored tokens
-            val accessToken = secureStorage.get(SecureStorage.KEY_ACCESS_TOKEN)
-            val refreshToken = secureStorage.get(SecureStorage.KEY_REFRESH_TOKEN)
-
-            if (accessToken != null && refreshToken != null) {
-                Bark.v("Stored session found, attempting to restore")
-
-                // Restore session
-                authService.setSession(accessToken, refreshToken)
-
-                // Get current session to verify it's valid
-                val session = authService.getCurrentSession()
-
-                if (session != null) {
-                    val user = session.user?.toDomain()
-                    if (user != null) {
-                        updateAuthState(user)
-                        Bark.i("Session restored and user authenticated")
-                        return Result.success(user)
-                    }
-                }
-
-                // Session invalid, clear storage
-                Bark.w("Stored session validation failed. Clearing stored credentials.")
-                clearStoredSession()
-            } else {
-                Bark.v("No stored session found")
+            val session = authService.restoreSession()
+            if (session == null) {
+                Bark.v("No session to restore")
+                updateAuthState(null)
+                return Result.success(null)
             }
-
-            Result.success(null)
+            val user = (session.user ?: authService.retrieveCurrentUser()).toDomain()
+            // Tokens written here by older app versions go stale as Supabase rotates them, and
+            // were what signed users out on launch. Supabase's own storage is the source of truth.
+            removeLegacyTokens()
+            updateAuthState(user)
+            Bark.i("Session restored and user authenticated")
+            Result.success(user)
         } catch (e: Exception) {
-            Bark.e("Auth initialization failed. User will be directed to login.", e)
-            clearStoredSession()
+            // Never clear the saved session here: a transient failure (e.g. no connection) must
+            // not sign the user out. Supabase only drops the session if the server revokes it.
+            Bark.e("Auth initialization failed. Saved session kept for the next attempt.", e)
             Result.failure(e.toAuthError())
         }
     }
@@ -77,9 +61,6 @@ class AuthRepositoryImpl(
             val session = authService.signUpWithEmail(email, password)
             val user = session.user?.toDomain()
                 ?: throw IllegalStateException("Sign up succeeded but user info is missing")
-
-            // Store session tokens
-            storeSession(session.accessToken, session.refreshToken)
 
             // Update state
             updateAuthState(user)
@@ -102,9 +83,6 @@ class AuthRepositoryImpl(
             val session = authService.signInWithEmail(email, password)
             val user = session.user?.toDomain()
                 ?: throw IllegalStateException("Sign in succeeded but user info is missing")
-
-            // Store session tokens
-            storeSession(session.accessToken, session.refreshToken)
 
             // Update state
             updateAuthState(user)
@@ -151,9 +129,6 @@ class AuthRepositoryImpl(
             val user = session.user?.toDomain()
                 ?: throw IllegalStateException("OAuth succeeded but user info is missing")
 
-            // Store session tokens
-            storeSession(session.accessToken, session.refreshToken)
-
             // Update state
             updateAuthState(user)
 
@@ -172,9 +147,6 @@ class AuthRepositoryImpl(
             val session = authService.signInWithAppleIdToken(idToken)
             val user = session.user?.toDomain()
                 ?: throw IllegalStateException("Apple Sign In succeeded but user info is missing")
-
-            // Store session tokens
-            storeSession(session.accessToken, session.refreshToken)
 
             // Update state
             updateAuthState(user)
@@ -237,40 +209,6 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun refreshSession(): Result<User> {
-        Bark.v("Session refresh initiated")
-
-        return try {
-            val session = authService.refreshSession()
-            val user = session.user?.toDomain()
-                ?: throw IllegalStateException("Session refresh succeeded but user info is missing")
-
-            // Store new tokens
-            storeSession(session.accessToken, session.refreshToken)
-
-            // Update state
-            updateAuthState(user)
-
-            Bark.d("Session refreshed")
-            Result.success(user)
-        } catch (e: Exception) {
-            Bark.e("Session refresh failed. User will be directed to login.", e)
-            // If refresh fails, user needs to sign in again
-            clearStoredSession()
-            updateAuthState(null)
-            Result.failure(e.toAuthError())
-        }
-    }
-
-    /**
-     * Stores session tokens in secure storage.
-     */
-    private fun storeSession(accessToken: String, refreshToken: String) {
-        secureStorage.save(SecureStorage.KEY_ACCESS_TOKEN, accessToken)
-        secureStorage.save(SecureStorage.KEY_REFRESH_TOKEN, refreshToken)
-        Bark.v("Session tokens stored")
-    }
-
     override suspend fun currentUserExists(): Result<Boolean> {
         Bark.v("Checking whether current user still exists")
 
@@ -291,12 +229,16 @@ class AuthRepositoryImpl(
         }
     }
 
-    /**
-     * Clears stored session tokens.
-     */
-    private fun clearStoredSession() {
+    private fun removeLegacyTokens() {
         secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
         secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN)
+    }
+
+    /**
+     * Clears stored session data.
+     */
+    private fun clearStoredSession() {
+        removeLegacyTokens()
         secureStorage.remove(SecureStorage.KEY_USER_ID)
         Bark.v("Stored credentials cleared")
     }

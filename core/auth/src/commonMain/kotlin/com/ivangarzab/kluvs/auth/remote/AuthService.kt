@@ -96,32 +96,15 @@ interface AuthService {
     suspend fun signOut()
 
     /**
-     * Gets the current user session if one exists.
+     * Returns the session Supabase persisted for the signed-in user, waiting for Supabase to
+     * finish restoring (and, if needed, refreshing) it.
      *
-     * @return Current UserSession, or null if not authenticated
+     * Supabase owns session persistence and token rotation. When offline, the saved session is
+     * returned as-is so the user stays signed in while Supabase keeps retrying the refresh.
+     *
+     * @return The user's session, or null if none is saved or Supabase rejected it
      */
-    suspend fun getCurrentSession(): UserSession?
-
-    /**
-     * Refreshes the current session using the refresh token.
-     *
-     * Access tokens expire after 1 hour, this gets a new access token.
-     *
-     * @return New UserSession with fresh access token
-     * @throws Exception if refresh fails (e.g., refresh token expired)
-     */
-    suspend fun refreshSession(): UserSession
-
-    /**
-     * Restores a session from stored tokens.
-     *
-     * Used on app startup to restore a previous session without requiring
-     * the user to sign in again.
-     *
-     * @param accessToken The stored access token
-     * @param refreshToken The stored refresh token
-     */
-    suspend fun setSession(accessToken: String, refreshToken: String)
+    suspend fun restoreSession(): UserSession?
 
     /**
      * Fetches the current session's user from the server, rather than the locally cached copy.
