@@ -10,7 +10,9 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verify
 import dev.mokkery.verifySuspend
+import dev.mokkery.verify.VerifyMode
 import io.github.jan.supabase.auth.user.UserInfo
+import io.github.jan.supabase.auth.user.UserSession
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -18,6 +20,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.ExperimentalTime
 
 /**
  * Tests for AuthRepositoryImpl.
@@ -47,10 +50,9 @@ class AuthRepositoryImplTest {
     // ========== Initialize Tests ==========
 
     @Test
-    fun `initialize with no stored session returns null and unauthenticated state`() = runTest {
+    fun `initialize with no saved session returns null and unauthenticated state`() = runTest {
         // Given
-        every { secureStorage.get(SecureStorage.KEY_ACCESS_TOKEN) } returns null
-        every { secureStorage.get(SecureStorage.KEY_REFRESH_TOKEN) } returns null
+        everySuspend { authService.restoreSession() } returns null
 
         // When
         val result = repository.initialize()
@@ -63,42 +65,51 @@ class AuthRepositoryImplTest {
     }
 
     @Test
-    fun `initialize with invalid stored session clears storage`() = runTest {
+    @OptIn(ExperimentalTime::class)
+    fun `initialize with a saved session authenticates the user and removes legacy tokens`() = runTest {
         // Given
-        val accessToken = "invalid-access-token"
-        val refreshToken = "invalid-refresh-token"
-
-        every { secureStorage.get(SecureStorage.KEY_ACCESS_TOKEN) } returns accessToken
-        every { secureStorage.get(SecureStorage.KEY_REFRESH_TOKEN) } returns refreshToken
-        everySuspend { authService.setSession(accessToken, refreshToken) } returns Unit
-        everySuspend { authService.getCurrentSession() } returns null  // Invalid session
+        everySuspend { authService.restoreSession() } returns session(UserInfo(aud = "authenticated", id = "user-1"))
 
         // When
         val result = repository.initialize()
 
         // Then
-        assertTrue(result.isSuccess)
-        assertNull(result.getOrNull())
+        assertEquals("user-1", result.getOrNull()?.id)
+        assertEquals("user-1", repository.currentUser.value?.id)
+        assertTrue(repository.isAuthenticated.value)
         verify { secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN) }
         verify { secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN) }
-        verify { secureStorage.remove(SecureStorage.KEY_USER_ID) }
+        verify(VerifyMode.not) { secureStorage.remove(SecureStorage.KEY_USER_ID) }
     }
 
     @Test
-    fun `initialize handles exception and clears storage`() = runTest {
+    @OptIn(ExperimentalTime::class)
+    fun `initialize fetches the user from the server when the saved session has none`() = runTest {
         // Given
-        every { secureStorage.get(SecureStorage.KEY_ACCESS_TOKEN) } returns "token"
-        every { secureStorage.get(SecureStorage.KEY_REFRESH_TOKEN) } returns "refresh"
-        everySuspend { authService.setSession(any(), any()) } throws Exception("Network error")
+        everySuspend { authService.restoreSession() } returns session(user = null)
+        everySuspend { authService.retrieveCurrentUser() } returns UserInfo(aud = "authenticated", id = "user-2")
+
+        // When
+        val result = repository.initialize()
+
+        // Then
+        assertEquals("user-2", result.getOrNull()?.id)
+        assertTrue(repository.isAuthenticated.value)
+    }
+
+    @Test
+    fun `initialize failure keeps the saved session`() = runTest {
+        // Given
+        everySuspend { authService.restoreSession() } throws Exception("Unable to resolve host")
 
         // When
         val result = repository.initialize()
 
         // Then
         assertTrue(result.isFailure)
-        verify { secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN) }
-        verify { secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN) }
-        verify { secureStorage.remove(SecureStorage.KEY_USER_ID) }
+        assertEquals(AuthError.NoConnection, result.exceptionOrNull())
+        verify(VerifyMode.not) { secureStorage.remove(any()) }
+        verify(VerifyMode.not) { secureStorage.clear() }
     }
 
     // ========== Sign Up Tests ==========
@@ -284,29 +295,10 @@ class AuthRepositoryImplTest {
         assertEquals(AuthError.WeakPassword, result.exceptionOrNull())
     }
 
-    // ========== Refresh Session Tests ==========
-
-    @Test
-    fun `refreshSession fails and clears storage and state`() = runTest {
-        // Given
-        everySuspend { authService.refreshSession() } throws Exception("Refresh token expired")
-
-        // When
-        val result = repository.refreshSession()
-
-        // Then
-        assertTrue(result.isFailure)
-        assertNull(repository.currentUser.value)
-        assertFalse(repository.isAuthenticated.value)
-        verify { secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN) }
-        verify { secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN) }
-        verify { secureStorage.remove(SecureStorage.KEY_USER_ID) }
-    }
-
     // ========== Current User Exists Tests ==========
 
     @Test
-    @OptIn(kotlin.time.ExperimentalTime::class)
+    @OptIn(ExperimentalTime::class)
     fun `currentUserExists returns true when the server returns the user`() = runTest {
         // Given
         everySuspend { authService.retrieveCurrentUser() } returns UserInfo(aud = "authenticated", id = "user-1")
@@ -342,4 +334,13 @@ class AuthRepositoryImplTest {
         assertTrue(result.isFailure)
         assertEquals(AuthError.NoConnection, result.exceptionOrNull())
     }
+
+    @OptIn(ExperimentalTime::class)
+    private fun session(user: UserInfo?) = UserSession(
+        accessToken = "access-token",
+        refreshToken = "refresh-token",
+        expiresIn = 3600,
+        tokenType = "bearer",
+        user = user,
+    )
 }

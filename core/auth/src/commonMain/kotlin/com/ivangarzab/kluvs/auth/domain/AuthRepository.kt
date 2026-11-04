@@ -26,10 +26,8 @@ interface AuthRepository {
     /**
      * Initializes the auth repository.
      *
-     * This should be called on app startup to:
-     * - Check for stored session
-     * - Restore session if valid
-     * - Set initial auth state
+     * Call on app startup, or before background work, to restore the session Supabase saved and
+     * set the initial auth state. Never signs the user out on failure.
      *
      * @return Result with authenticated User if session was restored, null otherwise
      */
@@ -39,7 +37,6 @@ interface AuthRepository {
      * Signs up a new user with email and password.
      *
      * On success:
-     * - Stores session tokens securely
      * - Updates currentUser state
      *
      * @param email User's email address
@@ -52,7 +49,6 @@ interface AuthRepository {
      * Signs in an existing user with email and password.
      *
      * On success:
-     * - Stores session tokens securely
      * - Updates currentUser state
      *
      * @param email User's email address
@@ -117,22 +113,12 @@ interface AuthRepository {
      * Signs out the current user.
      *
      * - Clears session on server
-     * - Removes stored tokens
+     * - Removes stored session data
      * - Updates currentUser to null
      *
      * @return Result with success or error
      */
     suspend fun signOut(): Result<Unit>
-
-    /**
-     * Refreshes the current session.
-     *
-     * Access tokens expire after 1 hour. This gets a new access token
-     * using the refresh token.
-     *
-     * @return Result with updated User if successful, or error
-     */
-    suspend fun refreshSession(): Result<User>
 
     /**
      * Asks the server whether the signed-in user's account still exists.
