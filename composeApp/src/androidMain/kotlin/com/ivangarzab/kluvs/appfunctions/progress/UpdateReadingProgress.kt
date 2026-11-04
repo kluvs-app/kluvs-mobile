@@ -1,10 +1,10 @@
 package com.ivangarzab.kluvs.appfunctions.progress
 
-import androidx.appfunctions.AppFunctionElementNotFoundException
 import androidx.appfunctions.AppFunctionInvalidArgumentException
 import androidx.appfunctions.AppFunctionSerializable
 import com.ivangarzab.kluvs.appfunctions.AppFunctionSession
 import com.ivangarzab.kluvs.appfunctions.getOrThrowAppFunction
+import com.ivangarzab.kluvs.appfunctions.resolveClub
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
@@ -15,6 +15,8 @@ import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 data class ReadingProgressResult(
     /** The club's ID. */
     val clubId: String,
+    /** The club's name. */
+    val clubName: String,
     /** The title of the book the club is reading. */
     val bookTitle: String,
     /** How far through the book the user is, from 0 to 100. */
@@ -30,7 +32,7 @@ internal suspend fun updateReadingProgress(
     clubRepository: ClubRepository,
     getSessionProgress: GetSessionProgressUseCase,
     saveProgress: SaveProgressUseCase,
-    clubId: String,
+    club: String?,
     currentPage: Int?,
     percentComplete: Float?,
     markFinished: Boolean,
@@ -45,10 +47,8 @@ internal suspend fun updateReadingProgress(
         throw AppFunctionInvalidArgumentException("The percentage must be between 0 and 100.")
     }
 
-    session.requireClubRole(clubId)
-    val club = clubRepository.getClub(clubId, forceRefresh = true).getOrThrowAppFunction()
-    val activeSession = club.activeSession
-        ?: throw AppFunctionElementNotFoundException("${club.name} isn't reading a book right now.")
+    val resolved = resolveClub(session, clubRepository, club, needsActiveSession = true)
+    val activeSession = checkNotNull(resolved.activeSession)
     val book = activeSession.book
     val pageCount = book.pageCount
 
@@ -80,7 +80,8 @@ internal suspend fun updateReadingProgress(
     ).getOrThrowAppFunction()
 
     return ReadingProgressResult(
-        clubId = clubId,
+        clubId = resolved.club.id,
+        clubName = resolved.club.name,
         bookTitle = book.title,
         percentRead = saved.percent,
         isFinished = saved.isCompleted,

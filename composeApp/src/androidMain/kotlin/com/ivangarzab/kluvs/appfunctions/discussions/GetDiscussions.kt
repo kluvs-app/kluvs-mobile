@@ -3,7 +3,11 @@ package com.ivangarzab.kluvs.appfunctions.discussions
 import androidx.annotation.RequiresApi
 import androidx.appfunctions.AppFunctionSerializable
 import com.ivangarzab.kluvs.appfunctions.AppFunctionSession
+import com.ivangarzab.kluvs.appfunctions.DiscussionContext
+import com.ivangarzab.kluvs.appfunctions.activeSessions
 import com.ivangarzab.kluvs.appfunctions.getOrThrowAppFunction
+import com.ivangarzab.kluvs.appfunctions.resolveClub
+import com.ivangarzab.kluvs.appfunctions.resolveDiscussion
 import com.ivangarzab.kluvs.clubs.domain.GetAttendanceRosterUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
@@ -36,9 +40,11 @@ data class DiscussionDetails(
 internal suspend fun listUpcomingDiscussions(
     session: AppFunctionSession,
     clubRepository: ClubRepository,
-    clubId: String?,
+    club: String?,
 ): List<DiscussionSummary> {
     val today = LocalDate.now()
+    val clubId = club?.takeIf { it.isNotBlank() }
+        ?.let { resolveClub(session, clubRepository, it, needsActiveSession = false).club.id }
     return activeSessions(session, clubRepository, clubId = clubId)
         .flatMap { (club, activeSession) -> activeSession.discussions.map { DiscussionContext(club, activeSession, it) } }
         .map { it.toSummary() }
@@ -52,9 +58,11 @@ internal suspend fun getDiscussionDetails(
     clubRepository: ClubRepository,
     getAttendanceRoster: GetAttendanceRosterUseCase,
     getDiscussionNote: GetDiscussionNoteUseCase,
-    discussionId: String,
+    discussion: String?,
+    club: String?,
 ): DiscussionDetails {
-    val context = findDiscussion(session, clubRepository, discussionId)
+    val context = resolveDiscussion(session, clubRepository, discussion, club)
+    val discussionId = context.discussion.id
     val roster = getAttendanceRoster(discussionId).getOrThrowAppFunction()
     val note = getDiscussionNote(discussionId).getOrThrowAppFunction()
     return DiscussionDetails(

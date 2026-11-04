@@ -2,7 +2,9 @@
 <AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
     appfn:instructions="Kluvs is a book club app. A club reads one book at a time in its active session, and members meet at scheduled discussions for that session. Each member can RSVP to discussions, keep a private note per discussion, and log their reading progress on the club's current book.
     Operational patterns:
-    - Club IDs come from listMyClubs. Discussion IDs come from listUpcomingDiscussions.
+    - Clubs can be given by name (as the user says it) or ID, and discussions by title or ID. When omitted, functions use the user's only club with a current book, or the user's next upcoming discussion.
+    - If the choice is ambiguous, the function fails with the matching options; ask the user which one they mean and call again with it.
+    - Results name the club and discussion that were used; mention them to the user.
     - Use getDiscussionDetails to read a discussion's RSVPs and the user's existing note before changing either.
     - saveDiscussionNote replaces the whole note, so to add to an existing note, include its current text.
     Constraints:
