@@ -1,17 +1,19 @@
 package com.ivangarzab.kluvs.appfunctions
 
-import androidx.appfunctions.AppFunctionDeniedException
-import androidx.appfunctions.AppFunctionElementNotFoundException
+import androidx.appfunctions.AppFunctionAppUnknownException
 import androidx.appfunctions.AppFunctionPermissionRequiredException
+import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Member
-import com.ivangarzab.kluvs.model.Role
 
 /**
- * Resolves who an AppFunction is acting for. AppFunctions can run in a cold process where
- * no screen (and so no AppCoordinator) has restored the auth session yet, so this restores
- * it on demand instead of trusting [AuthRepository.currentUser] alone.
+ * Resolves who an AppFunction is acting for.
+ *
+ * AppFunctions usually run while Kluvs is in the background, where Supabase pauses its session
+ * (requests would go out unauthenticated) even though [AuthRepository.currentUser] still holds
+ * the user. [AuthRepository.initialize] reloads that paused session and never signs anyone out,
+ * so it runs before every request rather than trusting the in-memory user.
  */
 internal class AppFunctionSession(
     private val authRepository: AuthRepository,
@@ -20,24 +22,16 @@ internal class AppFunctionSession(
 
     /** The signed-in user's auth ID; throws if nobody is signed in. */
     suspend fun requireUserId(): String {
-        authRepository.currentUser.value?.let { return it.id }
-        return authRepository.initialize().getOrNull()?.id
-            ?: throw AppFunctionPermissionRequiredException("Sign in to Kluvs to use this feature.")
+        val user = authRepository.initialize().getOrElse { error ->
+            throw if (error == AuthError.NoConnection) {
+                AppFunctionAppUnknownException("Couldn't reach Kluvs. Check your internet connection.")
+            } else {
+                AppFunctionAppUnknownException("Couldn't confirm your Kluvs sign-in. Try again.")
+            }
+        }
+        return user?.id ?: throw AppFunctionPermissionRequiredException("Sign in to Kluvs to use this feature.")
     }
 
     suspend fun requireMember(forceRefresh: Boolean = false): Member =
         memberRepository.getMemberByUserId(requireUserId(), forceRefresh).getOrThrowAppFunction()
-
-    suspend fun requireMemberId(): String = requireMember().id
-
-    /**
-     * The signed-in member's role in [clubId]. Force-refreshes like GetMemberClubsUseCase does,
-     * since a stale cached role would wrongly allow or block role-gated actions.
-     */
-    suspend fun requireClubRole(clubId: String): Role {
-        val club = requireMember(forceRefresh = true).clubs?.find { it.id == clubId }
-            ?: throw AppFunctionElementNotFoundException("You aren't a member of a club with ID $clubId.")
-        return club.role
-            ?: throw AppFunctionDeniedException("Couldn't confirm your role in this club.")
-    }
 }
