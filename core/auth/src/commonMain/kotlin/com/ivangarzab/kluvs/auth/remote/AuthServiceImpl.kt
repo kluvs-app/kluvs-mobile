@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Implementation of [AuthService] using Supabase GoTrue.
@@ -249,6 +251,7 @@ class AuthServiceImpl internal constructor(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun restoreSession(): UserSession? = restoreMutex.withLock {
         Bark.v("Session restore started")
 
@@ -266,8 +269,16 @@ class AuthServiceImpl internal constructor(
                 Bark.v("No saved session to restore")
                 return@withLock null
             }
+            status = auth.sessionStatus.value.takeUnless { it is SessionStatus.Initializing }
         }
-        if (status == null) status = awaitSettledStatus(RESTORE_TIMEOUT_MS)
+        if (status == null) {
+            // Supabase is still refreshing. It only reports a failed refresh once the token has
+            // expired, so offline with a still-valid token it would stay Initializing for the whole
+            // timeout. That token still works, so wait only briefly before using it.
+            val saved = auth.sessionManager.loadSession()
+            val tokenStillValid = saved != null && saved.expiresAt > Clock.System.now()
+            status = awaitSettledStatus(if (tokenStillValid) PENDING_REFRESH_WAIT_MS else RESTORE_TIMEOUT_MS)
+        }
 
         when (status) {
             is SessionStatus.Authenticated -> status.session.also { Bark.d("Session restored") }
@@ -300,6 +311,7 @@ class AuthServiceImpl internal constructor(
     companion object {
         const val REDIRECT_URL = "kluvs://auth/callback"
         private const val STARTUP_RESTORE_GRACE_MS = 1_000L
+        private const val PENDING_REFRESH_WAIT_MS = 2_000L
         private const val RESTORE_TIMEOUT_MS = 10_000L
     }
 }

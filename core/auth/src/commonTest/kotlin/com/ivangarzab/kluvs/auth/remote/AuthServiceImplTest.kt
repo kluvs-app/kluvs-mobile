@@ -22,6 +22,8 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
 /**
@@ -125,7 +127,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    fun `restoreSession falls back to the saved session when the refresh never settles`() = runTest {
+    fun `restoreSession waits only briefly for a pending refresh when the saved token is still valid`() = runTest {
         // Given
         every { auth.isAutoRefreshRunning } returns true
 
@@ -134,7 +136,39 @@ class AuthServiceImplTest {
 
         // Then
         assertEquals(savedSession, result)
+        assertEquals(3_000L, testScheduler.currentTime)
         verifySuspend(VerifyMode.not) { auth.loadFromStorage(any()) }
+    }
+
+    @Test
+    fun `restoreSession waits the full timeout for a pending refresh when the saved token expired`() = runTest {
+        // Given
+        val expiredSession = savedSession.copy(expiresAt = Clock.System.now() - 1.minutes)
+        every { auth.isAutoRefreshRunning } returns true
+        everySuspend { sessionManager.loadSession() } returns expiredSession
+
+        // When
+        val result = service.restoreSession()
+
+        // Then
+        assertEquals(expiredSession, result)
+        assertEquals(11_000L, testScheduler.currentTime)
+    }
+
+    @Test
+    fun `restoreSession uses a reloaded session that is authenticated straight away`() = runTest {
+        // Given
+        every { auth.isAutoRefreshRunning } returns false
+        everySuspend { auth.loadFromStorage(any()) } calls {
+            sessionStatus.value = SessionStatus.Authenticated(savedSession)
+            true
+        }
+
+        // When
+        service.restoreSession()
+
+        // Then
+        assertEquals(1_000L, testScheduler.currentTime)
     }
 
     @Test
