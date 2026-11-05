@@ -27,9 +27,9 @@ import kotlinx.serialization.encoding.*
  *
  * @param id Internal member ID
  * @param name 
+ * @param handle Globally-unique, format-normalized handle. Auto-generated from `name` if not supplied on create.
  * @param platformMetadata 
  * @param booksRead 
- * @param handle Discord handle or username
  * @param avatarPath 
  * @param userId Linked Supabase Auth User ID
  * @param discordId Discord user snowflake ID. Stored as TEXT to preserve JSON precision.
@@ -46,12 +46,12 @@ data class MemberGetResponseDto (
 
     @SerialName(value = "name") @Required val name: kotlin.String,
 
+    /* Globally-unique, format-normalized handle. Auto-generated from `name` if not supplied on create. */
+    @SerialName(value = "handle") @Required val handle: kotlin.String,
+
     @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlinx.serialization.json.JsonObject,
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
-
-    /* Discord handle or username */
-    @SerialName(value = "handle") val handle: kotlin.String? = null,
 
     @SerialName(value = "avatar_path") val avatarPath: kotlin.String? = null,
 

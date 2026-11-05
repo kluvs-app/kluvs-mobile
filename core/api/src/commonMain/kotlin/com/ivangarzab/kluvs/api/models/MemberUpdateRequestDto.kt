@@ -27,7 +27,7 @@ import kotlinx.serialization.encoding.*
  * @param id The ID of the member to update (or the target member for add_to_club).
  * @param name 
  * @param booksRead 
- * @param handle 
+ * @param handle Must be lowercase letters, numbers, and hyphens only (2-30 chars). Must not already be taken by another member.
  * @param avatarPath Storage path of the member's avatar. Must start with `{id}/` (e.g. `42/avatar.png`). Pass null to clear the avatar. 
  * @param discordId Discord user snowflake ID. Pass null to clear it.
  * @param platformMetadata 
@@ -46,6 +46,7 @@ data class MemberUpdateRequestDto (
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = null,
 
+    /* Must be lowercase letters, numbers, and hyphens only (2-30 chars). Must not already be taken by another member. */
     @SerialName(value = "handle") val handle: kotlin.String? = null,
 
     /* Storage path of the member's avatar. Must start with `{id}/` (e.g. `42/avatar.png`). Pass null to clear the avatar.  */

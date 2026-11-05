@@ -26,7 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param name 
  * @param clubs Array of Club IDs this member belongs to. Optional, but if present must contain at least one club ID (an empty array is rejected). 
  * @param booksRead 
- * @param handle Optional Discord handle or username.
+ * @param handle Optional handle. If omitted, one is generated from `name`. Must be lowercase letters, numbers, and hyphens only (2-30 chars).
  * @param avatarPath Path to the avatar image in storage.
  * @param discordId Discord user snowflake ID. Stored as text to preserve precision.
  * @param platformMetadata 
@@ -43,7 +43,7 @@ data class MemberCreateRequestDto (
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
 
-    /* Optional Discord handle or username. */
+    /* Optional handle. If omitted, one is generated from `name`. Must be lowercase letters, numbers, and hyphens only (2-30 chars). */
     @SerialName(value = "handle") val handle: kotlin.String? = null,
 
     /* Path to the avatar image in storage. */
