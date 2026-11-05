@@ -1,11 +1,9 @@
-# 📚 Kluvs 🎬🍽️
-
 [![Full Tests](https://github.com/kluvs-app/kluvs-mobile/actions/workflows/full-tests.yml/badge.svg)](https://github.com/kluvs-app/kluvs-mobile/actions/workflows/full-tests.yml)
 [![codecov](https://codecov.io/gh/kluvs-app/kluvs-mobile/branch/main/graph/badge.svg)](https://codecov.io/gh/kluvs-app/kluvs-mobile)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 
 <p align="center">
-  <img src="assets/ic_kluvs.png" alt="Kluvs Logo" width="200"/>
+  <img src="assets/og-image.png" alt="Kluvs Logo" width="1200"/>
 </p>
 
 ## ℹ️ About
