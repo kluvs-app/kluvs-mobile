@@ -58,10 +58,11 @@ See `docs/MODULE_GRAPH.md` for the full dependency graph.
 
 ### Prerequisites
 
-- **Android Studio** (latest stable)
-- **Xcode** 15+ (for iOS development)
+- **Android Studio** (latest stable) with the Kotlin Multiplatform plugin
+- **Xcode** 15+ (for iOS development), signed into your Apple Developer account
 - **JDK** 17+
-- **Kotlin** 2.2.0+
+- **Ruby** 3.3 + Bundler (only for `fastlane`, i.e. Play Console uploads)
+- **Supabase CLI** (`brew install supabase/tap/supabase`) — only for integration tests against a local backend (see [Testing](#-testing))
 
 ### Setup
 
@@ -71,25 +72,48 @@ See `docs/MODULE_GRAPH.md` for the full dependency graph.
    cd kluvs-mobile
    ```
 
-2. **Configure Supabase credentials**
+2. **Configure Gradle properties**
 
-   Create a `gradle.properties` file in your home directory (`~/.gradle/gradle.properties`) or in the project root:
-   ```properties
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_KEY=your_supabase_anon_key
-   TEST_SUPABASE_URL=your_test_supabase_url
-   TEST_SUPABASE_KEY=your_test_supabase_anon_key
-   ```
+   Add these to `~/.gradle/gradle.properties` (never commit them). Every property can alternatively be supplied as an environment variable of the same name, which is how CI does it.
 
-3. **Run the Android app**
+   | Property | Needed for |
+   |---|---|
+   | `SUPABASE_URL`, `SUPABASE_KEY` | Production flavor (`-Pbuildkonfig.flavor=production`) |
+   | `SUPABASE_INTEGRATION_URL`, `SUPABASE_INTEGRATION_KEY` | Integration/staging flavor — the **default** when no flavor is set |
+   | `TEST_SUPABASE_URL`, `TEST_SUPABASE_KEY` | Integration tests (local Supabase is `http://127.0.0.1:54321`) |
+   | `SENTRY_DNS` | Crash reporting; the `shared` module fails the build if it's empty |
+
+   The Supabase values come from each project's dashboard (Project Settings → API). Use the anon/publishable key, never the service-role key.
+
+3. **Android SDK location**
+
+   Android Studio writes `local.properties` (with `sdk.dir`) on first sync. It's gitignored.
+
+4. **Run the Android app**
    ```bash
-   ./gradlew :composeApp:assembleDebug
+   ./gradlew :composeApp:installDebug
    ```
 
-4. **Run the iOS app**
-   - Open `iosApp/iosApp.xcodeproj` in Xcode
-   - Select your target device/simulator
+5. **Run the iOS app**
+   - Open `iosApp/Kluvs.xcodeproj` in Xcode and set your signing team
+   - Select the `iosApp` or `Kluvs Staging` scheme and a device/simulator
    - Press Run (⌘R)
+
+   Both schemes are shared in the repo, so Android Studio generates its iOS run configurations from them automatically.
+
+### Shared run configurations
+
+Gradle run configurations (tests, Kover reports, Firebase distribution) are committed under `.run/` and appear in Android Studio automatically. `.idea/` is gitignored, so use "Store as project file" for any new shared configuration. That writes it to `.run/`.
+
+### Release & distribution setup (maintainers only)
+
+None of this is needed to build and run the app locally.
+
+- **Release signing (Android):** either a gitignored `keystore.properties` in the project root with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`, or the env vars `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. The `.jks` keystore itself is gitignored; get it from your secure backup.
+- **Firebase App Distribution:** a service-account JSON at `~/.config/firebase/kluvs-app-distribution.json`, or point `FIREBASE_CREDENTIALS_FILE` at it. Used by the `appDistributionUpload*` tasks (the `Distribute` run configurations). `composeApp/google-services.json` is checked in.
+- **Play Console upload:** `bundle install`, then `bundle exec fastlane deploy_internal aab_path:<path>`. This needs a Play Store JSON key (CI secret `PLAY_STORE_JSON_KEY`).
+- **Sentry:** `sentry.properties` is gitignored; recreate it from your Sentry project settings.
+- **CI secrets (GitHub Actions):** `SUPABASE_*`, `SUPABASE_INTEGRATION_*`, `TEST_SUPABASE_*`, `SENTRY_DNS`, `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `FIREBASE_APP_DISTRIBUTION_CREDENTIALS_JSON`, `PLAY_STORE_JSON_KEY`, `CODECOV_TOKEN`, `BACKEND_READ_TOKEN`, `API_SPEC_FETCH_PAT`.
 
 ## 🧪 Testing
 
