@@ -80,6 +80,7 @@ See `docs/MODULE_GRAPH.md` for the full dependency graph.
    | `SUPABASE_INTEGRATION_URL`, `SUPABASE_INTEGRATION_KEY` | Integration/staging flavor — the **default** when no flavor is set |
    | `TEST_SUPABASE_URL`, `TEST_SUPABASE_KEY` | Integration tests (local Supabase is `http://127.0.0.1:54321`) |
    | `SENTRY_DNS` | Crash reporting; the `shared` module fails the build if it's empty |
+   | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | iOS dSYM upload. These are **environment variables** (not Gradle properties) read by the Xcode build phase. Optional for building: a failed upload only logs a warning |
 
    The Supabase values come from each project's dashboard (Project Settings → API). Use the anon/publishable key, never the service-role key.
 
@@ -110,7 +111,7 @@ None of this is needed to build and run the app locally.
 - **Release signing (Android):** either a gitignored `keystore.properties` in the project root with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`, or the env vars `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. The `.jks` keystore itself is gitignored; get it from your secure backup.
 - **Firebase App Distribution:** a service-account JSON at `~/.config/firebase/kluvs-app-distribution.json`, or point `FIREBASE_CREDENTIALS_FILE` at it. Used by the `appDistributionUpload*` tasks (the `Distribute` run configurations). `composeApp/google-services.json` is checked in.
 - **Play Console upload:** `bundle install`, then `bundle exec fastlane deploy_internal aab_path:<path>`. This needs a Play Store JSON key (CI secret `PLAY_STORE_JSON_KEY`).
-- **Sentry:** `sentry.properties` is gitignored; recreate it from your Sentry project settings.
+- **Sentry (dSYM upload):** an Xcode build phase runs `sentry-cli` (installed via Homebrew if missing). If `sentry.properties` doesn't exist at the project root, the phase creates it from `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`; if it already exists, it's used as-is. The file is gitignored. Create the auth token in Sentry (Settings → Auth Tokens) with permission to upload debug files.
 - **CI secrets (GitHub Actions):** `SUPABASE_*`, `SUPABASE_INTEGRATION_*`, `TEST_SUPABASE_*`, `SENTRY_DNS`, `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `FIREBASE_APP_DISTRIBUTION_CREDENTIALS_JSON`, `PLAY_STORE_JSON_KEY`, `CODECOV_TOKEN`, `BACKEND_READ_TOKEN`, `API_SPEC_FETCH_PAT`.
 
 ## 🧪 Testing
