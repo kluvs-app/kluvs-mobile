@@ -17,6 +17,7 @@ class MemberMappersTest {
         val dto = MemberDto(
             id = 1,
             name = "Jane Doe",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 10,
             userId = "user-123"
@@ -61,6 +62,7 @@ class MemberMappersTest {
         val dto = MemberGetResponseDto(
             id = 2,
             name = "John Smith",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 15,
             userId = "user-456",
@@ -92,6 +94,7 @@ class MemberMappersTest {
         val dto = MemberGetResponseDto(
             id = 3,
             name = "New Member",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 0,
             clubs = emptyList(),
@@ -115,6 +118,7 @@ class MemberMappersTest {
         val dto = MemberDto(
             id = 4,
             name = "Anonymous",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 0,
             userId = null
@@ -198,6 +202,7 @@ class MemberMappersTest {
         val dto = MemberDto(
             id = 1,
             name = "Test Member",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 0,
             createdAt = "2024-01-15T10:30:00+00:00"
@@ -221,6 +226,7 @@ class MemberMappersTest {
         val dto = MemberDto(
             id = 1,
             name = "Test Member",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 0,
             createdAt = null
@@ -287,24 +293,6 @@ class MemberMappersTest {
 
         // Then: every leading "@" is stripped, not just one
         assertEquals("testuser", domain.handle)
-    }
-
-    @Test
-    fun `MemberDto with null handle maps correctly`() {
-        // Given: A MemberDto without handle
-        val dto = MemberDto(
-            id = 1,
-            name = "Test Member",
-            platformMetadata = JsonObject(emptyMap()),
-            handle = null,
-            booksRead = 0
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: handle is null
-        assertNull(domain.handle)
     }
 
     @Test
