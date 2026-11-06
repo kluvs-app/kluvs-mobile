@@ -1,11 +1,9 @@
-# 📚 Kluvs 🎬🍽️
-
 [![Full Tests](https://github.com/kluvs-app/kluvs-mobile/actions/workflows/full-tests.yml/badge.svg)](https://github.com/kluvs-app/kluvs-mobile/actions/workflows/full-tests.yml)
 [![codecov](https://codecov.io/gh/kluvs-app/kluvs-mobile/branch/main/graph/badge.svg)](https://codecov.io/gh/kluvs-app/kluvs-mobile)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 
 <p align="center">
-  <img src="assets/ic_kluvs.png" alt="Kluvs Logo" width="200"/>
+  <img src="assets/og-image.png" alt="Kluvs Logo" width="1200"/>
 </p>
 
 ## ℹ️ About
@@ -58,10 +56,11 @@ See `docs/MODULE_GRAPH.md` for the full dependency graph.
 
 ### Prerequisites
 
-- **Android Studio** (latest stable)
-- **Xcode** 15+ (for iOS development)
+- **Android Studio** (latest stable) with the Kotlin Multiplatform plugin
+- **Xcode** 15+ (for iOS development), signed into your Apple Developer account
 - **JDK** 17+
-- **Kotlin** 2.2.0+
+- **Ruby** 3.3 + Bundler (only for `fastlane`, i.e. Play Console uploads)
+- **Supabase CLI** (`brew install supabase/tap/supabase`) — only for integration tests against a local backend (see [Testing](#-testing))
 
 ### Setup
 
@@ -71,25 +70,49 @@ See `docs/MODULE_GRAPH.md` for the full dependency graph.
    cd kluvs-mobile
    ```
 
-2. **Configure Supabase credentials**
+2. **Configure Gradle properties**
 
-   Create a `gradle.properties` file in your home directory (`~/.gradle/gradle.properties`) or in the project root:
-   ```properties
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_KEY=your_supabase_anon_key
-   TEST_SUPABASE_URL=your_test_supabase_url
-   TEST_SUPABASE_KEY=your_test_supabase_anon_key
-   ```
+   Add these to `~/.gradle/gradle.properties` (never commit them). Every property can alternatively be supplied as an environment variable of the same name, which is how CI does it.
 
-3. **Run the Android app**
+   | Property | Needed for |
+   |---|---|
+   | `SUPABASE_URL`, `SUPABASE_KEY` | Production flavor (`-Pbuildkonfig.flavor=production`) |
+   | `SUPABASE_INTEGRATION_URL`, `SUPABASE_INTEGRATION_KEY` | Integration/staging flavor — the **default** when no flavor is set |
+   | `TEST_SUPABASE_URL`, `TEST_SUPABASE_KEY` | Integration tests (local Supabase is `http://127.0.0.1:54321`) |
+   | `SENTRY_DNS` | Crash reporting; the `shared` module fails the build if it's empty |
+   | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | iOS dSYM upload. These are **environment variables** (not Gradle properties) read by the Xcode build phase. Optional for building: a failed upload only logs a warning |
+
+   The Supabase values come from each project's dashboard (Project Settings → API). Use the anon/publishable key, never the service-role key.
+
+3. **Android SDK location**
+
+   Android Studio writes `local.properties` (with `sdk.dir`) on first sync. It's gitignored.
+
+4. **Run the Android app**
    ```bash
-   ./gradlew :composeApp:assembleDebug
+   ./gradlew :composeApp:installDebug
    ```
 
-4. **Run the iOS app**
-   - Open `iosApp/iosApp.xcodeproj` in Xcode
-   - Select your target device/simulator
+5. **Run the iOS app**
+   - Open `iosApp/Kluvs.xcodeproj` in Xcode and set your signing team
+   - Select the `iosApp` or `Kluvs Staging` scheme and a device/simulator
    - Press Run (⌘R)
+
+   Both schemes are shared in the repo, so Android Studio generates its iOS run configurations from them automatically.
+
+### Shared run configurations
+
+Gradle run configurations (tests, Kover reports, Firebase distribution) are committed under `.run/` and appear in Android Studio automatically. `.idea/` is gitignored, so use "Store as project file" for any new shared configuration. That writes it to `.run/`.
+
+### Release & distribution setup (maintainers only)
+
+None of this is needed to build and run the app locally.
+
+- **Release signing (Android):** either a gitignored `keystore.properties` in the project root with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`, or the env vars `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. Neither `keystore.properties` nor the `.jks` keystore (`kluvs-keystore.jks`) is in git, and both are secrets, so they won't come with a fresh clone: copy them over manually from your old machine or secure backup. Losing the `.jks` means you can no longer sign updates for the same app identity, so keep a backup.
+- **Firebase App Distribution:** a service-account JSON at `~/.config/firebase/kluvs-app-distribution.json`, or point `FIREBASE_CREDENTIALS_FILE` at it. Used by the `appDistributionUpload*` tasks (the `Distribute` run configurations). `composeApp/google-services.json` is checked in.
+- **Play Console upload:** `bundle install`, then `bundle exec fastlane deploy_internal aab_path:<path>`. This needs a Play Store JSON key (CI secret `PLAY_STORE_JSON_KEY`).
+- **Sentry (dSYM upload):** an Xcode build phase runs `sentry-cli` (installed via Homebrew if missing). If `sentry.properties` doesn't exist at the project root, the phase creates it from `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`; if it already exists, it's used as-is. The file is gitignored and holds a secret (the auth token), so it won't come with a fresh clone: on a new machine, either export those variables before the first iOS build or copy the file over manually from your old machine. Create the auth token in Sentry (Settings → Auth Tokens) with permission to upload debug files.
+- **CI secrets (GitHub Actions):** `SUPABASE_*`, `SUPABASE_INTEGRATION_*`, `TEST_SUPABASE_*`, `SENTRY_DNS`, `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `FIREBASE_APP_DISTRIBUTION_CREDENTIALS_JSON`, `PLAY_STORE_JSON_KEY`, `CODECOV_TOKEN`, `BACKEND_READ_TOKEN`, `API_SPEC_FETCH_PAT`.
 
 ## 🧪 Testing
 
