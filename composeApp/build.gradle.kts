@@ -88,8 +88,8 @@ android {
         applicationId = "com.ivangarzab.kluvs"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 7
-        versionName = "0.0.7"
+        versionCode = 8
+        versionName = "0.0.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Host this build claims for invite App Links (see AndroidManifest.xml). Keyed off the
