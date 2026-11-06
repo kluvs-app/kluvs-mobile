@@ -25,6 +25,7 @@ class CreateClubUseCase(
                 name = params.clubName,
                 creatorMemberId = member.id,
                 creatorMemberName = member.name,
+                creatorMemberHandle = member.handle,
                 creatorBooksRead = member.booksRead
             ).getOrThrow()
         }.map { club ->

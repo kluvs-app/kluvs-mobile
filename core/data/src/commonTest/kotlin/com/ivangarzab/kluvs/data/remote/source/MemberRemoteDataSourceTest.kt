@@ -38,6 +38,7 @@ class MemberRemoteDataSourceTest {
         val dto = MemberGetResponseDto(
             id = 1,
             name = "Alice",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 12,
             userId = "user-123",
@@ -91,6 +92,7 @@ class MemberRemoteDataSourceTest {
         val dto = MemberGetResponseDto(
             id = 2,
             name = "Bob",
+            handle = "member-handle",
             platformMetadata = JsonObject(emptyMap()),
             booksRead = 5,
             userId = "user-456",
@@ -125,6 +127,7 @@ class MemberRemoteDataSourceTest {
             member = MemberDto(
                 id = 3,
                 name = "Charlie",
+                handle = "member-handle",
                 platformMetadata = JsonObject(emptyMap()),
                 booksRead = 0
             )
@@ -173,6 +176,7 @@ class MemberRemoteDataSourceTest {
             member = MemberDto(
                 id = 1,
                 name = "Alice Updated",
+                handle = "member-handle",
                 platformMetadata = JsonObject(emptyMap()),
                 booksRead = 12,
                 userId = "user-123"
