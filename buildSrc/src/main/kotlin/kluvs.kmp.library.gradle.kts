@@ -1,12 +1,17 @@
+import com.android.build.api.dsl.LibraryExtension
 import config.AndroidConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
-    id("com.android.library")
     id("org.jetbrains.kotlinx.kover")
 }
+
+// Applied here instead of in plugins {}: Gradle generates this script's accessors by applying
+// its plugins {} to a synthetic project that can't see gradle.properties, so AGP 9 there misses
+// android.builtInKotlin/newDsl=false and rejects KMP. Real modules do read them. Remove with KT-297.
+apply(plugin = "com.android.library")
 
 // Common configuration for all :core and :feature KMP modules
 kotlin {
@@ -25,7 +30,7 @@ kotlin {
     }
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.ivangarzab.kluvs.${project.name.replace("-", ".")}"
     compileSdk = AndroidConfig.COMPILE_SDK
     defaultConfig {

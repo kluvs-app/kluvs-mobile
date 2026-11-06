@@ -223,7 +223,7 @@ class MemberServiceIntegrationTest {
             // When: updating the member's handle
             val updateRequest = MemberUpdateRequestDto(
                 id = memberId,
-                handle = "handle_test_user"
+                handle = "handle-test-user"
             )
             val response = memberService.update(updateRequest)
 
@@ -232,7 +232,7 @@ class MemberServiceIntegrationTest {
 
             // Verify handle persisted on re-fetch
             val retrieved = memberService.get(memberId.toString())
-            assertEquals("handle_test_user", retrieved.handle, "Handle should be persisted")
+            assertEquals("handle-test-user", retrieved.handle, "Handle should be persisted")
         } finally {
             // Cleanup
             try {

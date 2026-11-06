@@ -28,6 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param discordChannel 
  * @param serverId 
  * @param role Member's role in this club
+ * @param joinedAt When the member joined this club (server-set, read-only)
  */
 @Serializable
 
@@ -42,7 +43,10 @@ data class ClubSummaryDto (
     @SerialName(value = "server_id") val serverId: kotlin.String? = null,
 
     /* Member's role in this club */
-    @SerialName(value = "role") val role: ClubSummaryDto.Role? = null
+    @SerialName(value = "role") val role: ClubSummaryDto.Role? = null,
+
+    /* When the member joined this club (server-set, read-only) */
+    @SerialName(value = "joined_at") val joinedAt: kotlin.String? = null
 
 ) {
 

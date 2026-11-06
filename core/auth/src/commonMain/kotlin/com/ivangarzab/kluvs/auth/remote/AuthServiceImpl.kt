@@ -17,17 +17,29 @@ import io.github.jan.supabase.auth.user.UserSession
 import io.ktor.http.Url
 import io.ktor.http.parseQueryString
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Implementation of [AuthService] using Supabase GoTrue.
  */
-class AuthServiceImpl(
-    private val supabaseClient: SupabaseClient
+class AuthServiceImpl internal constructor(
+    private val authProvider: () -> Auth
 ) : AuthService {
 
+    constructor(supabaseClient: SupabaseClient) : this({ supabaseClient.auth })
+
     private val auth: Auth
-        get() = supabaseClient.auth
+        get() = authProvider()
+
+    // Concurrent restores (e.g. AppCoordinator and AuthViewModel at startup) must not both
+    // reload a paused session, which would refresh twice with the same refresh token.
+    // The lock is held for the whole restore (up to ~11s on a slow network), so later callers
+    // wait behind it: don't call restoreSession() from anywhere that blocks the UI.
+    private val restoreMutex = Mutex()
 
     override suspend fun signUpWithEmail(email: String, password: String): UserSession {
         Bark.v("Email sign up initiated")
@@ -241,41 +253,51 @@ class AuthServiceImpl(
         }
     }
 
-    override suspend fun getCurrentSession(): UserSession? {
-        return auth.currentSessionOrNull()
-    }
+    @OptIn(ExperimentalTime::class)
+    override suspend fun restoreSession(): UserSession? = restoreMutex.withLock {
+        Bark.v("Session restore started")
 
-    override suspend fun refreshSession(): UserSession {
-        Bark.v("Session refresh initiated")
+        // Normally Supabase is mid-restore here, loading its saved session at startup.
+        var status = awaitSettledStatus(STARTUP_RESTORE_GRACE_MS)
+        if (status == null && !auth.isAutoRefreshRunning) {
+            // On Android, Supabase pauses the session whenever the app is backgrounded (status
+            // back to Initializing, auto-refresh stopped) and only reloads it on the next
+            // foreground start — so background callers must reload it themselves.
+            // The mutex can't stop this racing Supabase's own startup load if reading storage
+            // takes longer than the grace period. Then both may refresh with the same token, which
+            // the server's refresh-token reuse interval (10s by default) still accepts.
+            Bark.d("Session paused; reloading it from storage")
+            if (!auth.loadFromStorage()) {
+                Bark.v("No saved session to restore")
+                return@withLock null
+            }
+            status = auth.sessionStatus.value.takeUnless { it is SessionStatus.Initializing }
+        }
+        var saved: UserSession? = null
+        if (status == null) {
+            // Supabase is still refreshing. It only reports a failed refresh once the token has
+            // expired, so offline with a still-valid token it would stay Initializing for the whole
+            // timeout. That token still works, so wait only briefly before using it.
+            saved = auth.sessionManager.loadSession()
+            val tokenStillValid = saved != null && saved.expiresAt > Clock.System.now()
+            status = awaitSettledStatus(if (tokenStillValid) PENDING_REFRESH_WAIT_MS else RESTORE_TIMEOUT_MS)
+        }
 
-        return try {
-            auth.refreshCurrentSession()
-            val session = auth.currentSessionOrNull()
-                ?: throw IllegalStateException("Session refresh succeeded but no session exists")
-
-            Bark.d("Session refreshed")
-            session
-        } catch (e: Exception) {
-            Bark.e("Session refresh failed. User may need to re-authenticate.", e)
-            throw e
+        when (status) {
+            is SessionStatus.Authenticated -> status.session.also { Bark.d("Session restored") }
+            is SessionStatus.NotAuthenticated -> null.also { Bark.v("No session to restore") }
+            // Offline or slow network: keep the user signed in with the saved session while
+            // Supabase keeps retrying the refresh in the background.
+            is SessionStatus.RefreshFailure, SessionStatus.Initializing, null -> {
+                Bark.w("Session refresh still pending (status: $status); using the saved session")
+                // No refresh has landed if we're here, so a session loaded above is still current
+                saved ?: auth.sessionManager.loadSession()
+            }
         }
     }
 
-    override suspend fun setSession(accessToken: String, refreshToken: String) {
-        Bark.v("Restoring session from stored tokens")
-
-        try {
-            auth.importAuthToken(
-                accessToken = accessToken,
-                refreshToken = refreshToken,
-                retrieveUser = true
-            )
-            Bark.d("Session restored")
-        } catch (e: Exception) {
-            Bark.e("Session restoration failed. Stored credentials may be invalid.", e)
-            throw e
-        }
-    }
+    private suspend fun awaitSettledStatus(timeoutMs: Long): SessionStatus? =
+        withTimeoutOrNull(timeoutMs) { auth.sessionStatus.first { it !is SessionStatus.Initializing } }
 
     override suspend fun retrieveCurrentUser(): UserInfo {
         Bark.v("Retrieving current user from server")
@@ -292,5 +314,8 @@ class AuthServiceImpl(
 
     companion object {
         const val REDIRECT_URL = "kluvs://auth/callback"
+        private const val STARTUP_RESTORE_GRACE_MS = 1_000L
+        private const val PENDING_REFRESH_WAIT_MS = 2_000L
+        private const val RESTORE_TIMEOUT_MS = 10_000L
     }
 }

@@ -40,6 +40,7 @@ interface ClubRepository {
      * @param name The name of the club
      * @param creatorMemberId The creating member's ID — becomes the club's owner
      * @param creatorMemberName The creating member's display name
+     * @param creatorMemberHandle The creating member's handle (null if not yet known locally)
      * @param creatorBooksRead The creating member's current books-read count (denormalized on the members row)
      * @param serverId Optional server ID for Discord integration (defaults to null for mobile-only clubs)
      * @param discordChannel Optional Discord channel to associate with this club
@@ -49,6 +50,7 @@ interface ClubRepository {
         name: String,
         creatorMemberId: String,
         creatorMemberName: String,
+        creatorMemberHandle: String?,
         creatorBooksRead: Int = 0,
         serverId: String? = null,
         discordChannel: String? = null
@@ -149,6 +151,7 @@ internal class ClubRepositoryImpl(
         name: String,
         creatorMemberId: String,
         creatorMemberName: String,
+        creatorMemberHandle: String?,
         creatorBooksRead: Int,
         serverId: String?,
         discordChannel: String?
@@ -164,6 +167,9 @@ internal class ClubRepositoryImpl(
                     MemberDto(
                         id = creatorMemberIdInt,
                         name = creatorMemberName,
+                        // The spec requires MemberDto.handle, though club-create ignores it today.
+                        // Falls back to empty only if the cached member predates handles.
+                        handle = creatorMemberHandle.orEmpty(),
                         platformMetadata = JsonObject(emptyMap()),
                         booksRead = creatorBooksRead
                     )

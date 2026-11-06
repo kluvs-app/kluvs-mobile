@@ -26,6 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param id 
  * @param name 
  * @param role Member's role in this club
+ * @param joinedAt When the member joined this club (server-set, read-only)
  * @param booksRead 
  * @param handle 
  * @param avatarPath 
@@ -42,6 +43,9 @@ data class ClubMemberDto (
 
     /* Member's role in this club */
     @SerialName(value = "role") val role: ClubMemberDto.Role? = null,
+
+    /* When the member joined this club (server-set, read-only) */
+    @SerialName(value = "joined_at") val joinedAt: kotlin.String? = null,
 
     @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
 
