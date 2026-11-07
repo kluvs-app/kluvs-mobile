@@ -204,6 +204,7 @@ struct BookDetailView: View {
                         .italic()
                         .foregroundColor(KluvsTheme.colors.contentMuted)
                 }
+                SourceCredit("credits_book_data")
             }
 
             let detailRows = buildDetailRows(book: currentBook, volumeInfo: volumeInfo)
@@ -223,6 +224,9 @@ struct BookDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionEyebrow(String(localized: "book_about_the_author"))
                     AuthorSectionView(isLoading: viewModel.isLoadingEnrichment, author: viewModel.enrichment?.author)
+                    if !viewModel.isLoadingEnrichment {
+                        SourceCredit("credits_author_data")
+                    }
                 }
             }
 
@@ -268,6 +272,21 @@ private struct SectionEyebrow: View {
         Text(text.uppercased())
             .kluvsStyle(KluvsTheme.typography.eyebrow)
             .foregroundColor(KluvsTheme.colors.contentMuted)
+    }
+}
+
+/// Small attribution line under third-party content (Google Books / Wikipedia). Takes a
+/// localization key rather than a resolved string so the Markdown links in the value render
+/// as tappable — `String(localized:)` would flatten them to plain text.
+private struct SourceCredit: View {
+    let key: LocalizedStringKey
+    init(_ key: LocalizedStringKey) { self.key = key }
+
+    var body: some View {
+        Text(key)
+            .kluvsStyle(KluvsTheme.typography.finePrint)
+            .foregroundColor(KluvsTheme.colors.contentMuted)
+            .tint(KluvsTheme.colors.accent)
     }
 }
 

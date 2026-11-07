@@ -8,6 +8,7 @@ struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModelWrapper()
     @State private var showSaveSuccess = false
     @State private var showChangePasswordSuccess = false
+    @State private var showCredits = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -49,7 +50,7 @@ struct SettingsView: View {
 
                     LegalSection()
 
-                    AboutSection()
+                    AboutSection(onCreditsClick: { showCredits = true })
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -131,6 +132,13 @@ struct SettingsView: View {
                 set: { if !$0 { viewModel.onChangePasswordSheetDismissed() } }
             ),
             viewModel: viewModel
+        )
+        // Attached here (not on `AboutSection`) so the sheet's full-screen scrim covers the whole
+        // screen — an overlay on a small subview would be clipped to that subview's frame.
+        .kluvsBottomSheet(
+            isPresented: $showCredits,
+            header: String(localized: "credits_title"),
+            content: { CreditsSheetContent() }
         )
     }
 }
@@ -351,19 +359,49 @@ extension URL: @retroactive Identifiable {
 // MARK: - About Section
 
 struct AboutSection: View {
+    let onCreditsClick: () -> Void
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
 
     var body: some View {
-        HStack {
-            Spacer()
-            Text(String(format: NSLocalizedString("app_version", comment: ""), appVersion))
-                .kluvsStyle(KluvsTheme.typography.finePrint)
-                .italic()
+        VStack(alignment: .leading, spacing: 0) {
+            Text(String(localized: "about_title").uppercased())
+                .kluvsStyle(KluvsTheme.typography.eyebrow)
                 .foregroundColor(KluvsTheme.colors.contentMuted)
+                .padding(.bottom, 8)
+
+            LegalRow(label: String(localized: "credits_title"), action: onCreditsClick)
+            Divider().overlay(KluvsTheme.colors.divider)
+
+            HStack {
+                Spacer()
+                Text(String(format: NSLocalizedString("app_version", comment: ""), appVersion))
+                    .kluvsStyle(KluvsTheme.typography.finePrint)
+                    .italic()
+                    .foregroundColor(KluvsTheme.colors.contentMuted)
+            }
+            .padding(.top, 12)
         }
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - Credits Sheet
+
+/// Third-party attribution for book and author data. Uses `Text(LocalizedStringKey)` (not
+/// `String(localized:)`) so the Markdown links in the strings render as tappable — the source
+/// and license links are a licensing requirement, not decoration.
+private struct CreditsSheetContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("credits_book_data")
+            Text("credits_author_data")
+        }
+        .kluvsStyle(KluvsTheme.typography.body.medium)
+        .foregroundColor(KluvsTheme.colors.content)
+        .tint(KluvsTheme.colors.accent)
     }
 }
 
