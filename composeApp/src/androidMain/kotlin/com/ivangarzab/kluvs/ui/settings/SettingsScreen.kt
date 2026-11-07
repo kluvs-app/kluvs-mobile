@@ -23,8 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -150,6 +153,7 @@ fun SettingsScreenContent(
     onDeleteAccountConfirmed: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    var showCredits by rememberSaveable { mutableStateOf(false) }
 
     // Deletion is irreversible once sent — swallow back presses so the user can't leave
     // Settings mid-request and end up back in the app with a deleted account.
@@ -199,7 +203,11 @@ fun SettingsScreenContent(
 
             LegalSection(context = context)
 
-            AboutSection()
+            AboutSection(onCreditsClick = { showCredits = true })
+        }
+
+        if (showCredits) {
+            CreditsSheet(onDismiss = { showCredits = false })
         }
 
         if (state.isChangePasswordSheetOpen) {
