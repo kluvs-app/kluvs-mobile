@@ -42,7 +42,7 @@ private extension String {
 // pull out `.intValue` first for a plain digit string.
 private func metaLine(book: Shared.Book, volumeInfo: Shared.BookVolumeInfo?) -> String {
     var parts: [String] = [book.author]
-    if let year = book.year { parts.append("\(year.intValue)") }
+    if let year = book.year { parts.append(FormatBookYearKt.formatBookYear(year: year.int32Value)) }
     if let pages = book.pageCount { parts.append("\(pages.intValue) pages") }
     if let publisher = volumeInfo?.publisher { parts.append(publisher) }
     return parts.joined(separator: " · ")
@@ -57,7 +57,7 @@ private struct DetailRowData: Identifiable {
 private func buildDetailRows(book: Shared.Book, volumeInfo: Shared.BookVolumeInfo?) -> [DetailRowData] {
     var rows: [DetailRowData] = []
     if let year = book.year {
-        rows.append(DetailRowData(id: "published", label: String(localized: "book_field_published"), value: "\(year.intValue)"))
+        rows.append(DetailRowData(id: "published", label: String(localized: "book_field_published"), value: FormatBookYearKt.formatBookYear(year: year.int32Value)))
     }
     if let pages = book.pageCount {
         rows.append(DetailRowData(id: "pages", label: String(localized: "book_field_pages"), value: "\(pages.intValue)"))
