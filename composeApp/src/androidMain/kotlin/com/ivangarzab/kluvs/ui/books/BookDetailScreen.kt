@@ -54,6 +54,7 @@ import com.ivangarzab.kluvs.model.ShelfStatus
 import com.ivangarzab.kluvs.designsystem.components.appbars.TopAppBar
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.feature
+import com.ivangarzab.kluvs.ui.components.CreditText
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -216,6 +217,7 @@ fun BookDetailScreenContent(
                         KluvsTheme.colors.content
                     }
                 )
+                CreditText(R.string.credits_book_data)
             }
 
             val detailRows = buildDetailRows(book, volumeInfo)
@@ -238,6 +240,7 @@ fun BookDetailScreenContent(
                         modifier = Modifier.fillMaxWidth(),
                         author = state.enrichment?.author
                     )
+                    CreditText(R.string.credits_author_data)
                 }
             }
 
