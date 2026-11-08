@@ -25,6 +25,7 @@ import com.ivangarzab.kluvs.designsystem.components.bookcover.BookCoverPlacehold
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.presentation.util.formatBookYear
 
 /**
  * A single book tile: cover (with a read-ribbon badge for Kluvs-session books), title,
@@ -83,9 +84,9 @@ fun BookCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (book.year != null) {
+                book.year?.let { year ->
                     Text(
-                        text = book.year.toString(),
+                        text = formatBookYear(year),
                         style = KluvsTheme.typography.caption,
                         color = KluvsTheme.colors.contentMuted
                     )

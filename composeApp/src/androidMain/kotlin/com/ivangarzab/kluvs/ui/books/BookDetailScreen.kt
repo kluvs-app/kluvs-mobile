@@ -54,6 +54,8 @@ import com.ivangarzab.kluvs.model.ShelfStatus
 import com.ivangarzab.kluvs.designsystem.components.appbars.TopAppBar
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.feature
+import com.ivangarzab.kluvs.presentation.util.formatBookYear
+import com.ivangarzab.kluvs.ui.components.CreditText
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -216,6 +218,7 @@ fun BookDetailScreenContent(
                         KluvsTheme.colors.content
                     }
                 )
+                CreditText(R.string.credits_book_data)
             }
 
             val detailRows = buildDetailRows(book, volumeInfo)
@@ -238,6 +241,7 @@ fun BookDetailScreenContent(
                         modifier = Modifier.fillMaxWidth(),
                         author = state.enrichment?.author
                     )
+                    CreditText(R.string.credits_author_data)
                 }
             }
 
@@ -307,7 +311,7 @@ private fun DetailRow(label: String, value: String) {
 private fun metaLine(book: Book, volumeInfo: BookVolumeInfo?): String {
     return listOfNotNull(
         book.author,
-        book.year?.toString(),
+        book.year?.let(::formatBookYear),
         book.pageCount?.let { "$it pages" },
         volumeInfo?.publisher
     ).joinToString(" · ")
@@ -316,7 +320,7 @@ private fun metaLine(book: Book, volumeInfo: BookVolumeInfo?): String {
 private fun buildDetailRows(book: Book, volumeInfo: BookVolumeInfo?): List<Pair<Int, String>> {
     val isbn = volumeInfo?.isbn13 ?: volumeInfo?.isbn10 ?: book.isbn
     return listOfNotNull(
-        book.year?.let { R.string.book_field_published to it.toString() },
+        book.year?.let { R.string.book_field_published to formatBookYear(it) },
         book.pageCount?.let { R.string.book_field_pages to it.toString() },
         volumeInfo?.publisher?.let { R.string.book_field_publisher to it },
         isbn?.let { R.string.book_field_isbn to it },

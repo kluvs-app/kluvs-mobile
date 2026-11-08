@@ -106,7 +106,7 @@ private struct BookResultRow: View {
                     .foregroundColor(KluvsTheme.colors.contentMuted)
                     .lineLimit(1)
                 if let year = book.year {
-                    Text(String(year.intValue))
+                    Text(FormatBookYearKt.formatBookYear(year: year.int32Value))
                         .kluvsStyle(KluvsTheme.typography.caption)
                         .foregroundColor(KluvsTheme.colors.contentMuted)
                 }

@@ -120,6 +120,13 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="terms_of_use">Terms of Use</string>
     <string name="data_deletion">Data Deletion</string>
+    <string name="about_title">About</string>
+    <string name="credits_title">Credits</string>
+    <!-- Attribution strings are HTML (CDATA keeps the tags literal) — rendered via CreditText,
+         which turns the <a> tags into tappable links. Wikipedia text is CC BY-SA, which requires
+         attribution and a license link. -->
+    <string name="credits_book_data"><![CDATA[Book data from <a href="https://books.google.com">Google Books</a>.]]></string>
+    <string name="credits_author_data"><![CDATA[Author info from <a href="https://developers.google.com/knowledge-graph">Google Knowledge Graph</a> and <a href="https://www.wikipedia.org">Wikipedia</a>, available under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.]]></string>
 
     <!-- Account Section -->
     <string name="account_title">Account</string>

@@ -41,6 +41,7 @@ import com.ivangarzab.kluvs.designsystem.components.icons.Icon
 import com.ivangarzab.kluvs.designsystem.components.icons.IconType
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.presentation.util.formatBookYear
 import kotlinx.coroutines.delay
 
 private const val BOOK_SEARCH_DEBOUNCE_MS = 400L
@@ -180,9 +181,9 @@ private fun BookResultRow(book: Book, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (book.year != null) {
+            book.year?.let { year ->
                 Text(
-                    text = book.year.toString(),
+                    text = formatBookYear(year),
                     style = KluvsTheme.typography.caption,
                     color = KluvsTheme.colors.contentMuted,
                 )
