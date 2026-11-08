@@ -53,14 +53,12 @@ struct BookCard: View {
         .onTapGesture(perform: onTap)
     }
 
-    /// `book.year` bridges as boxed `KotlinInt` (an `NSNumber` subclass) — explicitly disabling
-    /// grouping via `NumberFormatter` here instead of trusting string interpolation to stay
-    /// ungrouped, no matter how the value got boxed upstream.
+    /// `book.year` bridges as boxed `KotlinInt` (an `NSNumber` subclass). Formatting is delegated
+    /// to the shared `formatBookYear` so BCE years ("380 BCE") and the plain, ungrouped digit
+    /// string for everything else come out identically to Android — no locale-aware
+    /// `NSNumber.description` involved ("2,025"), since the string is built in Kotlin.
     private func formattedYear(_ year: KotlinInt) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .none
-        formatter.usesGroupingSeparator = false
-        return formatter.string(from: year) ?? String(year.intValue)
+        FormatBookYearKt.formatBookYear(year: year.int32Value)
     }
 
     @ViewBuilder

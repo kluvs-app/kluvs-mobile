@@ -63,7 +63,7 @@ fun LegalSection(
 }
 
 @Composable
-private fun LegalRow(
+internal fun LegalRow(
     label: String,
     onClick: () -> Unit,
 ) {

@@ -8,6 +8,7 @@ import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.presentation.state.DateTimeFormat
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
+import com.ivangarzab.kluvs.presentation.util.formatBookYear
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock.System.now
@@ -52,7 +53,7 @@ class GetClubDetailsUseCase(
                     BookInfo(
                         title = it.title,
                         author = it.author,
-                        year = it.year?.toString(),
+                        year = it.year?.let(::formatBookYear),
                         pageCount = it.pageCount,
                     )
                 },

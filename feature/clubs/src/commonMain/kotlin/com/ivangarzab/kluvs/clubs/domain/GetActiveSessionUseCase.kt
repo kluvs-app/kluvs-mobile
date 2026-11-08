@@ -13,6 +13,7 @@ import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.presentation.state.DateTimeFormat
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
+import com.ivangarzab.kluvs.presentation.util.formatBookYear
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.LocalDateTime
@@ -63,7 +64,7 @@ class GetActiveSessionUseCase(
                     book = BookInfo(
                         title = session.book.title,
                         author = session.book.author,
-                        year = session.book.year?.toString(),
+                        year = session.book.year?.let(::formatBookYear),
                         pageCount = session.book.pageCount,
                         imageUrl = session.book.imageUrl
                     ),
