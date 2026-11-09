@@ -1,17 +1,12 @@
 import SwiftUI
 
-/// Always-masked password variant of `InputField` — a dedicated component, not a boolean flag on
+/// Password variant of `InputField` — a dedicated component, not a boolean flag on
 /// `InputField`, matching this codebase's established convention of separate named components
-/// for a categorically different input mode (see `InputField` vs `PickerField`). Permanently
-/// masked, no reveal toggle — matches neither Android's `PasswordField` nor any real reveal-
-/// toggle pattern anywhere in this app (checked: web's password fields are plain, no eye icon
-/// either).
+/// for a categorically different input mode (see `InputField` vs `PickerField`). Masked by
+/// default, with a trailing show/hide reveal toggle (design-system `docs/inputs.md`).
 ///
-/// Mirrors Android's `PasswordField`, added there to fix a real regression: an earlier migration
-/// off the app's old hand-rolled input component silently dropped password masking. Built fresh
-/// here rather than risk the same gap - iOS's own pre-existing `InputFieldView` already had a
-/// reveal-toggle option Android's real component doesn't, deliberately not carried over (see the
-/// permanent-masking note above).
+/// Reveal state is local to each instance (starts masked, not persisted, not hoisted), so every
+/// password field in a form toggles independently. Mirrors Android's `PasswordField`.
 public struct PasswordField: View {
     let label: String
     @Binding var value: String
@@ -20,6 +15,9 @@ public struct PasswordField: View {
     var enabled: Bool
     var submitLabel: SubmitLabel
     var onSubmit: () -> Void
+
+    @State private var revealed = false
+    @FocusState private var focused: Bool
 
     public init(
         label: String,
@@ -42,19 +40,54 @@ public struct PasswordField: View {
     private var borderColor: Color { error != nil ? KluvsTheme.colors.danger : KluvsTheme.colors.divider }
     private var labelColor: Color { error != nil ? KluvsTheme.colors.danger : KluvsTheme.colors.contentMuted }
 
+    @ViewBuilder
+    private var inputView: some View {
+        if revealed {
+            TextField("", text: $value)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        } else {
+            SecureField("", text: $value)
+        }
+    }
+
+    /// Swapping `SecureField` <-> `TextField` replaces the underlying view, which drops focus —
+    /// restore it so the keyboard doesn't disappear mid-edit.
+    private func toggleReveal() {
+        let wasFocused = focused
+        revealed.toggle()
+        if wasFocused {
+            DispatchQueue.main.async { focused = true }
+        }
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .kluvsStyle(KluvsTheme.typography.caption)
                 .foregroundColor(labelColor)
 
-            SecureField("", text: $value)
+            inputView
                 .kluvsStyle(KluvsTheme.typography.body.medium)
                 .foregroundColor(KluvsTheme.colors.content)
                 .tint(KluvsTheme.colors.accent)
+                .focused($focused)
                 .submitLabel(submitLabel)
                 .onSubmit(onSubmit)
                 .disabled(!enabled)
+                .padding(.trailing, 36)
+                // Overlay (not a sibling) so the 44pt tap target doesn't make this field taller
+                // than `InputField`; the negative inset lets the glyph sit near the border.
+                .overlay(alignment: .trailing) {
+                    IconButton(
+                        type: revealed ? .visibilityOff : .visibility,
+                        contentDescription: revealed ? "Hide password" : "Show password",
+                        action: toggleReveal,
+                        enabled: enabled,
+                        tint: KluvsTheme.colors.contentMuted
+                    )
+                    .padding(.trailing, -12)
+                }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(enabled ? KluvsTheme.colors.card : KluvsTheme.colors.background)
