@@ -16,7 +16,6 @@ import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
 import com.ivangarzab.kluvs.presentation.util.formatBookYear
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock.System.now
@@ -112,10 +111,9 @@ class GetActiveSessionUseCase(
  * (mirrors web's `ClubsPage` per-club detail fetch). A row's enrichment failing
  * is non-fatal — it just falls back to name + role only.
  *
- * The resulting list is sorted by each club's next upcoming discussion date
- * (soonest first), then alphabetically by name for clubs with nothing upcoming
- * — mirrors [GetOnYourShelfUseCase]'s shelf ordering, keeping the two screens
- * in the same order.
+ * The resulting list keeps the order of `member.clubs` as returned by the backend
+ * (soonest upcoming discussion first, then alphabetically by club name) — no
+ * client-side re-sorting.
  *
  * @param memberRepository Repository for member data
  * @param clubRepository Repository for per-club detail data
@@ -143,17 +141,9 @@ class GetMemberClubsUseCase(
         // TTL expires. Role correctness matters more than a cache hit here.
         return memberRepository.getMemberByUserId(userId, forceRefresh = true).map { member ->
             val clubs = member.clubs ?: emptyList()
-            val now = now().toLocalDateTime(TimeZone.currentSystemDefault())
-            val entries = coroutineScope {
-                clubs.map { club -> async { enrichClubListItem(club, forceRefresh, now) } }.map { it.await() }
+            val clubItems = coroutineScope {
+                clubs.map { club -> async { enrichClubListItem(club, forceRefresh) } }.map { it.await() }
             }
-            val clubItems = entries.sortedWith(
-                compareBy(
-                    { it.second == null },
-                    { it.second },
-                    { it.first.name.lowercase() }
-                )
-            ).map { it.first }
             Bark.i("Loaded member clubs (Count: ${clubItems.size})")
             clubItems
         }.onFailure { error ->
@@ -161,13 +151,12 @@ class GetMemberClubsUseCase(
         }
     }
 
-    /** Returns the enriched row paired with its raw next-discussion date, used for sorting above. */
-    private suspend fun enrichClubListItem(club: Club, forceRefresh: Boolean, now: LocalDateTime): Pair<ClubListItem, LocalDateTime?> {
+    private suspend fun enrichClubListItem(club: Club, forceRefresh: Boolean): ClubListItem {
         val fullClub = clubRepository.getClub(club.id, forceRefresh = forceRefresh).getOrElse {
             Bark.d("Failed to enrich club row (Club ID: ${club.id}); falling back to name + role only")
             null
         }
-        val item = ClubListItem(
+        return ClubListItem(
             id = club.id,
             name = club.name,
             role = club.role,
@@ -182,10 +171,5 @@ class GetMemberClubsUseCase(
             },
             memberCount = fullClub?.members?.size ?: 0
         )
-        val nextDiscussionDate = fullClub?.activeSession?.discussions
-            ?.filter { it.date > now }
-            ?.minByOrNull { it.date }
-            ?.date
-        return item to nextDiscussionDate
     }
 }

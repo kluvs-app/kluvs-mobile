@@ -16,7 +16,7 @@
 package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.ClubActiveSessionInputDto
-import com.ivangarzab.kluvs.api.models.MemberDto
+import com.ivangarzab.kluvs.api.models.ClubCreateRequestMembersInnerDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -29,7 +29,8 @@ import kotlinx.serialization.encoding.*
  * @param serverId Optional Discord Server ID.
  * @param discordChannel 
  * @param foundedDate 
- * @param members 
+ * @param ownerMemberId Bot (service role) callers only: ID of an existing member to link as the club owner. User callers always own the club they create; sending any other member ID returns 403. The member row is never modified.
+ * @param members Deprecated: use owner_member_id. Only the first entry's id is used (as owner); other entries and fields are ignored.
  * @param activeSession 
  * @param shameList List of Member IDs to immediately add to the shame list.
  */
@@ -46,7 +47,12 @@ data class ClubCreateRequestDto (
 
     @SerialName(value = "founded_date") val foundedDate: kotlin.String? = null,
 
-    @SerialName(value = "members") val members: kotlin.collections.List<MemberDto>? = null,
+    /* Bot (service role) callers only: ID of an existing member to link as the club owner. User callers always own the club they create; sending any other member ID returns 403. The member row is never modified. */
+    @SerialName(value = "owner_member_id") val ownerMemberId: kotlin.Int? = null,
+
+    /* Deprecated: use owner_member_id. Only the first entry's id is used (as owner); other entries and fields are ignored. */
+    @Deprecated(message = "This property is deprecated.")
+    @SerialName(value = "members") val members: kotlin.collections.List<ClubCreateRequestMembersInnerDto>? = null,
 
     @SerialName(value = "active_session") val activeSession: ClubActiveSessionInputDto? = null,
 

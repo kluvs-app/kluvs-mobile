@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Kluvs API",
-    "version": "0.25.0",
+    "version": "0.26.1",
     "description": "Supabase Edge Functions API for managing book clubs."
   },
   "servers": [
@@ -71,7 +71,7 @@
       },
       "post": {
         "summary": "Create a new club",
-        "description": "Creates a club, optionally with members, an active session (book + discussions), and a shame list.",
+        "description": "Creates a club, owned by the calling user's member (bot callers name the owner via owner_member_id), optionally with an active session (book + discussions), and a shame list.",
         "tags": [
           "Club"
         ],
@@ -96,8 +96,14 @@
               }
             }
           },
+          "400": {
+            "description": "Club name missing, or owner member id (owner_member_id / legacy members[0].id) is not an integer"
+          },
+          "403": {
+            "description": "User caller has no member record, or named an owner other than themselves"
+          },
           "404": {
-            "description": "Server not found (if server_id provided)"
+            "description": "Server not found (if server_id provided), or owner member not found (bot caller)"
           }
         },
         "operationId": "createClub"
@@ -340,7 +346,7 @@
       },
       "delete": {
         "summary": "Delete Member",
-        "description": "Delete a member and all their data. For each club the member owns: if they are the sole member the club is deleted; otherwise ownership is transferred to an admin, or to a random member if no admin exists. The linked auth account is also deleted if one exists. This is the canonical deletion path — do not delete auth accounts directly.\n",
+        "description": "Delete a member and all their data. For each club the member owns: if they are the sole member the club is deleted; otherwise ownership is transferred to an admin, or to the earliest-joined member if no admin exists. The linked auth account is also deleted if one exists. Everything happens in a single transaction: the deletion either fully succeeds or changes nothing. This is the canonical deletion path — do not delete auth accounts directly.\n",
         "tags": [
           "Member"
         ],
@@ -365,8 +371,20 @@
               }
             }
           },
+          "400": {
+            "description": "Member ID is required"
+          },
+          "401": {
+            "description": "Missing or invalid Authorization header"
+          },
+          "403": {
+            "description": "Caller does not own this member record"
+          },
           "404": {
             "description": "Member not found"
+          },
+          "500": {
+            "description": "Deletion failed. Nothing was deleted (auth account included) and the request is safe to retry.\n"
           }
         },
         "operationId": "deleteMember"
@@ -1497,6 +1515,51 @@
           }
         },
         "operationId": "setShelf"
+      },
+      "delete": {
+        "summary": "Remove a shelf assignment",
+        "description": "Removes the authenticated user's shelf assignment for a book. Idempotent — no error if the book wasn't shelved.",
+        "tags": [
+          "Shelf"
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Local DB book ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shelf assignment removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShelfSingleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "book_id is required and must be an integer"
+          },
+          "401": {
+            "description": "No valid auth token"
+          },
+          "403": {
+            "description": "Bot callers not permitted"
+          },
+          "404": {
+            "description": "No member record found for the authenticated user"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
       }
     },
     "/progress": {
@@ -1542,7 +1605,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProgressListResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReadingProgress"
+                  }
                 }
               }
             }
@@ -1587,7 +1653,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProgressEntryResponse"
+                  "$ref": "#/components/schemas/ReadingProgress"
                 }
               }
             }
@@ -1632,7 +1698,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProgressEntryResponse"
+                  "$ref": "#/components/schemas/ReadingProgress"
                 }
               }
             }
@@ -2004,6 +2070,18 @@
               "finished"
             ],
             "description": "Lifecycle status of the session."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session started. Server-set on insert; null for sessions created before this field existed."
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session was finished. Null while the session is active."
           },
           "discussions": {
             "type": "array",
@@ -2621,6 +2699,18 @@
           "due_date": {
             "type": "string",
             "format": "date"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session started. Server-set on insert; null for sessions created before this field existed."
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session was finished. Null while the session is active."
           }
         }
       },
@@ -2750,10 +2840,24 @@
             "type": "string",
             "format": "date"
           },
+          "owner_member_id": {
+            "type": "integer",
+            "description": "Bot (service role) callers only: ID of an existing member to link as the club owner. User callers always own the club they create; sending any other member ID returns 403. The member row is never modified."
+          },
           "members": {
             "type": "array",
+            "deprecated": true,
+            "description": "Deprecated: use owner_member_id. Only the first entry's id is used (as owner); other entries and fields are ignored.",
             "items": {
-              "$ref": "#/components/schemas/Member"
+              "type": "object",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                }
+              }
             }
           },
           "active_session": {
@@ -3087,6 +3191,18 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session started. Server-set on insert; null for sessions created before this field existed."
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session was finished. Null while the session is active."
           },
           "books": {
             "$ref": "#/components/schemas/ServerClubLatestSessionBook",
@@ -3430,6 +3546,18 @@
           "due_date": {
             "type": "string",
             "format": "date"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session started. Server-set on insert; null for sessions created before this field existed."
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the session was finished. Null while the session is active."
           },
           "book": {
             "$ref": "#/components/schemas/SessionReadingLogBook"
@@ -3875,20 +4003,6 @@
           }
         }
       },
-      "ProgressListResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "progress": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReadingProgress"
-            }
-          }
-        }
-      },
       "ProgressCreateRequest": {
         "type": "object",
         "required": [
@@ -3955,17 +4069,6 @@
               "in_progress",
               "completed"
             ]
-          }
-        }
-      },
-      "ProgressEntryResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "progress": {
-            "$ref": "#/components/schemas/ReadingProgress"
           }
         }
       },
@@ -4039,7 +4142,7 @@
             "properties": {
               "clubs": {
                 "type": "array",
-                "description": "Clubs this member belongs to, with their per-club role.",
+                "description": "Clubs this member belongs to, with their per-club role. Sorted by the soonest upcoming discussion of each club's active session, then alphabetically by club name (case-insensitive) for ties and clubs with nothing upcoming.",
                 "items": {
                   "$ref": "#/components/schemas/MemberClubEntry"
                 }

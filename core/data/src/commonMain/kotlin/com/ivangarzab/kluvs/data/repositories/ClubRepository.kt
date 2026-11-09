@@ -3,14 +3,12 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
-import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.JoinPolicy
-import kotlinx.serialization.json.JsonObject
 
 /**
  * Repository for managing Club data.
@@ -33,15 +31,11 @@ interface ClubRepository {
     suspend fun getClub(clubId: String, serverId: String? = null, forceRefresh: Boolean = false): Result<Club>
 
     /**
-     * Creates a new club. The backend does not infer the caller as a member — the creator
-     * must be passed explicitly as the first entry of the `members` array, which is how it
-     * becomes the club's owner (see `club/handlers/create.ts`).
+     * Creates a new club. The backend resolves the caller from their auth token and makes
+     * them the club's owner, so no member data is sent in the request.
      *
      * @param name The name of the club
-     * @param creatorMemberId The creating member's ID — becomes the club's owner
-     * @param creatorMemberName The creating member's display name
-     * @param creatorMemberHandle The creating member's handle (null if not yet known locally)
-     * @param creatorBooksRead The creating member's current books-read count (denormalized on the members row)
+     * @param creatorMemberId The creating member's ID (validated as numeric; not sent — the backend derives the owner from the caller)
      * @param serverId Optional server ID for Discord integration (defaults to null for mobile-only clubs)
      * @param discordChannel Optional Discord channel to associate with this club
      * @return Result containing the created Club if successful, or an error if the operation failed
@@ -49,9 +43,6 @@ interface ClubRepository {
     suspend fun createClub(
         name: String,
         creatorMemberId: String,
-        creatorMemberName: String,
-        creatorMemberHandle: String?,
-        creatorBooksRead: Int = 0,
         serverId: String? = null,
         discordChannel: String? = null
     ): Result<Club>
@@ -150,30 +141,17 @@ internal class ClubRepositoryImpl(
     override suspend fun createClub(
         name: String,
         creatorMemberId: String,
-        creatorMemberName: String,
-        creatorMemberHandle: String?,
-        creatorBooksRead: Int,
         serverId: String?,
         discordChannel: String?
     ): Result<Club> {
-        val creatorMemberIdInt = creatorMemberId.toIntOrNull()
-            ?: return Result.failure(IllegalArgumentException("Invalid creator member ID: $creatorMemberId"))
+        if (creatorMemberId.toIntOrNull() == null) {
+            return Result.failure(IllegalArgumentException("Invalid creator member ID: $creatorMemberId"))
+        }
         return clubRemoteDataSource.createClub(
             ClubCreateRequestDto(
                 name = name,
                 serverId = serverId,
-                discordChannel = discordChannel,
-                members = listOf(
-                    MemberDto(
-                        id = creatorMemberIdInt,
-                        name = creatorMemberName,
-                        // The spec requires MemberDto.handle, though club-create ignores it today.
-                        // Falls back to empty only if the cached member predates handles.
-                        handle = creatorMemberHandle.orEmpty(),
-                        platformMetadata = JsonObject(emptyMap()),
-                        booksRead = creatorBooksRead
-                    )
-                )
+                discordChannel = discordChannel
             )
         )
     }
