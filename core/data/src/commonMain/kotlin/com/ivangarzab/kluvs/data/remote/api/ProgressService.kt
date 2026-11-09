@@ -18,10 +18,8 @@ import io.ktor.utils.io.InternalAPI
  * All operations are member-scoped: the backend resolves the member from the
  * caller's auth token, so a user session is required (bot callers are rejected).
  *
- * Note: the backend returns raw [ReadingProgressDto] shapes (a bare array for GET,
- * the bare entity for POST/PUT) rather than the `{success, progress}` envelopes the
- * OpenAPI spec declares — a known backend/spec gap. This service decodes what the
- * backend actually sends.
+ * The backend returns raw [ReadingProgressDto] shapes (a bare array for GET, the bare
+ * entity for POST/PUT), matching the OpenAPI spec.
  */
 interface ProgressService {
     suspend fun getAll(

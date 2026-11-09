@@ -15,7 +15,6 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.ReadingProgressDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -24,16 +23,13 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
- * @param success 
- * @param progress 
+ * @param id 
  */
 @Serializable
 
-data class ProgressListResponseDto (
+data class ClubCreateRequestMembersInnerDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
-
-    @SerialName(value = "progress") val progress: kotlin.collections.List<ReadingProgressDto>? = null
+    @SerialName(value = "id") @Required val id: kotlin.Int
 
 ) {
 

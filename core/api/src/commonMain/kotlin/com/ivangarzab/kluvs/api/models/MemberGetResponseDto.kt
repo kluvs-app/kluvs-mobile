@@ -34,7 +34,7 @@ import kotlinx.serialization.encoding.*
  * @param userId Linked Supabase Auth User ID
  * @param discordId Discord user snowflake ID. Stored as TEXT to preserve JSON precision.
  * @param createdAt 
- * @param clubs Clubs this member belongs to, with their per-club role.
+ * @param clubs Clubs this member belongs to, with their per-club role. Sorted by the soonest upcoming discussion of each club's active session, then alphabetically by club name (case-insensitive) for ties and clubs with nothing upcoming.
  * @param shameClubs List of clubs where this member is currently on the shame list.
  */
 @Serializable
@@ -63,7 +63,7 @@ data class MemberGetResponseDto (
 
     @SerialName(value = "created_at") val createdAt: kotlin.String? = null,
 
-    /* Clubs this member belongs to, with their per-club role. */
+    /* Clubs this member belongs to, with their per-club role. Sorted by the soonest upcoming discussion of each club's active session, then alphabetically by club name (case-insensitive) for ties and clubs with nothing upcoming. */
     @SerialName(value = "clubs") val clubs: kotlin.collections.List<MemberClubEntryDto>? = null,
 
     /* List of clubs where this member is currently on the shame list. */
