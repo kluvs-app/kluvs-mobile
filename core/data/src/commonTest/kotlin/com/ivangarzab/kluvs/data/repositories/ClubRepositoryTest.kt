@@ -109,7 +109,7 @@ class ClubRepositoryTest {
         )
         everySuspend { remoteDataSource.createClub(any()) } returns Result.success(expectedClub)
 
-        val result = repository.createClub(clubName, "1", "Creator", "creator-handle", 0, serverId, discordChannel)
+        val result = repository.createClub(clubName, "1", serverId, discordChannel)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedClub, result.getOrNull())
@@ -130,7 +130,7 @@ class ClubRepositoryTest {
         )
         everySuspend { remoteDataSource.createClub(any()) } returns Result.success(expectedClub)
 
-        val result = repository.createClub(clubName, "1", "Creator", "creator-handle", 0, serverId, null)
+        val result = repository.createClub(clubName, "1", serverId, null)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedClub, result.getOrNull())
@@ -144,7 +144,7 @@ class ClubRepositoryTest {
         val exception = Exception("Failed to create club")
         everySuspend { remoteDataSource.createClub(any()) } returns Result.failure(exception)
 
-        val result = repository.createClub("New Club", "1", "Creator", "creator-handle", 0, "server-456", null)
+        val result = repository.createClub("New Club", "1", "server-456", null)
 
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())
@@ -153,7 +153,7 @@ class ClubRepositoryTest {
 
     @Test
     fun `createClub with non-numeric creatorMemberId returns Result failure without calling remote`() = runTest {
-        val result = repository.createClub("New Club", "not-a-number", "Creator", "creator-handle", 0, "server-456", null)
+        val result = repository.createClub("New Club", "not-a-number", "server-456", null)
 
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is IllegalArgumentException)
