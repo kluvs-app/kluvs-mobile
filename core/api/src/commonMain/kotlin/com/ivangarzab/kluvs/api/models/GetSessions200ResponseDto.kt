@@ -37,6 +37,8 @@ import kotlinx.serialization.encoding.*
  * @param bookId 
  * @param book 
  * @param dueDate 
+ * @param startedAt When the session started. Server-set on insert; null for sessions created before this field existed.
+ * @param endedAt When the session was finished. Null while the session is active.
  * @param discussions 
  * @param members Participation roster, as embedded within a club response's active_session.
  */
@@ -60,6 +62,12 @@ data class GetSessions200ResponseDto (
     @SerialName(value = "book") val book: BookDto? = null,
 
     @SerialName(value = "due_date") val dueDate: kotlin.String? = null,
+
+    /* When the session started. Server-set on insert; null for sessions created before this field existed. */
+    @SerialName(value = "started_at") val startedAt: kotlin.String? = null,
+
+    /* When the session was finished. Null while the session is active. */
+    @SerialName(value = "ended_at") val endedAt: kotlin.String? = null,
 
     @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null,
 
