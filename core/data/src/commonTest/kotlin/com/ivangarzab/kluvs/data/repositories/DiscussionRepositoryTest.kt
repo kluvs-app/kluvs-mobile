@@ -2,12 +2,14 @@ package com.ivangarzab.kluvs.data.repositories
 
 import com.ivangarzab.kluvs.api.models.DiscussionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.DiscussionUpdateRequestDto
+import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.DiscussionRemoteDataSource
 import com.ivangarzab.kluvs.model.Discussion
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
@@ -19,6 +21,7 @@ import kotlin.test.assertTrue
 class DiscussionRepositoryTest {
 
     private lateinit var remoteDataSource: DiscussionRemoteDataSource
+    private lateinit var localDataSource: DiscussionLocalDataSource
     private lateinit var repository: DiscussionRepository
 
     private val testDiscussion = Discussion(
@@ -31,7 +34,12 @@ class DiscussionRepositoryTest {
     @BeforeTest
     fun setup() {
         remoteDataSource = mock<DiscussionRemoteDataSource>()
-        repository = DiscussionRepositoryImpl(remoteDataSource)
+        localDataSource = mock<DiscussionLocalDataSource>()
+        repository = DiscussionRepositoryImpl(remoteDataSource, localDataSource)
+
+        everySuspend { localDataSource.deleteDiscussion(any()) } returns Unit
+        everySuspend { localDataSource.markClubStaleForSession(any()) } returns Unit
+        everySuspend { localDataSource.markClubStaleForDiscussion(any()) } returns Unit
     }
 
     @Test
@@ -94,5 +102,42 @@ class DiscussionRepositoryTest {
 
         assertTrue(result.isSuccess)
         verifySuspend { remoteDataSource.deleteDiscussion("discussion-1") }
+    }
+
+    @Test
+    fun `createDiscussion success marks the owning club stale`() = runTest {
+        everySuspend { remoteDataSource.createDiscussion(any()) } returns Result.success(testDiscussion)
+
+        repository.createDiscussion("session-1", "Introduction", LocalDateTime.parse("2026-08-01T18:00:00"))
+
+        verifySuspend { localDataSource.markClubStaleForSession("session-1") }
+    }
+
+    @Test
+    fun `updateDiscussion success marks the owning club stale`() = runTest {
+        everySuspend { remoteDataSource.updateDiscussion(any()) } returns Result.success(testDiscussion)
+
+        repository.updateDiscussion("discussion-1", title = "New Title")
+
+        verifySuspend { localDataSource.markClubStaleForDiscussion("discussion-1") }
+    }
+
+    @Test
+    fun `deleteDiscussion success removes the cached discussion`() = runTest {
+        everySuspend { remoteDataSource.deleteDiscussion("discussion-1") } returns Result.success(Unit)
+
+        repository.deleteDiscussion("discussion-1")
+
+        verifySuspend { localDataSource.deleteDiscussion("discussion-1") }
+    }
+
+    @Test
+    fun `deleteDiscussion failure leaves the cache alone`() = runTest {
+        everySuspend { remoteDataSource.deleteDiscussion("discussion-1") } returns Result.failure(Exception("boom"))
+
+        val result = repository.deleteDiscussion("discussion-1")
+
+        assertTrue(result.isFailure)
+        verifySuspend(mode = VerifyMode.not) { localDataSource.deleteDiscussion(any()) }
     }
 }

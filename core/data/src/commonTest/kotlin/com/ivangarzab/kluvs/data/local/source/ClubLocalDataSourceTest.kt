@@ -13,6 +13,13 @@ import com.ivangarzab.kluvs.model.Session
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
+import dev.mokkery.matcher.matching
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
+import com.ivangarzab.kluvs.database.entities.DiscussionEntity
+import com.ivangarzab.kluvs.model.Discussion
+import com.ivangarzab.kluvs.model.ClubMember
+import kotlinx.datetime.LocalDateTime
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -191,4 +198,129 @@ class ClubLocalDataSourceTest {
         dueDate = dueDate?.toString(),
         lastFetchedAt = 0
     )
+
+    // ========================================
+    // KT-321: REPLACE SEMANTICS
+    // ========================================
+
+    private val hobbit = Book("book-1", "The Hobbit", "Tolkien", null, 1937, null)
+
+    @Test
+    fun `insertClub replaces the roster instead of adding to it`() = runTest {
+        setup()
+        val member = Member(id = "member-1", name = "Alice")
+        val club = Club(id = "club-1", name = "Fantasy Club", members = listOf(ClubMember(Role.MEMBER, member)))
+
+        dataSource.insertClub(club)
+
+        verifySuspend(VerifyMode.order) {
+            fixture.memberDao.deleteCrossRefsForClub("club-1")
+            fixture.memberDao.insertClubMemberCrossRefs(matching { refs -> refs.map { it.memberId } == listOf("member-1") })
+        }
+    }
+
+    @Test
+    fun `insertClub with null members leaves the roster alone`() = runTest {
+        setup()
+
+        dataSource.insertClub(Club(id = "club-1", name = "Fantasy Club", members = null))
+
+        verifySuspend(VerifyMode.not) { fixture.memberDao.deleteCrossRefsForClub(any()) }
+    }
+
+    @Test
+    fun `insertClub without an active session removes the club's cached sessions and their children`() = runTest {
+        setup()
+        val stale = SessionEntity("session-old", "club-1", "book-1", null, 0)
+        everySuspend { fixture.sessionDao.getSessionsForClub("club-1") } returns listOf(stale)
+
+        dataSource.insertClub(Club(id = "club-1", name = "Fantasy Club", members = emptyList(), activeSession = null))
+
+        verifySuspend {
+            fixture.discussionDao.deleteDiscussionsForSession("session-old")
+            fixture.sessionDao.deleteSessionMembers("session-old")
+            fixture.sessionDao.deleteSession(stale)
+        }
+    }
+
+    @Test
+    fun `insertClub keeps the active session and replaces its discussions`() = runTest {
+        setup()
+        val discussion = Discussion(id = "disc-2", sessionId = "session-1", title = "Ch. 2", date = LocalDateTime.parse("2026-08-01T18:00:00"))
+        val session = Session("session-1", "club-1", hobbit, null, listOf(discussion))
+        val activeRow = SessionEntity("session-1", "club-1", "book-1", null, 0)
+        val oldRow = SessionEntity("session-old", "club-1", "book-1", null, 0)
+        everySuspend { fixture.sessionDao.getSessionsForClub("club-1") } returns listOf(activeRow, oldRow)
+
+        dataSource.insertClub(Club(id = "club-1", name = "Fantasy Club", members = emptyList(), activeSession = session))
+
+        verifySuspend(VerifyMode.not) { fixture.sessionDao.deleteSession(activeRow) }
+        verifySuspend { fixture.sessionDao.deleteSession(oldRow) }
+        verifySuspend(VerifyMode.order) {
+            fixture.discussionDao.deleteDiscussionsForSession("session-1")
+            fixture.discussionDao.insertDiscussions(matching { rows -> rows.map { it.id } == listOf("disc-2") })
+        }
+    }
+
+    @Test
+    fun `insertClub keeps the cached member's userId and freshness when merging the roster`() = runTest {
+        setup()
+        val existing = MemberEntity("member-1", "user-1", "Alice", "alice", null, 5, "2025-01-01T00:00", 12345L)
+        everySuspend { fixture.memberDao.getMember("member-1") } returns existing
+        val rosterMember = Member(id = "member-1", name = "Alice B", userId = null)
+
+        dataSource.insertClub(Club(id = "club-1", name = "Fantasy Club", members = listOf(ClubMember(Role.MEMBER, rosterMember))))
+
+        verifySuspend {
+            fixture.memberDao.insertMember(matching {
+                it.id == "member-1" && it.userId == "user-1" && it.name == "Alice B" &&
+                    it.createdAt == "2025-01-01T00:00" && it.lastFetchedAt == 12345L
+            })
+        }
+    }
+
+    @Test
+    fun `insertClub stores a new roster-only member as stale`() = runTest {
+        setup()
+        val rosterMember = Member(id = "member-9", name = "Zed")
+
+        dataSource.insertClub(Club(id = "club-1", name = "Fantasy Club", members = listOf(ClubMember(Role.MEMBER, rosterMember))))
+
+        verifySuspend { fixture.memberDao.insertMember(matching { it.id == "member-9" && it.lastFetchedAt == 0L }) }
+    }
+
+    @Test
+    fun `insertClub runs in a single transaction`() = runTest {
+        setup()
+
+        dataSource.insertClub(Club(id = "club-1", name = "Fantasy Club", members = emptyList()))
+
+        verifySuspend(VerifyMode.exactly(1)) { fixture.database.withTransaction<Any?>(any()) }
+    }
+
+    @Test
+    fun `deleteClub removes the club, its links, sessions and their children`() = runTest {
+        setup()
+        val session = SessionEntity("session-1", "club-1", "book-1", null, 0)
+        everySuspend { fixture.sessionDao.getSessionsForClub("club-1") } returns listOf(session)
+
+        dataSource.deleteClub("club-1")
+
+        verifySuspend {
+            fixture.discussionDao.deleteDiscussionsForSession("session-1")
+            fixture.sessionDao.deleteSessionMembers("session-1")
+            fixture.sessionDao.deleteSessionsForClub("club-1")
+            fixture.memberDao.deleteCrossRefsForClub("club-1")
+            fixture.clubDao.deleteClubById("club-1")
+        }
+    }
+
+    @Test
+    fun `markStale resets the club's freshness`() = runTest {
+        setup()
+
+        dataSource.markStale("club-1")
+
+        verifySuspend { fixture.clubDao.markStale("club-1") }
+    }
 }

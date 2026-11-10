@@ -9,6 +9,10 @@ import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.Session
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
+import dev.mokkery.matcher.matching
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -157,4 +161,28 @@ class SessionLocalDataSourceTest {
         dueDate = dueDate?.toString(),
         lastFetchedAt = 0
     )
+
+    @Test
+    fun `deleteSession also removes the session's discussions`() = runTest {
+        setup()
+        val entity = SessionEntity("session-1", "club-1", "book-1", null, 0)
+        everySuspend { fixture.sessionDao.getSession("session-1") } returns entity
+
+        dataSource.deleteSession("session-1")
+
+        verifySuspend {
+            fixture.discussionDao.deleteDiscussionsForSession("session-1")
+            fixture.sessionDao.deleteSessionMembers("session-1")
+            fixture.sessionDao.deleteSession(entity)
+        }
+    }
+
+    @Test
+    fun `insertSession runs in a single transaction`() = runTest {
+        setup()
+
+        dataSource.insertSession(Session("session-1", "club-1", Book("book-1", "The Hobbit", "Tolkien", null, 1937, null), null))
+
+        verifySuspend(VerifyMode.exactly(1)) { fixture.database.withTransaction<Any?>(any()) }
+    }
 }

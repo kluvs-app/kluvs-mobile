@@ -7,6 +7,8 @@ import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.DiscussionAttendanceLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.DiscussionAttendanceLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.LikeLocalDataSource
@@ -130,6 +132,7 @@ val coreDataModule = module {
     single<ProgressLocalDataSource> { ProgressLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<DiscussionNoteLocalDataSource> { DiscussionNoteLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<DiscussionAttendanceLocalDataSource> { DiscussionAttendanceLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<DiscussionLocalDataSource> { DiscussionLocalDataSourceImpl(get<KluvsDatabase>()) }
 
     // Services
     single<BookService> { BookServiceImpl(get<SupabaseClient>()) }
@@ -183,6 +186,7 @@ val coreDataModule = module {
         ClubRepositoryImpl(
             get<ClubRemoteDataSource>(),
             get<ClubLocalDataSource>(),
+            get<MemberLocalDataSource>(),
             get<CachePolicy>()
         )
     }
@@ -221,7 +225,12 @@ val coreDataModule = module {
             get<CachePolicy>()
         )
     }
-    single<DiscussionRepository> { DiscussionRepositoryImpl(get<DiscussionRemoteDataSource>()) }
+    single<DiscussionRepository> {
+        DiscussionRepositoryImpl(
+            get<DiscussionRemoteDataSource>(),
+            get<DiscussionLocalDataSource>()
+        )
+    }
     single<DiscussionNoteRepository> {
         DiscussionNoteRepositoryImpl(
             get<DiscussionNoteRemoteDataSource>(),

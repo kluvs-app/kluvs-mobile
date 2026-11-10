@@ -3,13 +3,16 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.JoinPolicy
 import dev.mokkery.answering.returns
+import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -23,6 +26,7 @@ class ClubRepositoryTest {
 
     private lateinit var remoteDataSource: ClubRemoteDataSource
     private lateinit var localDataSource: ClubLocalDataSource
+    private lateinit var memberLocalDataSource: MemberLocalDataSource
     private lateinit var cachePolicy: CachePolicy
     private lateinit var repository: ClubRepository
 
@@ -30,14 +34,17 @@ class ClubRepositoryTest {
     fun setup() {
         remoteDataSource = mock<ClubRemoteDataSource>()
         localDataSource = mock<ClubLocalDataSource>()
+        memberLocalDataSource = mock<MemberLocalDataSource>()
         cachePolicy = CachePolicy()
-        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, cachePolicy)
+        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, memberLocalDataSource, cachePolicy)
 
         // Default behavior: cache miss (return null)
         everySuspend { localDataSource.getClub(any()) } returns null
         everySuspend { localDataSource.getLastFetchedAt(any()) } returns null
         everySuspend { localDataSource.insertClub(any()) } returns Unit
         everySuspend { localDataSource.deleteClub(any()) } returns Unit
+        everySuspend { localDataSource.markStale(any()) } returns Unit
+        everySuspend { memberLocalDataSource.markStale(any()) } returns Unit
     }
 
     // ========================================
@@ -328,5 +335,65 @@ class ClubRepositoryTest {
 
         assertTrue(result.isFailure)
         verifySuspend { remoteDataSource.deleteClub(clubId, serverId) }
+    }
+
+    // ========================================
+    // CACHE INVALIDATION ON MUTATIONS
+    // ========================================
+
+    @Test
+    fun `deleteClub success removes the club from the local cache`() = runTest {
+        everySuspend { remoteDataSource.deleteClub("club-123", null) } returns Result.success("deleted")
+
+        repository.deleteClub("club-123")
+
+        verifySuspend { localDataSource.deleteClub("club-123") }
+    }
+
+    @Test
+    fun `deleteClub failure leaves the local cache alone`() = runTest {
+        everySuspend { remoteDataSource.deleteClub("club-123", null) } returns Result.failure(Exception("boom"))
+
+        repository.deleteClub("club-123")
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.deleteClub(any()) }
+    }
+
+    @Test
+    fun `deleteClub still succeeds when the cache cleanup throws`() = runTest {
+        everySuspend { remoteDataSource.deleteClub("club-123", null) } returns Result.success("deleted")
+        everySuspend { localDataSource.deleteClub("club-123") } throws IllegalStateException("db closed")
+
+        val result = repository.deleteClub("club-123")
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `createClub success marks the creator member stale`() = runTest {
+        everySuspend { remoteDataSource.createClub(any()) } returns Result.success(Club(id = "club-new", name = "New"))
+
+        repository.createClub("New", "42")
+
+        verifySuspend { memberLocalDataSource.markStale("42") }
+    }
+
+    @Test
+    fun `updateClub success marks the club stale instead of caching the partial response`() = runTest {
+        everySuspend { remoteDataSource.updateClub(any()) } returns Result.success(Club(id = "club-123", name = "Renamed"))
+
+        repository.updateClub("club-123", name = "Renamed")
+
+        verifySuspend { localDataSource.markStale("club-123") }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.insertClub(any()) }
+    }
+
+    @Test
+    fun `updateClub failure does not touch the cache`() = runTest {
+        everySuspend { remoteDataSource.updateClub(any()) } returns Result.failure(Exception("boom"))
+
+        repository.updateClub("club-123", name = "Renamed")
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
     }
 }

@@ -38,6 +38,9 @@ interface SessionDao {
     @Query("DELETE FROM sessions")
     suspend fun deleteAll()
 
+    @Query("DELETE FROM sessions WHERE clubId = :clubId")
+    suspend fun deleteSessionsForClub(clubId: String)
+
     @Query("SELECT * FROM session_members WHERE sessionId = :sessionId")
     suspend fun getSessionMembers(sessionId: String): List<SessionMemberEntity>
 

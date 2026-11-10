@@ -33,6 +33,13 @@ interface ClubDao {
     @Query("SELECT lastFetchedAt FROM clubs WHERE id = :clubId")
     suspend fun getLastFetchedAt(clubId: String): Long?
 
+    /** Forces the next read of this club to refetch, while keeping the row available. */
+    @Query("UPDATE clubs SET lastFetchedAt = 0 WHERE id = :clubId")
+    suspend fun markStale(clubId: String)
+
+    @Query("DELETE FROM clubs WHERE id = :clubId")
+    suspend fun deleteClubById(clubId: String)
+
     @Query("DELETE FROM clubs")
     suspend fun deleteAll()
 }

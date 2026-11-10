@@ -29,6 +29,7 @@ class SessionLocalDataSourceImpl(
 
     private val sessionDao = database.sessionDao()
     private val bookDao = database.bookDao()
+    private val discussionDao = database.discussionDao()
 
     override suspend fun getSession(sessionId: String): Session? {
         val sessionEntity = sessionDao.getSession(sessionId) ?: return null
@@ -49,14 +50,14 @@ class SessionLocalDataSourceImpl(
     override suspend fun insertSession(session: Session) {
         Bark.v("Inserting session (ID: ${session.id}) into database")
         try {
-            // First insert the book
-            bookDao.insertBook(session.book.toEntity())
-            // Then insert the session
-            sessionDao.insertSession(session.toEntity())
-            // Replace the participation list to drop members no longer on the session
-            sessionDao.deleteSessionMembers(session.id)
-            if (session.members.isNotEmpty()) {
-                sessionDao.insertSessionMembers(session.members.map { it.toEntity(session.id) })
+            database.withTransaction {
+                bookDao.insertBook(session.book.toEntity())
+                sessionDao.insertSession(session.toEntity())
+                // Replace the participation list to drop members no longer on the session
+                sessionDao.deleteSessionMembers(session.id)
+                if (session.members.isNotEmpty()) {
+                    sessionDao.insertSessionMembers(session.members.map { it.toEntity(session.id) })
+                }
             }
             Bark.d("Successfully inserted session (ID: ${session.id}) into database")
         } catch (e: Exception) {
@@ -86,8 +87,11 @@ class SessionLocalDataSourceImpl(
         if (entity != null) {
             Bark.d("Deleting session (ID: $sessionId) from database")
             try {
-                sessionDao.deleteSessionMembers(sessionId)
-                sessionDao.deleteSession(entity)
+                database.withTransaction {
+                    discussionDao.deleteDiscussionsForSession(sessionId)
+                    sessionDao.deleteSessionMembers(sessionId)
+                    sessionDao.deleteSession(entity)
+                }
                 Bark.d("Successfully deleted session (ID: $sessionId) from database")
             } catch (e: Exception) {
                 Bark.e("Failed to delete session (ID: $sessionId) from database. Retry on next sync.", e)
