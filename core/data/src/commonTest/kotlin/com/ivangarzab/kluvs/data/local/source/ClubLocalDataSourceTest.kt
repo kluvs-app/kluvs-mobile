@@ -299,7 +299,7 @@ class ClubLocalDataSourceTest {
     }
 
     @Test
-    fun `deleteClub removes the club, its links, sessions and their children`() = runTest {
+    fun `deleteClub removes the club with its links and sessions and their children`() = runTest {
         setup()
         val session = SessionEntity("session-1", "club-1", "book-1", null, 0)
         everySuspend { fixture.sessionDao.getSessionsForClub("club-1") } returns listOf(session)
