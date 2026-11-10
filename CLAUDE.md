@@ -312,6 +312,10 @@ Tests are co-located with their implementations in each module:
   - Require local Supabase instance running
   - Excluded from quick test runs via `excludeTests` property
 
+### Test Naming
+
+**Never use commas in backticked test function names** (e.g. `` `deleteClub removes the club, its links` ``). Kotlin/Native rejects them, along with `.` `;` `:` `/` `<` `>` `[` `]` `\`. The JVM accepts them, so Android runs pass and only the iOS compile in CI fails. Before pushing changes to `commonTest`, also run `./gradlew :<module>:compileTestKotlinIosSimulatorArm64 --quiet`.
+
 ### Logging
 
 **Always use barK** (`Bark.*`) for all log statements — never `println` or `Log.*`. Follow the `bark-logging` skill for level selection, message formatting, and exception handling rules.
