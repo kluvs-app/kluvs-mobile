@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.LikeToggleRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.LikeLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.LikeRemoteDataSource
@@ -69,11 +70,9 @@ internal class LikeRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Like status cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch like status. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache("like status (book ID: $bookId)") { likeLocalDataSource.getLikeStatus(bookId) }
     }
 
     override suspend fun toggleLike(bookId: String): Result<Boolean> {

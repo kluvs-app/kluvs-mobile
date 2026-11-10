@@ -65,7 +65,7 @@ class MemberRemoteDataSourceImpl(
             Bark.i("Fetched member (ID: $memberId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch member (ID: $memberId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch member (ID: $memberId).", e)
             Result.failure(e)
         }
     }
@@ -76,7 +76,7 @@ class MemberRemoteDataSourceImpl(
             Bark.i("Fetched member by user ID (ID: $userId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch member by user ID (ID: $userId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch member by user ID (ID: $userId).", e)
             Result.failure(e)
         }
     }

@@ -155,4 +155,16 @@ class ProgressRepositoryTest {
         verifySuspend { remoteDataSource.deleteProgress("progress-1") }
         verifySuspend { localDataSource.deleteProgress("progress-1") }
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getProgress serves cached entries when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getProgress(any(), any(), any()) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getProgress("42", null, null) } returns listOf(testProgress)
+
+        assertEquals(listOf(testProgress), repository.getProgress(bookId = "42").getOrNull())
+    }
 }

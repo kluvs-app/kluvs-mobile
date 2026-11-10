@@ -173,17 +173,27 @@ class ClubDetailsViewModel(
         // narrow window where cancellation races with completion.
         loadClubDataJob?.cancel()
         loadClubDataJob = viewModelScope.launch {
-            // Reset state for subsequent calls
+            // A forced refresh of the club already on screen keeps its content up while the
+            // refresh indicator spins; if the refresh then fails (e.g. offline) the content stays
+            // and the failure is reported through a snackbar instead of an error page.
+            // Any other load (first load, switching clubs) starts from a clean slate.
+            val keepContent = forceRefresh &&
+                _state.value.currentClubDetails != null &&
+                _state.value.selectedClubId == clubId
             _state.update {
-                it.copy(
-                    isLoading = true,
-                    error = null,
-                    currentClubDetails = null,
-                    activeSession = null,
-                    ownProgress = null,
-                    members = emptyList(),
-                    currentMemberId = null
-                )
+                if (keepContent) {
+                    it.copy(isLoading = true, error = null)
+                } else {
+                    it.copy(
+                        isLoading = true,
+                        error = null,
+                        currentClubDetails = null,
+                        activeSession = null,
+                        ownProgress = null,
+                        members = emptyList(),
+                        currentMemberId = null
+                    )
+                }
             }
 
             // Launch all UseCase calls in parallel
@@ -221,7 +231,7 @@ class ClubDetailsViewModel(
                 else -> "Multiple things went wrong. Please try again."
             }
             error?.let { e ->
-                Bark.e("Failed to fetch club details (ID: $clubId). Serving cached data if available.", Exception(e))
+                Bark.e("Failed to fetch club details (ID: $clubId). ${if (keepContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded club details (ID: $clubId)")
 
             if (currentClubId != clubId) return@launch
@@ -231,20 +241,22 @@ class ClubDetailsViewModel(
             // transfer) updates `members` here but wouldn't otherwise be reflected until the user
             // navigated away and back, since `userRole`/`availableClubs` aren't touched elsewhere
             // on refresh.
-            val members = membersResult.getOrNull() ?: emptyList()
+            val members = membersResult.getOrNull() ?: if (keepContent) _state.value.members else emptyList()
             val refreshedRole = currentMemberId?.let { id -> members.find { it.memberId == id }?.role }
 
-            // Update state with all results
+            // Update state with all results. When keeping content, each piece only changes if its
+            // fetch succeeded (a successful "no active session" is still a change).
             _state.update {
                 it.copy(
                     isLoading = false,
-                    error = error,
+                    error = if (keepContent) null else error,
+                    operationResult = if (keepContent && error != null) OperationResult.Error(error) else it.operationResult,
                     selectedClubId = clubId,
-                    currentClubDetails = detailsResult.getOrNull(),
-                    activeSession = sessionResult.getOrNull(),
-                    ownProgress = ownProgress,
+                    currentClubDetails = detailsResult.getOrNull() ?: if (keepContent) it.currentClubDetails else null,
+                    activeSession = if (sessionResult.isSuccess) sessionResult.getOrNull() else if (keepContent) it.activeSession else null,
+                    ownProgress = if (sessionResult.isSuccess) ownProgress else if (keepContent) it.ownProgress else null,
                     members = members,
-                    currentMemberId = currentMemberId,
+                    currentMemberId = currentMemberId ?: if (keepContent) it.currentMemberId else null,
                     userRole = refreshedRole ?: it.userRole,
                     availableClubs = refreshedRole?.let { role ->
                         it.availableClubs.map { club -> if (club.id == clubId) club.copy(role = role) else club }

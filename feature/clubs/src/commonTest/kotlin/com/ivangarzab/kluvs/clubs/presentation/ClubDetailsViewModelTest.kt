@@ -1537,4 +1537,36 @@ class ClubDetailsViewModelTest {
         assertEquals(false, viewModel.state.value.isLoading)
         assertEquals(null, viewModel.state.value.error)
     }
+
+    // -------------------------------------------------------------------------
+    // KT-323: a failed forced refresh never removes content from the screen
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `a failed forced refresh keeps the club on screen and reports via snackbar`() = runTest {
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(twoClubsMember())
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+
+        everySuspend { clubRepository.getClub("club-b", null, true) } returns Result.failure(Exception("offline"))
+        viewModel.refresh(forceRefresh = true)
+
+        val state = viewModel.state.value
+        assertEquals("Club B", state.currentClubDetails?.clubName)
+        assertEquals(null, state.error)
+        assertEquals(false, state.isLoading)
+        assertIs<OperationResult.Error>(state.operationResult)
+    }
+
+    @Test
+    fun `a failed first load still shows the error page`() = runTest {
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(twoClubsMember())
+        everySuspend { clubRepository.getClub("club-a") } returns Result.failure(Exception("offline"))
+
+        viewModel.loadUserClubs("u1")
+
+        assertEquals(null, viewModel.state.value.currentClubDetails)
+        assertNotNull(viewModel.state.value.error)
+    }
 }

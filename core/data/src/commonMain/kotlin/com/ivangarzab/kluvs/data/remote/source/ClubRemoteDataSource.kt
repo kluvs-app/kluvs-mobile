@@ -73,7 +73,7 @@ class ClubRemoteDataSourceImpl(
             Bark.i("Fetched club (ID: $clubId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch club (ID: $clubId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch club (ID: $clubId).", e)
             Result.failure(e)
         }
     }
@@ -84,7 +84,7 @@ class ClubRemoteDataSourceImpl(
             Bark.i("Fetched club by channel (ID: $channel)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch club by channel (ID: $channel). Serving cached data if available.", e)
+            Bark.e("Failed to fetch club by channel (ID: $channel).", e)
             Result.failure(e)
         }
     }

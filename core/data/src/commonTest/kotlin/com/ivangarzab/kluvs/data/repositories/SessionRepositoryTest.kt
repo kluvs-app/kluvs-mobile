@@ -477,4 +477,17 @@ class SessionRepositoryTest {
         assertTrue(result.exceptionOrNull() is IllegalArgumentException)
         verifySuspend(mode = dev.mokkery.verify.VerifyMode.not) { remoteDataSource.updateSession(any()) }
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getSession serves the cached session when the remote fetch fails`() = runTest {
+        val cached = Session(id = "session-123", clubId = "club-456", book = testBook, dueDate = testDueDate)
+        everySuspend { remoteDataSource.getSession("session-123") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getSession("session-123") } returns cached
+
+        assertEquals(cached, repository.getSession("session-123", forceRefresh = true).getOrNull())
+    }
 }
