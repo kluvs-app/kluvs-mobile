@@ -46,6 +46,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDateTime
@@ -470,5 +472,26 @@ class MeViewModelTest {
 
         // Then
         assertNull(viewModel.state.value.snackbarError)
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-322: overlapping loads
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `overlapping loadUserData calls let the latest one win`() = runTest {
+        val stale = Member(id = "member-1", userId = "u1", name = "Stale Name", clubs = emptyList())
+        val fresh = Member(id = "member-1", userId = "u1", name = "Fresh Name", clubs = emptyList())
+        var calls = 0
+        everySuspend { memberRepository.getMemberByUserId("u1", any()) } calls {
+            if (calls++ == 0) { delay(1_000); Result.success(stale) } else Result.success(fresh)
+        }
+
+        viewModel.loadUserData("u1")               // slow, cached load from tab entry
+        viewModel.loadUserData("u1", forceRefresh = true) // pull-to-refresh right after
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("Fresh Name", viewModel.state.value.profile?.name)
+        assertEquals(false, viewModel.state.value.isLoading)
     }
 }

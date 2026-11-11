@@ -12,6 +12,7 @@ import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,11 +36,15 @@ class MeViewModel(
     val state: StateFlow<MeState> = _state.asStateFlow()
 
     private var currentUserId: String? = null
+    private var loadUserDataJob: Job? = null
 
     fun loadUserData(userId: String, forceRefresh: Boolean = false) {
         currentUserId = userId
 
-        viewModelScope.launch {
+        // Cancel any in-flight load so overlapping calls (tab re-entry + pull-to-refresh)
+        // can't finish out of order and let an older, staler result land last.
+        loadUserDataJob?.cancel()
+        loadUserDataJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             // Launch all 3 UseCase calls in parallel

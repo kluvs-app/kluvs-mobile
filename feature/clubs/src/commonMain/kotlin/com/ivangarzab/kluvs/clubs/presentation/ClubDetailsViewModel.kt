@@ -97,31 +97,51 @@ class ClubDetailsViewModel(
     private var currentClubId: String? = null
     private var currentUserId: String? = null
     private var loadClubDataJob: Job? = null
+    private var loadUserClubsJob: Job? = null
 
     /**
-     * Loads the user's clubs and displays the first club.
-     * If the user has no clubs, sets state to show empty state.
+     * Loads the user's clubs. Auto-selects the first club only when nothing is selected
+     * yet (or the selection is no longer in the list); otherwise the current selection is
+     * kept and just the list (and, on [forceRefresh], the selected club) is refreshed.
+     *
+     * This runs on every Clubs tab entry on both platforms, so it must never yank the user
+     * out of the club they're looking at.
      */
     fun loadUserClubs(userId: String, forceRefresh: Boolean = false) {
         currentUserId = userId
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+
+        // Cancel the previous list load so a slow, stale completion can't overwrite a newer
+        // list or re-select a club behind the user's back.
+        loadUserClubsJob?.cancel()
+        loadUserClubsJob = viewModelScope.launch {
+            // Only take over the screen with a loader when there's no club selected yet; a
+            // background list refresh keeps whatever the user is looking at on screen.
+            val hadSelection = currentClubId != null
+            if (!hadSelection) _state.update { it.copy(isLoading = true, error = null) }
 
             getMemberClubsUseCase(userId, forceRefresh)
                 .onSuccess { clubListItems ->
                     _state.update { it.copy(availableClubs = clubListItems) }
 
-                    if (clubListItems.isNotEmpty()) {
-                        Bark.i("Loaded ${clubListItems.size} club(s) for user (ID: $userId)")
-                        // Load full details for the first club only
+                    if (clubListItems.isEmpty()) {
+                        Bark.i("User has no clubs (ID: $userId)")
+                        currentClubId = null
+                        _state.update { it.copy(isLoading = false, selectedClubId = null) }
+                        return@onSuccess
+                    }
+                    Bark.i("Loaded ${clubListItems.size} club(s) for user (ID: $userId)")
+
+                    // `currentClubId` is read again here, not from `hadSelection`: the user may
+                    // have tapped a club while this load was in flight, and that choice wins.
+                    val selected = currentClubId?.let { id -> clubListItems.find { it.id == id } }
+                    if (selected != null) {
+                        Bark.d("Keeping selected club (ID: ${selected.id}) across club list reload")
+                        _state.update { it.copy(selectedClubId = selected.id, userRole = selected.role) }
+                        if (forceRefresh) loadClubData(selected.id, forceRefresh = true)
+                    } else {
                         val firstClub = clubListItems.first()
                         _state.update { it.copy(selectedClubId = firstClub.id, userRole = firstClub.role) }
                         loadClubData(firstClub.id)
-                    } else {
-                        Bark.i("User has no clubs (ID: $userId)")
-                        _state.update {
-                            it.copy(isLoading = false)
-                        }
                     }
                 }
                 .onFailure { error ->
@@ -129,7 +149,8 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = error.toAppError().toUserMessage()
+                            // Don't replace a club that's already on screen with an error page
+                            error = if (hadSelection) it.error else error.toAppError().toUserMessage()
                         )
                     }
                 }
@@ -300,11 +321,13 @@ class ClubDetailsViewModel(
             _state.update { it.copy(isOperationInProgress = true) }
             deleteClubUseCase(DeleteClubUseCase.Params(clubId), role)
                 .onSuccess {
+                    currentClubId = null
                     _state.update {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             deletedClubId = clubId,
+                            selectedClubId = null,
                             operationResult = OperationResult.Success("Club deleted")
                         )
                     }
@@ -837,11 +860,13 @@ class ClubDetailsViewModel(
             _state.update { it.copy(isOperationInProgress = true) }
             leaveClubUseCase(LeaveClubUseCase.Params(memberId, clubId), role)
                 .onSuccess {
+                    currentClubId = null
                     _state.update {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             leftClubId = clubId,
+                            selectedClubId = null,
                             operationResult = OperationResult.Success("Left club")
                         )
                     }

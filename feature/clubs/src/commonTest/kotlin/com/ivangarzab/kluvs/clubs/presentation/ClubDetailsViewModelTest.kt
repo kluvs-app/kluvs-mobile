@@ -71,6 +71,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDateTime
@@ -1428,5 +1431,110 @@ class ClubDetailsViewModelTest {
         viewModel.onDeleteDiscussionNote("d1")
 
         verifySuspend(VerifyMode.not) { discussionNoteRepository.deleteNote(any()) }
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-322: club list reloads must not override the user's selection
+    // -------------------------------------------------------------------------
+
+    private fun twoClubsMember(userId: String = "u1"): Member {
+        val clubA = Club(id = "club-a", name = "Club A", members = emptyList())
+        val clubB = Club(id = "club-b", name = "Club B", members = emptyList())
+        everySuspend { clubRepository.getClub("club-a") } returns Result.success(clubA)
+        everySuspend { clubRepository.getClub("club-b") } returns Result.success(clubB)
+        everySuspend { clubRepository.getClub("club-a", null, true) } returns Result.success(clubA)
+        everySuspend { clubRepository.getClub("club-b", null, true) } returns Result.success(clubB)
+        return Member(id = "m1", userId = userId, name = "Alice", clubs = listOf(clubA, clubB))
+    }
+
+    @Test
+    fun `loadUserClubs keeps the selected club when it is still in the list`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+        viewModel.loadUserClubs("u1") // tab re-entry
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+    }
+
+    @Test
+    fun `selectClub during an in-flight loadUserClubs wins over the auto-select`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } calls {
+            delay(1_000)
+            Result.success(member)
+        }
+
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b") // user taps B while the list is still loading
+        advanceUntilIdle()
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+        assertEquals(2, viewModel.state.value.availableClubs.size)
+    }
+
+    @Test
+    fun `a newer loadUserClubs cancels the older one so the latest list wins`() = runTest {
+        val staleMember = Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(Club(id = "club-old", name = "Old")))
+        val freshMember = twoClubsMember()
+        var calls = 0
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } calls {
+            if (calls++ == 0) { delay(1_000); Result.success(staleMember) } else Result.success(freshMember)
+        }
+
+        viewModel.loadUserClubs("u1")
+        viewModel.loadUserClubs("u1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("club-a", "club-b"), viewModel.state.value.availableClubs.map { it.id })
+        assertEquals("club-a", viewModel.state.value.selectedClubId)
+        verifySuspend(VerifyMode.not) { clubRepository.getClub("club-old") }
+    }
+
+    @Test
+    fun `loadUserClubs falls back to the first club when the selection is gone from the list`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+
+        val onlyA = member.copy(clubs = member.clubs!!.filter { it.id == "club-a" })
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(onlyA)
+        viewModel.loadUserClubs("u1")
+
+        assertEquals("club-a", viewModel.state.value.selectedClubId)
+        assertEquals("Club A", viewModel.state.value.currentClubDetails?.clubName)
+    }
+
+    @Test
+    fun `loadUserClubs with forceRefresh reloads the selected club rather than the first one`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+
+        viewModel.loadUserClubs("u1", forceRefresh = true)
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+    }
+
+    @Test
+    fun `loadUserClubs does not show the loader or an error over a club already on screen`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.failure(Exception("offline"))
+        viewModel.loadUserClubs("u1")
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+        assertEquals(false, viewModel.state.value.isLoading)
+        assertEquals(null, viewModel.state.value.error)
     }
 }
