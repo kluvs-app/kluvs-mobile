@@ -91,6 +91,10 @@ extension Color {
     public static let statusDanger = Color(hex: 0xEF4444)
     public static let statusDangerHover = Color(hex: 0xDC2626)
     public static let statusSuccess = Color(hex: 0x48A480)
+    /// Deep wine — the offline banner fill. Same on dark and light; a state, never used for danger.
+    public static let statusWine = Color(hex: 0x4F000C)
+    /// Cream text on `statusWine` (13.5:1). Fixed on both themes — does not invert like the warm foreground does.
+    public static let statusOnWine = Color(hex: 0xF2EDE5)
     /// Pressed "yes" segment background in AttendanceControl.
     public static let statusSuccessSubtle = Color(hex: 0x48A480, alpha: 0.15)
     /// Pressed "no" segment background in AttendanceControl.
