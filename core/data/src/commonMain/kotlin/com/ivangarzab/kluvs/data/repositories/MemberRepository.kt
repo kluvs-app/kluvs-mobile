@@ -223,8 +223,19 @@ internal class MemberRepositoryImpl(
         // MemberDto (basic info only, fields like name/handle may be null), which would
         // corrupt the shared memberDao used by ClubLocalDataSource to load club members.
         // Fresh data is fetched via a force-refresh of club data after the mutation completes.
+        // We can still keep the cache honest without writing that partial response: drop links to
+        // clubs the member left or was removed from (so club rosters and the member's club list
+        // stop showing them), and mark the member stale so the next read refetches it.
         result
-            .onSuccess { member -> Bark.i("Member updated (ID: ${member.id})") }
+            .onSuccess { member ->
+                Bark.i("Member updated (ID: ${member.id})")
+                try {
+                    clubIds?.let { memberLocalDataSource.removeClubMembershipsExcept(memberId, it) }
+                    memberLocalDataSource.markStale(memberId)
+                } catch (e: Exception) {
+                    Bark.e("Failed to invalidate cache for member (ID: $memberId). Pull to refresh will correct it.", e)
+                }
+            }
             .onFailure { error -> Bark.e("Member update failed. Verify input and retry.", error) }
 
         return result

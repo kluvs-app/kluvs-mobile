@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.JoinPolicy
@@ -93,6 +94,7 @@ interface ClubRepository {
 internal class ClubRepositoryImpl(
     private val clubRemoteDataSource: ClubRemoteDataSource,
     private val clubLocalDataSource: ClubLocalDataSource,
+    private val memberLocalDataSource: MemberLocalDataSource,
     private val cachePolicy: CachePolicy
 ) : ClubRepository {
 
@@ -153,7 +155,12 @@ internal class ClubRepositoryImpl(
                 serverId = serverId,
                 discordChannel = discordChannel
             )
-        )
+        ).onSuccess { club ->
+            // The creator's cached club list doesn't include the new club yet
+            invalidate("creator member (ID: $creatorMemberId) after creating club (ID: ${club.id})") {
+                memberLocalDataSource.markStale(creatorMemberId)
+            }
+        }
     }
 
     override suspend fun updateClub(
@@ -176,8 +183,27 @@ internal class ClubRepositoryImpl(
                     }
                 }
             )
-        )
+        ).onSuccess {
+            // The update response is partial (no members or session), so caching it would wipe
+            // the club's relationships. Mark it stale so the next read refetches it instead.
+            invalidate("club (ID: $clubId) after update") { clubLocalDataSource.markStale(clubId) }
+        }
 
     override suspend fun deleteClub(clubId: String, serverId: String?): Result<String> =
-        clubRemoteDataSource.deleteClub(clubId, serverId)
+        clubRemoteDataSource.deleteClub(clubId, serverId).onSuccess {
+            invalidate("club (ID: $clubId) after deletion") { clubLocalDataSource.deleteClub(clubId) }
+        }
+
+    /**
+     * Runs a post-mutation cache cleanup. The mutation already succeeded remotely, so a cache
+     * failure is logged rather than surfaced; the next forced refresh corrects the cache.
+     */
+    private suspend fun invalidate(what: String, block: suspend () -> Unit) {
+        try {
+            block()
+            Bark.v("Invalidated cache for $what")
+        } catch (e: Exception) {
+            Bark.e("Failed to invalidate cache for $what. Pull to refresh will correct it.", e)
+        }
+    }
 }

@@ -9,6 +9,10 @@ import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.Member
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
+import dev.mokkery.matcher.matching
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -187,4 +191,62 @@ class MemberLocalDataSourceTest {
         createdAt = null,
         lastFetchedAt = 0
     )
+
+    // ========================================
+    // KT-321: REPLACE SEMANTICS
+    // ========================================
+
+    @Test
+    fun `insertMember replaces the member's club links`() = runTest {
+        setup()
+        val member = Member(id = "member-1", name = "Alice", clubs = listOf(Club("club-2", "Sci-Fi Club")))
+
+        dataSource.insertMember(member)
+
+        verifySuspend(VerifyMode.order) {
+            fixture.memberDao.deleteCrossRefsForMember("member-1")
+            fixture.memberDao.insertClubMemberCrossRefs(matching { refs -> refs.map { it.clubId } == listOf("club-2") })
+        }
+    }
+
+    @Test
+    fun `insertMember with an empty club list removes every link`() = runTest {
+        setup()
+
+        dataSource.insertMember(Member(id = "member-1", name = "Alice", clubs = emptyList()))
+
+        verifySuspend { fixture.memberDao.deleteCrossRefsForMember("member-1") }
+    }
+
+    @Test
+    fun `insertMember with null clubs leaves links alone`() = runTest {
+        setup()
+
+        dataSource.insertMember(Member(id = "member-1", name = "Alice", clubs = null))
+
+        verifySuspend(VerifyMode.not) { fixture.memberDao.deleteCrossRefsForMember(any()) }
+    }
+
+    @Test
+    fun `removeClubMembershipsExcept drops only links to clubs not kept`() = runTest {
+        setup()
+        everySuspend { fixture.memberDao.getClubMemberCrossRefsForMember("member-1") } returns listOf(
+            ClubMemberCrossRef("club-1", "member-1", "member"),
+            ClubMemberCrossRef("club-2", "member-1", "member")
+        )
+
+        dataSource.removeClubMembershipsExcept("member-1", listOf("club-2"))
+
+        verifySuspend { fixture.memberDao.deleteClubMemberCrossRef("club-1", "member-1") }
+        verifySuspend(VerifyMode.not) { fixture.memberDao.deleteClubMemberCrossRef("club-2", any()) }
+    }
+
+    @Test
+    fun `markStale resets the member's freshness`() = runTest {
+        setup()
+
+        dataSource.markStale("member-1")
+
+        verifySuspend { fixture.memberDao.markStale("member-1") }
+    }
 }

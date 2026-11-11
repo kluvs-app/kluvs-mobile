@@ -10,6 +10,7 @@ import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -39,6 +40,8 @@ class MemberRepositoryTest {
         everySuspend { localDataSource.getLastFetchedAt(any()) } returns null
         everySuspend { localDataSource.insertMember(any()) } returns Unit
         everySuspend { localDataSource.deleteMember(any()) } returns Unit
+        everySuspend { localDataSource.removeClubMembershipsExcept(any(), any()) } returns Unit
+        everySuspend { localDataSource.markStale(any()) } returns Unit
     }
 
     // ========================================
@@ -409,5 +412,40 @@ class MemberRepositoryTest {
 
         assertTrue(result.isFailure)
         verifySuspend { remoteDataSource.deleteMember(memberId) }
+    }
+
+    // ========================================
+    // CACHE INVALIDATION ON UPDATE
+    // ========================================
+
+    @Test
+    fun `updateMember with clubIds prunes dropped club links and marks member stale`() = runTest {
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(Member(id = "123", name = "M"))
+
+        repository.updateMember(memberId = "123", clubIds = listOf("club-1"))
+
+        verifySuspend { localDataSource.removeClubMembershipsExcept("123", listOf("club-1")) }
+        verifySuspend { localDataSource.markStale("123") }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.insertMember(any()) }
+    }
+
+    @Test
+    fun `updateMember without clubIds keeps club links but marks member stale`() = runTest {
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(Member(id = "123", name = "M"))
+
+        repository.updateMember(memberId = "123", name = "New")
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
+        verifySuspend { localDataSource.markStale("123") }
+    }
+
+    @Test
+    fun `updateMember failure does not touch the cache`() = runTest {
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.failure(Exception("boom"))
+
+        repository.updateMember(memberId = "123", clubIds = emptyList())
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
     }
 }

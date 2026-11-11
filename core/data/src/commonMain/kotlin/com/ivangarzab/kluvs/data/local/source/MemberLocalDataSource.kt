@@ -21,6 +21,12 @@ interface MemberLocalDataSource {
     suspend fun insertClubMemberRelationship(clubId: String, memberId: String, role: String = "member")
     suspend fun deleteClubMemberRelationship(clubId: String, memberId: String)
     suspend fun deleteMember(memberId: String)
+
+    /** Drops the member's links to any club not in [clubIds] (e.g. after leaving or being removed). */
+    suspend fun removeClubMembershipsExcept(memberId: String, clubIds: List<String>)
+
+    /** Keeps the cached member but forces the next non-forced read to refetch it. */
+    suspend fun markStale(memberId: String)
     suspend fun getLastFetchedAt(memberId: String): Long?
     suspend fun deleteAll()
 }
@@ -67,32 +73,26 @@ class MemberLocalDataSourceImpl(
 
     override suspend fun insertMember(member: Member) {
         Bark.v("Inserting member (ID: ${member.id}) into database")
-        // Insert the member entity
         try {
-            memberDao.insertMember(member.toEntity())
+            database.withTransaction {
+                memberDao.insertMember(member.toEntity())
 
-            // Insert club-member relationships, but DON'T cache club entities here.
-            // Club entities should only be cached by ClubRepository with complete data.
-            // We'll insert relationships only if the club already exists (ignore foreign key errors).
-            member.clubs?.let { clubs ->
-                Bark.v("Processing ${clubs.size} club relationships for member (ID: ${member.id})")
-                var successCount = 0
-                clubs.forEach { club ->
-                    try {
-                        memberDao.insertClubMemberCrossRef(
+                // Replace the member's club links (a null list means "not loaded", so leave them).
+                // Club entities themselves are cached by ClubRepository with complete data; a link
+                // to a club that isn't cached yet is harmless, since reads join on the clubs table.
+                member.clubs?.let { clubs ->
+                    Bark.v("Replacing ${clubs.size} club relationships for member (ID: ${member.id})")
+                    memberDao.deleteCrossRefsForMember(member.id)
+                    memberDao.insertClubMemberCrossRefs(
+                        clubs.map { club ->
                             ClubMemberCrossRef(
                                 clubId = club.id,
                                 memberId = member.id,
-                                role = club.role?.name?.lowercase() ?: "member" // Convert Role enum to string or default to "member"
+                                role = club.role?.name?.lowercase() ?: "member"
                             )
-                        )
-                        successCount++
-                    } catch (e: Exception) {
-                        // Ignore foreign key violations - club will be cached later by ClubRepository
-                        Bark.v("Skipping relationship for club (ID: ${club.id}) - not cached yet")
-                    }
+                        }
+                    )
                 }
-                Bark.v("Inserted $successCount/${clubs.size} relationships for member (ID: ${member.id})")
             }
         } catch (e: Exception) {
             Bark.e("Failed to insert member (ID: ${member.id}) into database. Retry on next sync.", e)
@@ -147,6 +147,25 @@ class MemberLocalDataSourceImpl(
                 throw e
             }
         }
+    }
+
+    override suspend fun removeClubMembershipsExcept(memberId: String, clubIds: List<String>) {
+        Bark.v("Pruning club relationships for member (ID: $memberId) to ${clubIds.size} clubs")
+        try {
+            database.withTransaction {
+                memberDao.getClubMemberCrossRefsForMember(memberId)
+                    .filter { it.clubId !in clubIds }
+                    .forEach { memberDao.deleteClubMemberCrossRef(it.clubId, memberId) }
+            }
+        } catch (e: Exception) {
+            Bark.e("Failed to prune club relationships for member (ID: $memberId). Retry on next sync.", e)
+            throw e
+        }
+    }
+
+    override suspend fun markStale(memberId: String) {
+        Bark.v("Marking member (ID: $memberId) stale")
+        memberDao.markStale(memberId)
     }
 
     override suspend fun getLastFetchedAt(memberId: String): Long? {

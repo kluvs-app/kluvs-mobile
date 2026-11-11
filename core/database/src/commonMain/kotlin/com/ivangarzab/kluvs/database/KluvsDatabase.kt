@@ -4,6 +4,8 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
 import com.ivangarzab.kluvs.database.dao.BookDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
@@ -44,6 +46,12 @@ interface KluvsDatabase {
     fun progressDao(): ProgressDao
     fun discussionNoteDao(): DiscussionNoteDao
     fun discussionAttendanceDao(): DiscussionAttendanceDao
+
+    /**
+     * Runs [block] inside a single write transaction. DAO calls made inside the block share the
+     * transaction, so a multi-table write either lands completely or not at all.
+     */
+    suspend fun <R> withTransaction(block: suspend () -> R): R
 }
 
 /**
@@ -84,6 +92,9 @@ abstract class KluvsDatabaseImpl : RoomDatabase(), KluvsDatabase {
     abstract override fun progressDao(): ProgressDao
     abstract override fun discussionNoteDao(): DiscussionNoteDao
     abstract override fun discussionAttendanceDao(): DiscussionAttendanceDao
+
+    override suspend fun <R> withTransaction(block: suspend () -> R): R =
+        useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
 }
 
 /**
