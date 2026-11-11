@@ -35,7 +35,10 @@ struct MainView: View {
 
                 OfflineBanner(
                     visible: connectivity.isOffline,
-                    text: "You're offline. Showing saved data."
+                    text: "You're offline. Showing saved data.",
+                    // Wine fill carries up under the status bar (as on Android); the icons are
+                    // forced light below so they stay readable on it in both themes.
+                    extendsUnderStatusBar: true
                 )
 
                 // Content area
@@ -54,13 +57,13 @@ struct MainView: View {
                 MaterialBottomNavBar(selectedTab: $selectedTab)
             }
             .background(Color.kluvsBackground)
-            .animation(OfflineBanner.animation, value: connectivity.isOffline)
             .ignoresSafeArea(edges: .bottom)
             .onChange(of: initialClubId) { _, newValue in
                 if newValue != nil { selectedTab = 1 }
             }
         }
         .ignoresSafeArea(.keyboard, edges: .all)
+        .lightStatusBar(connectivity.isOffline)
     }
 }
 

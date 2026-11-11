@@ -5,7 +5,9 @@
 //  iOS wrapper for shared ConnectivityCoordinator
 //
 import Swift
+import SwiftUI
 import Shared
+import DesignSystem
 
 @MainActor
 class ConnectivityCoordinatorWrapper: ObservableObject {
@@ -24,7 +26,12 @@ class ConnectivityCoordinatorWrapper: ObservableObject {
         cancellable = helper.observeIsOffline { [weak self] isOffline in
             let offline = isOffline.boolValue
             Task { @MainActor [weak self] in
-                self?.isOffline = offline
+                // Animate only this change. A container-wide `.animation(value:)` would also
+                // animate whatever else updates in the same moment (going offline makes screens
+                // re-render from cache), which is costly and looks busy.
+                withAnimation(OfflineBanner.animation) {
+                    self?.isOffline = offline
+                }
             }
         }
     }
