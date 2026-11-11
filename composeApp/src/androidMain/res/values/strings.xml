@@ -6,6 +6,7 @@
     <string name="clubs">Kluvs</string>
     <string name="me">Me</string>
     <string name="books">Books</string>
+    <string name="offline_banner">You\'re offline. Showing saved data.</string>
     <string name="your_shelf_title">Your Shelf</string>
     <string name="general">Overview</string>
     <string name="club_eyebrow">Club</string>

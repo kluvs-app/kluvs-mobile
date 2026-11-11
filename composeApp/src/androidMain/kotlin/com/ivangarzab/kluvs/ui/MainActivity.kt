@@ -31,6 +31,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.app.AppCoordinator
+import com.ivangarzab.kluvs.app.ConnectivityCoordinator
 import com.ivangarzab.kluvs.app.AutoJoinResult
 import com.ivangarzab.kluvs.app.NavigationState
 import com.ivangarzab.kluvs.app.PendingJoinCoordinator
@@ -99,7 +100,9 @@ fun MainNavHost(
 ) {
     val appCoordinator: AppCoordinator = koinViewModel()
     val pendingJoinCoordinator: PendingJoinCoordinator = koinViewModel()
+    val connectivityCoordinator: ConnectivityCoordinator = koinViewModel()
     val navState by appCoordinator.navigationState.collectAsState()
+    val isOffline by connectivityCoordinator.isOffline.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Only set on a successful auto-join after sign-in; consumed by the MAIN destination
@@ -196,6 +199,7 @@ fun MainNavHost(
                     MainScreen(
                         userId = userId,
                         initialClubId = autoJoinedClubId,
+                        isOffline = isOffline,
                         onNavigateToSettings = {
                             navController.navigate("${NavDestinations.SETTINGS}/$userId")
                         },
