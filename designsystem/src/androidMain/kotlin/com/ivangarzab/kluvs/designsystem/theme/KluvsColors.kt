@@ -35,6 +35,8 @@ data class KluvsColors(
     val dangerSubtle: Color,
     val success: Color,
     val successSubtle: Color,
+    val offline: Color,
+    val onOffline: Color,
 )
 
 val kluvsColorsDark = KluvsColors(
@@ -56,6 +58,8 @@ val kluvsColorsDark = KluvsColors(
     dangerSubtle = statusDangerSubtle,
     success = statusSuccess,
     successSubtle = statusSuccessSubtle,
+    offline = statusWine,
+    onOffline = statusOnWine,
 )
 
 val kluvsColorsLight = KluvsColors(
@@ -77,6 +81,8 @@ val kluvsColorsLight = KluvsColors(
     dangerSubtle = statusDangerSubtle,
     success = statusSuccess,
     successSubtle = statusSuccessSubtle,
+    offline = statusWine,
+    onOffline = statusOnWine,
 )
 
 val LocalKluvsColors = compositionLocalOf { kluvsColorsDark }

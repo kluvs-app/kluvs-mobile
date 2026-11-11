@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -31,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.app.AppCoordinator
+import com.ivangarzab.kluvs.app.ConnectivityCoordinator
 import com.ivangarzab.kluvs.app.AutoJoinResult
 import com.ivangarzab.kluvs.app.NavigationState
 import com.ivangarzab.kluvs.app.PendingJoinCoordinator
@@ -99,7 +101,12 @@ fun MainNavHost(
 ) {
     val appCoordinator: AppCoordinator = koinViewModel()
     val pendingJoinCoordinator: PendingJoinCoordinator = koinViewModel()
+    val connectivityCoordinator: ConnectivityCoordinator = koinViewModel()
     val navState by appCoordinator.navigationState.collectAsState()
+    // Lifecycle-aware on purpose: observing this is what keeps the background connectivity probe
+    // running, so it must stop when the app is no longer started (plain collectAsState would keep
+    // probing while backgrounded).
+    val isOffline by connectivityCoordinator.isOffline.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Only set on a successful auto-join after sign-in; consumed by the MAIN destination
@@ -196,6 +203,7 @@ fun MainNavHost(
                     MainScreen(
                         userId = userId,
                         initialClubId = autoJoinedClubId,
+                        isOffline = isOffline,
                         onNavigateToSettings = {
                             navController.navigate("${NavDestinations.SETTINGS}/$userId")
                         },

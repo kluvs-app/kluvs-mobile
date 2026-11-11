@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.di
 
 import com.ivangarzab.kluvs.app.AppCoordinator
+import com.ivangarzab.kluvs.app.ConnectivityCoordinator
 import com.ivangarzab.kluvs.app.PendingJoinCoordinator
 import com.ivangarzab.kluvs.auth.di.authFeatureModule
 import com.ivangarzab.kluvs.auth.di.coreAuthModule
@@ -52,4 +53,6 @@ private val appModule = module {
     singleOf(::AppCoordinator)
     // Singleton - survives navigation, needed to resume a join after sign-in
     singleOf(::PendingJoinCoordinator)
+    // Singleton - forwards connectivity state to the shell (offline banner)
+    singleOf(::ConnectivityCoordinator)
 }

@@ -87,6 +87,8 @@ import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.BookRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.ConnectivityRepository
+import com.ivangarzab.kluvs.data.repositories.ConnectivityRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.DiscussionNoteRepository
@@ -108,6 +110,7 @@ import com.ivangarzab.kluvs.data.repositories.SessionRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ShelfRepository
 import com.ivangarzab.kluvs.data.repositories.ShelfRepositoryImpl
 import com.ivangarzab.kluvs.database.KluvsDatabase
+import com.ivangarzab.kluvs.network.status.OfflineStatus
 import io.github.jan.supabase.SupabaseClient
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -167,6 +170,7 @@ val coreDataModule = module {
     single<JoinRemoteDataSource> { JoinRemoteDataSourceImpl(get<JoinService>()) }
 
     // Repositories
+    single<ConnectivityRepository> { ConnectivityRepositoryImpl(get<OfflineStatus>()) }
     single<AvatarRepository> { AvatarRepositoryImpl(get<AvatarRemoteDataSource>()) }
     single<BookRepository> {
         BookRepositoryImpl(
