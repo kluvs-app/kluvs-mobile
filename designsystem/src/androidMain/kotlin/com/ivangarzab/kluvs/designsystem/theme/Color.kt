@@ -81,6 +81,10 @@ val avatarStackOverflowBg = foregroundWarmDisabled
 val statusDanger = Color(0xFFEF4444)
 val statusDangerHover = Color(0xFFDC2626)
 val statusSuccess = Color(0xFF48A480)
+/** Deep wine — the offline banner fill. Same on dark and light; a state, never used for danger. */
+val statusWine = Color(0xFF4F000C)
+/** Cream text on [statusWine] (13.5:1). Fixed on both themes — does not invert like foregroundWarmPrimary. */
+val statusOnWine = Color(0xFFF2EDE5)
 /** rgba(72,164,128,0.15) — pressed "yes" segment background in AttendanceControl. */
 val statusSuccessSubtle = Color(0x2648A480)
 /** rgba(239,68,68,0.08) — pressed "no" segment background in AttendanceControl. */
