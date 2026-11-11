@@ -68,20 +68,25 @@ class MeViewModel(
                 errors.distinct().size == 1 -> errors.first() // All errors are identical
                 else -> "Multiple things went wrong. Please try again."
             }
+            // A profile that's already on screen is never replaced by an error page: a failed
+            // (re)load keeps the existing content and reports the failure through the snackbar.
+            val hadContent = _state.value.profile != null
             error?.let { e ->
-                Bark.e("Failed to fetch member details (ID: $userId). Serving cached data if available.", Exception(e))
+                Bark.e("Failed to fetch member details (ID: $userId). ${if (hadContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded member details (ID: $userId)")
 
-            // Update state with all results
+            // Update state with all results. When keeping content, each piece only changes if
+            // its fetch succeeded.
             val onYourShelf = shelfResult.getOrNull()
             _state.update {
                 it.copy(
                     isLoading = false,
-                    error = error,
-                    profile = profileResult.getOrNull(),
-                    statistics = statsResult.getOrNull(),
-                    shelf = onYourShelf?.shelf ?: emptyList(),
-                    upNext = onYourShelf?.upNext
+                    error = if (hadContent) null else error,
+                    snackbarError = if (hadContent && error != null) error else it.snackbarError,
+                    profile = profileResult.getOrNull() ?: if (hadContent) it.profile else null,
+                    statistics = statsResult.getOrNull() ?: if (hadContent) it.statistics else null,
+                    shelf = onYourShelf?.shelf ?: if (hadContent) it.shelf else emptyList(),
+                    upNext = if (onYourShelf != null) onYourShelf.upNext else if (hadContent) it.upNext else null
                 )
             }
         }

@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
@@ -133,11 +134,13 @@ internal class ClubRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Failed to cache club (ID: ${club.id}). Retry on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch club (ID: $clubId). Serving cached data if available.", error)
         }
 
-        return result
+        // Only a complete club (roster loaded) is safe to serve offline; an incidental row
+        // cached from a Member response would render as an empty club screen.
+        return result.recoverWithCache("club (ID: $clubId)") {
+            clubLocalDataSource.getClub(clubId)?.takeIf { it.members != null }
+        }
     }
 
     override suspend fun createClub(

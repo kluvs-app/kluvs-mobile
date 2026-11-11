@@ -396,4 +396,29 @@ class ClubRepositoryTest {
 
         verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getClub serves a complete cached club when the remote fetch fails`() = runTest {
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { remoteDataSource.getClub("club-123", null) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+
+        val result = repository.getClub("club-123", forceRefresh = true)
+
+        assertEquals(cached, result.getOrNull())
+    }
+
+    @Test
+    fun `getClub does not serve an incomplete cached club when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getClub("club-123", null) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getClub("club-123") } returns Club(id = "club-123", name = "Partial", members = null)
+
+        val result = repository.getClub("club-123")
+
+        assertTrue(result.isFailure)
+    }
 }

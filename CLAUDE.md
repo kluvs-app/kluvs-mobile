@@ -246,7 +246,7 @@ The data layer follows a clean architecture pattern (located in `:core:data`, ba
 3. **Repositories** (`core/data/.../repositories/`) - Abstract data access, cache-first via Room (`:core:database`)
    - Expose clean domain interfaces
    - **Local caching is implemented**, not just designed-for: repositories check Room first (unless `forceRefresh = true`, used by pull-to-refresh), serve cached data if present/complete/within its `CacheTTL` window, otherwise fetch remote and write back to Room
-   - On remote failure, repositories fall back to serving stale cached data if available rather than hard-failing
+   - On remote failure (including a forced refresh), cached repositories return the cached value even past its TTL via `recoverWithCache`, and only surface the error when nothing is cached (`ClubRepository` only for a complete club). The fallback is **silent**: callers get a normal success, so nothing tells the UI the data may be stale (no offline banner yet). `ClubDetailsViewModel`/`MeViewModel` keep on-screen content when a refresh fails with nothing cached and report it through a snackbar instead of an error page
    - "Complete" is meaningful here — e.g. a `Club` cached incidentally from a Member response (missing `members`) is treated as incomplete and triggers a real refresh rather than being served as-is
 
 ### Dependency Injection with Koin

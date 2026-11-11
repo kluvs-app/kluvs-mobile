@@ -48,6 +48,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import dev.mokkery.answering.calls
 import kotlinx.coroutines.delay
+import kotlin.test.assertNotNull
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDateTime
@@ -493,5 +494,26 @@ class MeViewModelTest {
 
         assertEquals("Fresh Name", viewModel.state.value.profile?.name)
         assertEquals(false, viewModel.state.value.isLoading)
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-323: a failed refresh never removes content from the screen
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `a failed refresh keeps the profile on screen and reports via snackbar`() = runTest {
+        val member = Member(id = "member-1", userId = "u1", name = "Alice", clubs = emptyList())
+        everySuspend { memberRepository.getMemberByUserId("u1", any()) } returns Result.success(member)
+        viewModel.loadUserData("u1")
+        assertEquals("Alice", viewModel.state.value.profile?.name)
+
+        everySuspend { memberRepository.getMemberByUserId("u1", any()) } returns Result.failure(Exception("offline"))
+        viewModel.refresh(forceRefresh = true)
+
+        val state = viewModel.state.value
+        assertEquals("Alice", state.profile?.name)
+        assertNull(state.error)
+        assertNotNull(state.snackbarError)
+        assertFalse(state.isLoading)
     }
 }

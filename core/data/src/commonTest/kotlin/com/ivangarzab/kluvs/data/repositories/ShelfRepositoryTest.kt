@@ -151,4 +151,31 @@ class ShelfRepositoryTest {
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is IllegalArgumentException)
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getShelf serves the cached shelf when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getShelf() } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getShelf() } returns listOf(testShelfEntry)
+
+        assertEquals(listOf(testShelfEntry), repository.getShelf(forceRefresh = true).getOrNull())
+    }
+
+    @Test
+    fun `getShelf with nothing cached returns the remote failure`() = runTest {
+        everySuspend { remoteDataSource.getShelf() } returns Result.failure(Exception("offline"))
+
+        assertTrue(repository.getShelf(forceRefresh = true).isFailure)
+    }
+
+    @Test
+    fun `getShelfStatus serves the cached status when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getShelfStatus(5) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getShelfEntry("5") } returns testShelfEntry
+
+        assertEquals(testShelfEntry.shelf, repository.getShelfStatus("5").getOrNull())
+    }
 }

@@ -120,4 +120,23 @@ class DiscussionNoteRepositoryTest {
         verifySuspend { remoteDataSource.deleteNote("note-1") }
         verifySuspend { localDataSource.deleteNote("note-1") }
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getNote serves the cached note when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getNote("discussion-1") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getNote("discussion-1") } returns testNote
+
+        assertEquals(testNote, repository.getNote("discussion-1").getOrNull())
+    }
+
+    @Test
+    fun `getNote with nothing cached returns the remote failure`() = runTest {
+        everySuspend { remoteDataSource.getNote("discussion-1") } returns Result.failure(Exception("offline"))
+
+        assertTrue(repository.getNote("discussion-1").isFailure)
+    }
 }

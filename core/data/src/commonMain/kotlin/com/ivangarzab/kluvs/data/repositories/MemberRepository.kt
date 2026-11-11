@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.api.models.MemberAssignableRoleDto
 import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
@@ -125,11 +126,9 @@ internal class MemberRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Member cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch member. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache("member (ID: $memberId)") { memberLocalDataSource.getMember(memberId) }
     }
 
     override suspend fun getMemberByUserId(userId: String, forceRefresh: Boolean): Result<Member> {
@@ -161,11 +160,9 @@ internal class MemberRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Member cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch member by user ID. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache("member (User ID: $userId)") { memberLocalDataSource.getMemberByUserId(userId) }
     }
 
     override suspend fun createMember(

@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.api.models.SessionBookPatchInputDto
 import com.ivangarzab.kluvs.api.models.SessionMemberFlagInputDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.SessionLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toDto
@@ -165,11 +166,9 @@ internal class SessionRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Session cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch session. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache("session (ID: $sessionId)") { sessionLocalDataSource.getSession(sessionId) }
     }
 
     override suspend fun createSession(

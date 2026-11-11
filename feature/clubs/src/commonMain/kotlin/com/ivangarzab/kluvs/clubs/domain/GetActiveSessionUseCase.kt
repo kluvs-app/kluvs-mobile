@@ -147,7 +147,7 @@ class GetMemberClubsUseCase(
             Bark.i("Loaded member clubs (Count: ${clubItems.size})")
             clubItems
         }.onFailure { error ->
-            Bark.e("Failed to fetch member clubs (User ID: $userId). User will see empty clubs list.", error)
+            Bark.e("Failed to fetch member clubs (User ID: $userId) and nothing was cached to fall back on.", error)
         }
     }
 

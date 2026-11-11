@@ -65,7 +65,7 @@ class ServerRemoteDataSourceImpl(
             Bark.i("Fetched all servers (count: ${servers.size})")
             Result.success(servers.map { it.toDomain() })
         } catch (e: Exception) {
-            Bark.e("Failed to fetch all servers. Serving cached data if available.", e)
+            Bark.e("Failed to fetch all servers.", e)
             Result.failure(e)
         }
     }
@@ -76,7 +76,7 @@ class ServerRemoteDataSourceImpl(
             Bark.i("Fetched server (ID: $serverId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch server (ID: $serverId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch server (ID: $serverId).", e)
             Result.failure(e)
         }
     }

@@ -225,4 +225,26 @@ class ServerRepositoryTest {
         assertTrue(result.isFailure)
         verifySuspend { remoteDataSource.deleteServer(serverId) }
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getServer serves the cached server when the remote fetch fails`() = runTest {
+        val cached = Server(id = "server-123", name = "Cached", clubs = emptyList())
+        everySuspend { remoteDataSource.getServer("server-123") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getServer("server-123") } returns cached
+
+        assertEquals(cached, repository.getServer("server-123", forceRefresh = true).getOrNull())
+    }
+
+    @Test
+    fun `getAllServers serves the cached servers when the remote fetch fails`() = runTest {
+        val cached = listOf(Server(id = "server-123", name = "Cached", clubs = emptyList()))
+        everySuspend { remoteDataSource.getAllServers() } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getAllServers() } returns cached
+
+        assertEquals(cached, repository.getAllServers().getOrNull())
+    }
 }

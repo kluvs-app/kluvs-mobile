@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ProgressCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ProgressUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ProgressLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toCreateDto
@@ -133,11 +134,11 @@ internal class ProgressRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Progress cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch progress entries. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache("progress entries") {
+            progressLocalDataSource.getProgress(bookId, sessionId, status?.name).takeIf { it.isNotEmpty() }
+        }
     }
 
     override suspend fun createProgress(

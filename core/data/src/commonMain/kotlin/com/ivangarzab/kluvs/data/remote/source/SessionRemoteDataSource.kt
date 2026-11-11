@@ -80,7 +80,7 @@ class SessionRemoteDataSourceImpl(
             Bark.i("Fetched session (ID: $sessionId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch session (ID: $sessionId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch session (ID: $sessionId).", e)
             Result.failure(e)
         }
     }

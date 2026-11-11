@@ -448,4 +448,33 @@ class MemberRepositoryTest {
         verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
         verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getMember serves the cached member when the remote fetch fails`() = runTest {
+        val cached = Member(id = "123", name = "Cached")
+        everySuspend { remoteDataSource.getMember("123") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getMember("123") } returns cached
+
+        assertEquals(cached, repository.getMember("123", forceRefresh = true).getOrNull())
+    }
+
+    @Test
+    fun `getMemberByUserId serves the cached member when the remote fetch fails`() = runTest {
+        val cached = Member(id = "123", name = "Cached", userId = "u1")
+        everySuspend { remoteDataSource.getMemberByUserId("u1") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getMemberByUserId("u1") } returns cached
+
+        assertEquals(cached, repository.getMemberByUserId("u1", forceRefresh = true).getOrNull())
+    }
+
+    @Test
+    fun `getMemberByUserId with nothing cached returns the remote failure`() = runTest {
+        everySuspend { remoteDataSource.getMemberByUserId("u1") } returns Result.failure(Exception("offline"))
+
+        assertTrue(repository.getMemberByUserId("u1", forceRefresh = true).isFailure)
+    }
 }
