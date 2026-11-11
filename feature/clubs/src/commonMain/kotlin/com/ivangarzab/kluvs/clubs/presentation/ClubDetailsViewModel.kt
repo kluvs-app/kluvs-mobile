@@ -316,7 +316,14 @@ class ClubDetailsViewModel(
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Club name updated") {
-            updateClubUseCase(UpdateClubUseCase.Params(clubId, newName), role)
+            updateClubUseCase(UpdateClubUseCase.Params(clubId, newName), role).onSuccess {
+                // The clubs list is only reloaded on tab entry, so patch the renamed row here
+                _state.update { state ->
+                    state.copy(availableClubs = state.availableClubs.map { club ->
+                        if (club.id == clubId) club.copy(name = newName) else club
+                    })
+                }
+            }
         }
     }
 
@@ -928,13 +935,13 @@ class ClubDetailsViewModel(
             val result = block()
             result
                 .onSuccess {
-                    _state.update {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Success(successMessage)
-                        )
-                    }
+                    // The success message shows right away, but the in-progress indicator stays
+                    // on until the follow-up refetch lands; otherwise the screen sits unchanged
+                    // (and looks like nothing happened) while the club reloads.
+                    _state.update { it.copy(operationResult = OperationResult.Success(successMessage)) }
                     refresh(forceRefresh = true)
+                    loadClubDataJob?.join()
+                    _state.update { it.copy(isOperationInProgress = false) }
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: $successMessage. ${error.message}", error)

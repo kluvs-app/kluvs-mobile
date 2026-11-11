@@ -1569,4 +1569,56 @@ class ClubDetailsViewModelTest {
         assertEquals(null, viewModel.state.value.currentClubDetails)
         assertNotNull(viewModel.state.value.error)
     }
+
+    // -------------------------------------------------------------------------
+    // KT-323 follow-ups: list row patch and in-progress indicator
+    // -------------------------------------------------------------------------
+
+    private fun ownedClub(clubId: String, name: String) = Club(
+        id = clubId, name = name, serverId = null, discordChannel = null,
+        members = emptyList(), activeSession = null, pastSessions = emptyList(),
+        shameList = emptyList(), role = Role.OWNER
+    )
+
+    @Test
+    fun `renaming the club updates its row in the clubs list`() = runTest {
+        val old = ownedClub("club-1", "Old Name")
+        val renamed = ownedClub("club-1", "New Name")
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
+            Result.success(Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(old)))
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(old)
+        everySuspend { clubRepository.getClub("club-1", forceRefresh = true) } returns Result.success(renamed)
+        everySuspend { clubRepository.updateClub(clubId = "club-1", name = "New Name") } returns Result.success(renamed)
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onUpdateClubName("New Name")
+
+        assertEquals(listOf("New Name"), viewModel.state.value.availableClubs.map { it.name })
+    }
+
+    @Test
+    fun `the in-progress indicator stays on until the post-mutation refetch finishes`() = runTest {
+        val old = ownedClub("club-1", "Old Name")
+        val renamed = ownedClub("club-1", "New Name")
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
+            Result.success(Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(old)))
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(old)
+        everySuspend { clubRepository.getClub("club-1", forceRefresh = true) } calls {
+            delay(1_000)
+            Result.success(renamed)
+        }
+        everySuspend { clubRepository.updateClub(clubId = "club-1", name = "New Name") } returns Result.success(renamed)
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onUpdateClubName("New Name")
+
+        // The success message is already visible, but the refetch is still running
+        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(true, viewModel.state.value.isOperationInProgress)
+
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.state.value.isOperationInProgress)
+        assertEquals("New Name", viewModel.state.value.currentClubDetails?.clubName)
+    }
 }
