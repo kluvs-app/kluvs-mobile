@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.network.di
 
 import com.ivangarzab.kluvs.network.BuildKonfig
+import com.ivangarzab.kluvs.network.status.ConnectivityProbe
 import com.ivangarzab.kluvs.network.status.OfflineStatus
 import com.ivangarzab.kluvs.network.status.OfflineStatusPlugin
 import io.github.jan.supabase.SupabaseClient
@@ -13,7 +14,7 @@ import org.koin.dsl.module
 
 @OptIn(SupabaseInternal::class)
 val coreNetworkModule = module {
-    single { OfflineStatus() }
+    single { OfflineStatus(probe = ConnectivityProbe()) }
 
     single<SupabaseClient> {
         val offlineStatus = get<OfflineStatus>()
