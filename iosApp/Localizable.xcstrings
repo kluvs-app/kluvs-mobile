@@ -581,6 +581,28 @@
         }
       }
     },
+    "error_apple_sign_in_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple didn’t work. Please try again."
+          }
+        }
+      }
+    },
+    "error_apple_sign_in_icloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make sure you’re signed in to iCloud and try again."
+          }
+        }
+      }
+    },
     "error_authentication_failed" : {
       "extractionState" : "manual",
       "localizations" : {
