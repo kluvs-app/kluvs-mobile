@@ -6,6 +6,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.join.domain.JoinClubUseCase
 import com.ivangarzab.kluvs.join.domain.PreviewInviteUseCase
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -88,7 +89,7 @@ class JoinViewModel(
                 .onFailure { error ->
                     Bark.e("Failed to join club", error)
                     _state.update {
-                        it.copy(isJoining = false, joinError = error.message ?: "Failed to join club")
+                        it.copy(isJoining = false, joinError = error.toDisplayMessage())
                     }
                 }
         }

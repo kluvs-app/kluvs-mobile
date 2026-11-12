@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.clubs.domain
 
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.model.UserFacingException
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -78,7 +79,7 @@ class RemoveMemberUseCaseTest {
         val result = useCase(selfParams, Role.OWNER)
 
         assertTrue(result.isFailure)
-        assertIs<IllegalArgumentException>(result.exceptionOrNull())
+        assertIs<UserFacingException>(result.exceptionOrNull())
         verifySuspend(mode = VerifyMode.not) { memberRepository.removeMemberFromClub("m1", "club-1") }
     }
 

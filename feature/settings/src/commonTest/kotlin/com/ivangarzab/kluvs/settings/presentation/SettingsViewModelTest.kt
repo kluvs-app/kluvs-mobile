@@ -174,7 +174,7 @@ class SettingsViewModelTest {
     @Test
     fun `loadProfile failure sets error state`() = runTest {
         // Given
-        val exception = Exception("Member not found")
+        val exception = AppError.ServerError
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.failure(exception)
 
         // When
@@ -183,7 +183,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isLoading)
-        assertEquals("Member not found", state.error)
+        assertEquals("Something went wrong on our end. Please try again.", state.error)
         assertNull(state.profile)
     }
 
@@ -465,7 +465,7 @@ class SettingsViewModelTest {
     fun `uploadAvatar handles upload failure`() = runTest {
         // Given: profile loaded
         val imageData = ByteArray(100)
-        val exception = Exception("Upload failed")
+        val exception = AppError.NoConnection
 
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
@@ -479,7 +479,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isUploadingAvatar)
-        assertEquals("Upload failed", state.avatarError)
+        assertEquals("Check your connection and try again.", state.avatarError)
     }
 
     @Test

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.repositories.JoinRepository
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -58,7 +59,7 @@ class PendingJoinCoordinator(
                         }
                         .onFailure { error ->
                             Bark.e("Auto-join after sign-in failed", error)
-                            _autoJoinResult.emit(AutoJoinResult.Failure(error.message))
+                            _autoJoinResult.emit(AutoJoinResult.Failure(error.toDisplayMessage()))
                         }
                 }
             }

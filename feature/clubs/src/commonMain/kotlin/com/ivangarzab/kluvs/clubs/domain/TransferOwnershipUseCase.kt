@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.model.UserFacingException
 
 /**
  * UseCase for transferring club ownership from the signed-in owner to another member.
@@ -33,7 +34,7 @@ class TransferOwnershipUseCase(
 
     override suspend fun execute(params: Params): Result<Member> {
         if (params.newOwnerId == params.currentOwnerId) {
-            return Result.failure(IllegalArgumentException("Already the owner"))
+            return Result.failure(UserFacingException("Already the owner"))
         }
 
         Bark.d("Transferring club ownership (Club ID: ${params.clubId}, New Owner: ${params.newOwnerId})")

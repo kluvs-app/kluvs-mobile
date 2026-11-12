@@ -8,6 +8,7 @@ import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
 import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.LikeRepository
 import com.ivangarzab.kluvs.data.repositories.ShelfRepository
+import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.BookSearchResult
 import com.ivangarzab.kluvs.model.ShelfEntry
@@ -237,13 +238,13 @@ class BooksViewModelTest {
 
     @Test
     fun `onAssignShelf sets operationError on failure`() = runTest {
-        everySuspend { shelfRepository.assignShelf(any(), any()) } returns Result.failure(Exception("Update failed"))
+        everySuspend { shelfRepository.assignShelf(any(), any()) } returns Result.failure(AppError.NoConnection)
 
         viewModel.onAssignShelf("42", ShelfStatus.READ)
 
         val state = viewModel.state.value
         assertTrue(!state.isMutationInProgress)
-        assertEquals("Update failed", state.operationError)
+        assertEquals("Check your connection and try again.", state.operationError)
     }
 
     @Test
@@ -260,12 +261,12 @@ class BooksViewModelTest {
 
     @Test
     fun `onRemoveFromShelf sets operationError on failure`() = runTest {
-        everySuspend { shelfRepository.removeFromShelf(any()) } returns Result.failure(Exception("Remove failed"))
+        everySuspend { shelfRepository.removeFromShelf(any()) } returns Result.failure(AppError.NoConnection)
 
         viewModel.onRemoveFromShelf("42")
 
         val state = viewModel.state.value
-        assertEquals("Remove failed", state.operationError)
+        assertEquals("Check your connection and try again.", state.operationError)
     }
 
     // ---- like ----
@@ -301,7 +302,7 @@ class BooksViewModelTest {
 
     @Test
     fun `onConsumeOperationError clears operationError`() = runTest {
-        everySuspend { shelfRepository.assignShelf(any(), any()) } returns Result.failure(Exception("Update failed"))
+        everySuspend { shelfRepository.assignShelf(any(), any()) } returns Result.failure(AppError.NoConnection)
         viewModel.onAssignShelf("42", ShelfStatus.READ)
 
         viewModel.onConsumeOperationError()

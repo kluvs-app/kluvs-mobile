@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.data.repositories.JoinRepository
 import com.ivangarzab.kluvs.join.domain.JoinClubUseCase
 import com.ivangarzab.kluvs.join.domain.PreviewInviteUseCase
+import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.ClubPreview
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -119,7 +120,7 @@ class JoinViewModelTest {
     fun `onJoinClicked failure surfaces error message`() = runTest {
         isAuthenticatedFlow.value = true
         val viewModel = createViewModel()
-        everySuspend { joinRepository.joinClub("token-1") } returns Result.failure(Exception("Already a member"))
+        everySuspend { joinRepository.joinClub("token-1") } returns Result.failure(AppError.Conflict("Already a member"))
 
         viewModel.onTokenChanged("token-1")
         viewModel.onJoinClicked()

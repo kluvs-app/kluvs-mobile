@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.JoinPolicy
+import com.ivangarzab.kluvs.model.UserFacingException
 
 /**
  * UseCase for rotating a club's active invite token.
@@ -56,4 +57,4 @@ class RotateInviteLinkUseCase(
  * leaving the club deactivated (PRIVATE) rather than in its original INVITE_LINK state.
  */
 class RotateInviteLinkException(cause: Throwable) :
-    Exception("Invite link deactivated but rotation failed — try again", cause)
+    UserFacingException("Invite link deactivated but rotation failed — try again", cause)

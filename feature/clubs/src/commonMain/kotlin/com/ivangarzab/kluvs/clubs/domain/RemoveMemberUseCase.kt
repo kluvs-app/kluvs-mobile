@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.clubs.domain
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.model.UserFacingException
 
 /**
  * UseCase for removing (kicking) a member from a club.
@@ -32,7 +33,7 @@ class RemoveMemberUseCase(
 
     override suspend fun execute(params: Params): Result<Unit> {
         if (params.memberId == params.currentMemberId) {
-            return Result.failure(IllegalArgumentException("Cannot remove yourself from the club"))
+            return Result.failure(UserFacingException("Cannot remove yourself from the club"))
         }
 
         Bark.d("Removing member from club (Member ID: ${params.memberId}, Club ID: ${params.clubId})")
