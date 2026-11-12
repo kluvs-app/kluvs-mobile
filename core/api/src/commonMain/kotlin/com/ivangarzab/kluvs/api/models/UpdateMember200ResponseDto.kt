@@ -17,6 +17,7 @@ package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.MemberAddToClubResponseDto
 import com.ivangarzab.kluvs.api.models.MemberDto
+import com.ivangarzab.kluvs.api.models.MemberRemoveFromClubResponseDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateResponseDto
 
 import kotlinx.serialization.*
