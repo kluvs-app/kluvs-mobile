@@ -48,6 +48,14 @@ interface MemberRemoteDataSource {
     suspend fun updateMember(request: MemberUpdateRequestDto): Result<Member>
 
     /**
+     * Removes a member from a single club (the club's owner/admin acting on someone else).
+     *
+     * Does not touch the member's other clubs. Fails if the server rejects the removal
+     * (e.g. 403 for insufficient role, 400 for the club owner).
+     */
+    suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit>
+
+    /**
      * Deletes a member by ID.
      *
      * Returns success message on successful deletion.
@@ -101,6 +109,23 @@ class MemberRemoteDataSourceImpl(
             Result.success(member.toDomain())
         } catch (e: Exception) {
             Bark.e("Failed to update member (ID: ${request.id}). Please retry.", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit> {
+        val memberIdInt = memberId.toIntOrNull()
+            ?: return Result.failure(IllegalArgumentException("Invalid member ID: $memberId"))
+        return try {
+            val response = memberService.removeFromClub(memberIdInt, clubId)
+            if (response.success == true) {
+                Bark.i("Member removed from club (Member ID: $memberId, Club ID: $clubId)")
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Remove from club failed (Member ID: $memberId, Club ID: $clubId)"))
+            }
+        } catch (e: Exception) {
+            Bark.e("Failed to remove member from club (Member ID: $memberId, Club ID: $clubId). Please retry.", e)
             Result.failure(e)
         }
     }

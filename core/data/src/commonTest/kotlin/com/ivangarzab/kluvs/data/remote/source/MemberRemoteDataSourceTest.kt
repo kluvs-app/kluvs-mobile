@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberCreateResponseDto
 import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
+import com.ivangarzab.kluvs.api.models.MemberRemoveFromClubResponseDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateResponseDto
 import com.ivangarzab.kluvs.data.remote.api.MemberService
@@ -267,5 +268,56 @@ class MemberRemoteDataSourceTest {
         assertTrue(result.exceptionOrNull()?.message?.contains("Cannot delete member") == true)
 
         verifySuspend { memberService.delete("1") }
+    }
+
+    // ========================================
+    // REMOVE FROM CLUB
+    // ========================================
+
+    @Test
+    fun `removeMemberFromClub success returns Unit and sends int member id`() = runTest {
+        everySuspend { memberService.removeFromClub(5, "club-1") } returns
+            MemberRemoveFromClubResponseDto(success = true, memberId = 5, clubId = "club-1")
+
+        val result = dataSource.removeMemberFromClub("5", "club-1")
+
+        assertTrue(result.isSuccess)
+        verifySuspend { memberService.removeFromClub(5, "club-1") }
+    }
+
+    @Test
+    fun `removeMemberFromClub does not require a member in the response`() = runTest {
+        // The remove_from_club response is { success, member_id, club_id } with no `member`;
+        // reusing updateMember's "response.member ?: error(...)" would wrongly fail this.
+        everySuspend { memberService.removeFromClub(5, "club-1") } returns
+            MemberRemoveFromClubResponseDto(success = true)
+
+        assertTrue(dataSource.removeMemberFromClub("5", "club-1").isSuccess)
+    }
+
+    @Test
+    fun `removeMemberFromClub with success not true returns failure`() = runTest {
+        everySuspend { memberService.removeFromClub(5, "club-1") } returns
+            MemberRemoveFromClubResponseDto(success = false)
+
+        assertTrue(dataSource.removeMemberFromClub("5", "club-1").isFailure)
+    }
+
+    @Test
+    fun `removeMemberFromClub wraps service exception in failure`() = runTest {
+        everySuspend { memberService.removeFromClub(5, "club-1") } throws Exception("Forbidden")
+
+        val result = dataSource.removeMemberFromClub("5", "club-1")
+
+        assertTrue(result.isFailure)
+        assertEquals("Forbidden", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `removeMemberFromClub with non-numeric member id fails without calling the service`() = runTest {
+        val result = dataSource.removeMemberFromClub("not-a-number", "club-1")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
     }
 }

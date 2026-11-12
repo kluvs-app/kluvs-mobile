@@ -1,14 +1,16 @@
 package com.ivangarzab.kluvs.clubs.domain
 
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
-import com.ivangarzab.kluvs.model.Club
-import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.Role
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -16,14 +18,6 @@ class RemoveMemberUseCaseTest {
 
     private val memberRepository = mock<MemberRepository>()
     private val useCase = RemoveMemberUseCase(memberRepository)
-
-    private val targetClub = Club(id = "club-1", name = "Test Club")
-    private val otherClub = Club(id = "club-2", name = "Other Club")
-    private val targetMember = Member(
-        id = "m2", userId = "u2", name = "Bob", booksRead = 0,
-        clubs = listOf(targetClub, otherClub)
-    )
-    private val updatedMember = targetMember.copy(clubs = listOf(otherClub))
 
     private val params = RemoveMemberUseCase.Params(
         memberId = "m2",
@@ -33,26 +27,26 @@ class RemoveMemberUseCaseTest {
 
     @Test
     fun `invoke succeeds when OWNER removes another member`() = runTest {
-        everySuspend { memberRepository.getMember("m2") } returns Result.success(targetMember)
-        everySuspend { memberRepository.updateMember(memberId = "m2", clubIds = listOf("club-2")) } returns
-            Result.success(updatedMember)
+        everySuspend { memberRepository.removeMemberFromClub("m2", "club-1") } returns Result.success(Unit)
 
         val result = useCase(params, Role.OWNER)
 
         assertTrue(result.isSuccess)
+        verifySuspend { memberRepository.removeMemberFromClub("m2", "club-1") }
     }
 
     @Test
-    fun `invoke strips only the target club from member clubs`() = runTest {
-        everySuspend { memberRepository.getMember("m2") } returns Result.success(targetMember)
-        everySuspend { memberRepository.updateMember(memberId = "m2", clubIds = listOf("club-2")) } returns
-            Result.success(updatedMember)
+    fun `invoke removes from the target club only and never rewrites the member clubs`() = runTest {
+        everySuspend { memberRepository.removeMemberFromClub("m2", "club-1") } returns Result.success(Unit)
 
-        val result = useCase(params, Role.OWNER)
+        useCase(params, Role.OWNER)
 
-        assertTrue(result.isSuccess)
-        // The other club is preserved
-        assertTrue(result.getOrThrow().clubs?.any { it.id == "club-2" } == true)
+        // The old flow fetched the member and replaced their club list (403 for non-owners of
+        // the target record). Neither call may happen any more.
+        verifySuspend(mode = VerifyMode.not) { memberRepository.getMember(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) {
+            memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any())
+        }
     }
 
     @Test
@@ -61,6 +55,7 @@ class RemoveMemberUseCaseTest {
 
         assertTrue(result.isFailure)
         assertIs<UnauthorizedException>(result.exceptionOrNull())
+        verifySuspend(mode = VerifyMode.not) { memberRepository.removeMemberFromClub("m2", "club-1") }
     }
 
     @Test
@@ -69,6 +64,7 @@ class RemoveMemberUseCaseTest {
 
         assertTrue(result.isFailure)
         assertIs<UnauthorizedException>(result.exceptionOrNull())
+        verifySuspend(mode = VerifyMode.not) { memberRepository.removeMemberFromClub("m2", "club-1") }
     }
 
     @Test
@@ -83,26 +79,17 @@ class RemoveMemberUseCaseTest {
 
         assertTrue(result.isFailure)
         assertIs<IllegalArgumentException>(result.exceptionOrNull())
+        verifySuspend(mode = VerifyMode.not) { memberRepository.removeMemberFromClub("m1", "club-1") }
     }
 
     @Test
-    fun `invoke propagates fetch failure`() = runTest {
-        everySuspend { memberRepository.getMember("m2") } returns
-            Result.failure(RuntimeException("Not found"))
+    fun `invoke propagates repository failure`() = runTest {
+        everySuspend { memberRepository.removeMemberFromClub("m2", "club-1") } returns
+            Result.failure(RuntimeException("Forbidden"))
 
         val result = useCase(params, Role.OWNER)
 
         assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun `invoke propagates update failure`() = runTest {
-        everySuspend { memberRepository.getMember("m2") } returns Result.success(targetMember)
-        everySuspend { memberRepository.updateMember(memberId = "m2", clubIds = listOf("club-2")) } returns
-            Result.failure(RuntimeException("Server error"))
-
-        val result = useCase(params, Role.OWNER)
-
-        assertTrue(result.isFailure)
+        assertEquals("Forbidden", result.exceptionOrNull()?.message)
     }
 }

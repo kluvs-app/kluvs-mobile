@@ -77,6 +77,19 @@ interface MemberRepository {
     ): Result<Member>
 
     /**
+     * Removes a member from one club, leaving their other club memberships untouched.
+     *
+     * Authorized by the caller's role in [clubId] (owner/admin), not by owning the target
+     * member's record, so it works for removing someone else. On success the cached
+     * (club, member) link is dropped so rosters stop showing the member immediately.
+     *
+     * @param memberId The ID of the member to remove
+     * @param clubId The ID of the club to remove them from
+     * @return Result of the removal; failure carries the server's rejection (e.g. 403/400)
+     */
+    suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit>
+
+    /**
      * Deletes a member by their ID.
      *
      * @param memberId The ID of the member to delete
@@ -234,6 +247,26 @@ internal class MemberRepositoryImpl(
                 }
             }
             .onFailure { error -> Bark.e("Member update failed. Verify input and retry.", error) }
+
+        return result
+    }
+
+    override suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit> {
+        Bark.d("Removing member from club (Member ID: $memberId, Club ID: $clubId)")
+        val result = memberRemoteDataSource.removeMemberFromClub(memberId, clubId)
+
+        // Keep the cache honest: drop only this (club, member) link and mark the member stale
+        // so the next read refetches. Never touches the member's other clubs.
+        result
+            .onSuccess {
+                try {
+                    memberLocalDataSource.deleteClubMemberRelationship(clubId, memberId)
+                    memberLocalDataSource.markStale(memberId)
+                } catch (e: Exception) {
+                    Bark.e("Failed to update cache after removing member (ID: $memberId) from club (ID: $clubId). Pull to refresh will correct it.", e)
+                }
+            }
+            .onFailure { error -> Bark.e("Failed to remove member from club. Verify permissions and retry.", error) }
 
         return result
     }
