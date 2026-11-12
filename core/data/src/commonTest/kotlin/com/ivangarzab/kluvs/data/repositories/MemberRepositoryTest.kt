@@ -7,6 +7,7 @@ import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.model.Member
 import dev.mokkery.answering.returns
+import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
@@ -42,6 +43,7 @@ class MemberRepositoryTest {
         everySuspend { localDataSource.deleteMember(any()) } returns Unit
         everySuspend { localDataSource.removeClubMembershipsExcept(any(), any()) } returns Unit
         everySuspend { localDataSource.markStale(any()) } returns Unit
+        everySuspend { localDataSource.deleteClubMemberRelationship(any(), any()) } returns Unit
     }
 
     // ========================================
@@ -476,5 +478,45 @@ class MemberRepositoryTest {
         everySuspend { remoteDataSource.getMemberByUserId("u1") } returns Result.failure(Exception("offline"))
 
         assertTrue(repository.getMemberByUserId("u1", forceRefresh = true).isFailure)
+    }
+
+    // ========================================
+    // REMOVE FROM CLUB
+    // ========================================
+
+    @Test
+    fun `removeMemberFromClub success drops only that club link and marks member stale`() = runTest {
+        everySuspend { remoteDataSource.removeMemberFromClub("123", "club-1") } returns Result.success(Unit)
+
+        val result = repository.removeMemberFromClub("123", "club-1")
+
+        assertTrue(result.isSuccess)
+        verifySuspend { localDataSource.deleteClubMemberRelationship("club-1", "123") }
+        verifySuspend { localDataSource.markStale("123") }
+        // Other clubs are untouched: no bulk pruning, no member overwrite
+        verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.insertMember(any()) }
+    }
+
+    @Test
+    fun `removeMemberFromClub failure does not touch the cache`() = runTest {
+        everySuspend { remoteDataSource.removeMemberFromClub("123", "club-1") } returns
+            Result.failure(Exception("Forbidden"))
+
+        val result = repository.removeMemberFromClub("123", "club-1")
+
+        assertTrue(result.isFailure)
+        verifySuspend(mode = VerifyMode.not) { localDataSource.deleteClubMemberRelationship(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
+    }
+
+    @Test
+    fun `removeMemberFromClub still succeeds when the cache update fails`() = runTest {
+        everySuspend { remoteDataSource.removeMemberFromClub("123", "club-1") } returns Result.success(Unit)
+        everySuspend { localDataSource.deleteClubMemberRelationship(any(), any()) } throws Exception("db error")
+
+        val result = repository.removeMemberFromClub("123", "club-1")
+
+        assertTrue(result.isSuccess)
     }
 }
