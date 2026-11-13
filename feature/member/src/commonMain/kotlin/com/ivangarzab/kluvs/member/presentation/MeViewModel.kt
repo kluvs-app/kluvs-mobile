@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.data.error.toAppError
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
 import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
@@ -130,7 +131,7 @@ class MeViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update (Session ID: $sessionId). ${error.message}", error)
-                    _state.update { it.copy(snackbarError = error.message) }
+                    _state.update { it.copy(snackbarError = error.toDisplayMessage()) }
                 }
         }
     }
@@ -145,7 +146,7 @@ class MeViewModel(
                 .onSuccess { log -> _state.update { it.copy(readingLog = log, isReadingLogLoading = false) } }
                 .onFailure { error ->
                     Bark.e("Failed to load reading log. ${error.message}", error)
-                    _state.update { it.copy(isReadingLogLoading = false, snackbarError = error.message) }
+                    _state.update { it.copy(isReadingLogLoading = false, snackbarError = error.toDisplayMessage()) }
                 }
         }
     }

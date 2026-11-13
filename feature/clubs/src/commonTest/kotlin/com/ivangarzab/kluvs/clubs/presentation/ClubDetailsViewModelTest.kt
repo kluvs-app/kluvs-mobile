@@ -59,6 +59,7 @@ import com.ivangarzab.kluvs.model.ReadingProgress
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.model.SessionMember
+import com.ivangarzab.kluvs.model.UserFacingException
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -734,6 +735,52 @@ class ClubDetailsViewModelTest {
         viewModel.onTransferOwnership("m2")
 
         assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+    }
+
+    @Test
+    fun `failed mutation with an unexpected exception shows generic copy not raw text`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Some Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend {
+            memberRepository.updateMember(memberId = "m2", clubRoles = mapOf(clubId to "owner"))
+        } returns Result.failure(RuntimeException("Unable to resolve host kluvs.supabase.co"))
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onTransferOwnership("m2")
+
+        val result = viewModel.state.value.operationResult
+        assertIs<OperationResult.Error>(result)
+        assertEquals("Something went wrong. Please try again.", result.message)
+    }
+
+    @Test
+    fun `failed mutation with a user facing exception keeps its message`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Some Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend {
+            memberRepository.updateMember(memberId = "m2", clubRoles = mapOf(clubId to "owner"))
+        } returns Result.failure(UserFacingException("Cannot remove yourself from the club"))
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onTransferOwnership("m2")
+
+        val result = viewModel.state.value.operationResult
+        assertIs<OperationResult.Error>(result)
+        assertEquals("Cannot remove yourself from the club", result.message)
     }
 
     @Test

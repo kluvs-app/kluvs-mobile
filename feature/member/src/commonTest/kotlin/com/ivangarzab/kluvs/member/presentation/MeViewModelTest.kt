@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
+import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.BookSummary
 import com.ivangarzab.kluvs.model.Club
@@ -463,10 +464,10 @@ class MeViewModelTest {
     @Test
     fun `clearSnackbarError clears the error state`() = runTest {
         // Given: a reading log failure sets snackbarError
-        val exception = Exception("Failed to load log")
+        val exception = AppError.Timeout
         everySuspend { sessionRepository.getReadingLog() } returns Result.failure(exception)
         viewModel.onReadingLogClicked()
-        assertEquals("Failed to load log", viewModel.state.value.snackbarError)
+        assertEquals("That took too long. Please try again.", viewModel.state.value.snackbarError)
 
         // When
         viewModel.clearSnackbarError()

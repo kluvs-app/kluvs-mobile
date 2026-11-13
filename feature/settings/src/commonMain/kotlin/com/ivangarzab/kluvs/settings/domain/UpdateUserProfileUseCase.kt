@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.settings.domain
 
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
+import com.ivangarzab.kluvs.model.UserFacingException
 
 /**
  * UseCase that validates and persists profile edits (name and handle) from SettingsScreen.
@@ -28,16 +29,16 @@ class UpdateUserProfileUseCase(
     suspend operator fun invoke(memberId: String, name: String, handle: String): Result<Unit> {
         if (name.isBlank()) {
             Bark.w("Update rejected: name is blank")
-            return Result.failure(IllegalArgumentException("Name must not be blank"))
+            return Result.failure(UserFacingException("Name must not be blank"))
         }
         if (handle.isBlank()) {
             Bark.w("Update rejected: handle is blank")
-            return Result.failure(IllegalArgumentException("Handle must not be blank"))
+            return Result.failure(UserFacingException("Handle must not be blank"))
         }
         if (handle.length !in 2..30 || !HANDLE_REGEX.matches(handle)) {
             Bark.w("Update rejected: handle has invalid format ($handle)")
             return Result.failure(
-                IllegalArgumentException(
+                UserFacingException(
                     "Handle must be 2–30 characters: lowercase letters, numbers, and hyphens only"
                 )
             )

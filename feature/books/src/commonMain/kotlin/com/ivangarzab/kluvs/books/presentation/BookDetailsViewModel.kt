@@ -12,6 +12,7 @@ import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -115,7 +116,7 @@ class BookDetailsViewModel(
                     _state.update {
                         it.copy(
                             isMutationInProgress = false,
-                            operationError = error.message ?: "Failed to update shelf"
+                            operationError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -139,7 +140,7 @@ class BookDetailsViewModel(
                     _state.update {
                         it.copy(
                             isMutationInProgress = false,
-                            operationError = error.message ?: "Failed to update shelf"
+                            operationError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -157,7 +158,7 @@ class BookDetailsViewModel(
                 .onFailure { error ->
                     Bark.e("Failed to toggle like (book ID: $bookId). ${error.message}", error)
                     _state.update {
-                        it.copy(operationError = error.message ?: "Failed to update like")
+                        it.copy(operationError = error.toDisplayMessage())
                     }
                 }
         }

@@ -21,6 +21,21 @@ struct AuthFormView: View {
         case email, password, confirmPassword
     }
 
+    /// Friendly copy for an Apple Sign-In failure, keyed off Apple's error code rather than its
+    /// system-generated description. `.unknown` is what iOS reports when the device has no
+    /// iCloud account signed in, so it gets an actionable hint. The raw error goes to Bark.
+    private func appleSignInMessage(for error: Error) -> String {
+        guard let authError = error as? ASAuthorizationError else {
+            return String(localized: "error_apple_sign_in_failed")
+        }
+        switch authError.code {
+        case .unknown:
+            return String(localized: "error_apple_sign_in_icloud")
+        default:
+            return String(localized: "error_apple_sign_in_failed")
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -54,7 +69,8 @@ struct AuthFormView: View {
                                    authError.code == .canceled {
                                     return
                                 }
-                                snackbarData = SnackbarData(message: error.localizedDescription, variant: .danger)
+                                Bark.e("Apple Sign-In failed", throwable: error)
+                                snackbarData = SnackbarData(message: appleSignInMessage(for: error), variant: .danger)
                             }
                         }
                     }

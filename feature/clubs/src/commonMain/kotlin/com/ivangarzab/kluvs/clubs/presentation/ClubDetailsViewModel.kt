@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.error.toAppError
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
@@ -296,7 +297,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -357,7 +358,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -545,7 +546,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -584,7 +585,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -629,7 +630,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -737,7 +738,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             discussionRosters = it.discussionRosters + (discussionId to roster.copy(myStatus = previousStatus)),
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -771,7 +772,7 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo(
-                                error = error.message ?: "An unexpected error occurred"
+                                error = error.toDisplayMessage()
                             ))
                         )
                     }
@@ -814,7 +815,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to current.copy(
                                 isSaving = false,
-                                error = error.message ?: "An unexpected error occurred"
+                                error = error.toDisplayMessage()
                             ))
                         )
                     }
@@ -837,7 +838,7 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to it.discussionNotes.getValue(discussionId).copy(
-                                error = error.message ?: "An unexpected error occurred"
+                                error = error.toDisplayMessage()
                             ))
                         )
                     }
@@ -896,7 +897,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -949,7 +950,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }

@@ -9,6 +9,7 @@ import com.ivangarzab.kluvs.books.domain.RemoveFromShelfUseCase
 import com.ivangarzab.kluvs.books.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
 import com.ivangarzab.kluvs.data.error.toAppError
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.model.ShelfEntry
 import com.ivangarzab.kluvs.model.ShelfStatus
@@ -156,7 +157,7 @@ class BooksViewModel(
                     _state.update {
                         it.copy(
                             isMutationInProgress = false,
-                            operationError = error.message ?: "Failed to update shelf"
+                            operationError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -182,7 +183,7 @@ class BooksViewModel(
                     _state.update {
                         it.copy(
                             isMutationInProgress = false,
-                            operationError = error.message ?: "Failed to update shelf"
+                            operationError = error.toDisplayMessage()
                         )
                     }
                 }

@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.settings.domain
 
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.model.UserFacingException
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -62,7 +63,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
         assertTrue(result.exceptionOrNull()!!.message!!.contains("Name"))
     }
 
@@ -73,7 +74,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
         assertTrue(result.exceptionOrNull()!!.message!!.contains("Handle"))
     }
 
@@ -84,7 +85,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
     }
 
     @Test
@@ -94,7 +95,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
     }
 
     @Test
@@ -104,7 +105,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
     }
 
     @Test
@@ -114,7 +115,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
     }
 
     @Test
@@ -125,7 +126,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
     }
 
     @Test
@@ -148,7 +149,7 @@ class UpdateUserProfileUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.exceptionOrNull() is UserFacingException)
     }
 
     @Test
