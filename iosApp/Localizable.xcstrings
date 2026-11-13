@@ -70,6 +70,17 @@
         }
       }
     },
+    "help_faq" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help / FAQ"
+          }
+        }
+      }
+    },
     "credits_title" : {
       "extractionState" : "manual",
       "localizations" : {

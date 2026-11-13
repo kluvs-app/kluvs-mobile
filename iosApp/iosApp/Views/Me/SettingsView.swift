@@ -361,6 +361,12 @@ extension URL: @retroactive Identifiable {
 struct AboutSection: View {
     let onCreditsClick: () -> Void
 
+    // FAQ question ids are stable anchors (e.g. "#club-session-discussion"), so a future
+    // contextual link can append one to this single constant.
+    private static let faqUrl = URL(string: "https://kluvs.com/faq")
+
+    @State private var safariUrl: URL? = nil
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
@@ -371,6 +377,11 @@ struct AboutSection: View {
                 .kluvsStyle(KluvsTheme.typography.eyebrow)
                 .foregroundColor(KluvsTheme.colors.contentMuted)
                 .padding(.bottom, 8)
+
+            LegalRow(label: String(localized: "help_faq")) {
+                safariUrl = Self.faqUrl
+            }
+            Divider().overlay(KluvsTheme.colors.divider)
 
             LegalRow(label: String(localized: "credits_title"), action: onCreditsClick)
             Divider().overlay(KluvsTheme.colors.divider)
@@ -385,6 +396,10 @@ struct AboutSection: View {
             .padding(.top, 12)
         }
         .padding(.vertical, 12)
+        .sheet(item: $safariUrl) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
+        }
     }
 }
 
