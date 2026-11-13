@@ -9,6 +9,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseAppDistribution)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -29,6 +30,7 @@ kotlin {
             // MainActivity uses koin-android's `by inject()` to grab PendingJoinCoordinator
             // for deep link intents that arrive before any composition exists.
             implementation(libs.koin.android)
+            implementation(libs.androidx.appfunctions)
         }
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.test.junit)
@@ -181,6 +183,11 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+    add("kspAndroid", libs.androidx.appfunctions.compiler)
+}
+
+ksp {
+    arg("appfunctions:aggregateAppFunctions", "true")
 }
 
 // Guard against a build type silently pointing at the wrong Supabase project.
