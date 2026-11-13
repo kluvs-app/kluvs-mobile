@@ -203,7 +203,7 @@ fun SettingsScreenContent(
 
             LegalSection(context = context)
 
-            AboutSection(onCreditsClick = { showCredits = true })
+            AboutSection(context = context, onCreditsClick = { showCredits = true })
         }
 
         if (showCredits) {
