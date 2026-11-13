@@ -82,7 +82,7 @@ internal fun LegalRow(
     }
 }
 
-private fun openCustomTab(context: Context, url: String) {
+internal fun openCustomTab(context: Context, url: String) {
     CustomTabsIntent.Builder()
         .setShowTitle(true)
         .build()
