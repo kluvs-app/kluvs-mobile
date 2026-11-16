@@ -17,9 +17,10 @@ import coil3.compose.SubcomposeAsyncImage
 import com.ivangarzab.kluvs.model.Author
 
 /**
- * "About the Author" body: photo + name row, then bio below full-width (mirrors web's
- * vertical stack, not a side-by-side avatar/bio layout). Silently omitted entirely if
- * [author] has no name or bio — same graceful-degradation semantics as web's
+ * "About the Author" body: photo + name/description row, then bio below full-width (mirrors
+ * web's vertical stack, not a side-by-side avatar/bio layout). The description is a one-line
+ * eyebrow under the name, as on web. Silently omitted entirely if [author] has no name,
+ * description or bio — same graceful-degradation semantics as web's
  * `BooksPage.tsx`. The section eyebrow header and surrounding divider are owned by the
  * caller, matching the Details/More-by sections. Loading is handled by the screen-level
  * skeleton, not this section — see [BookDetailScreenContent].
@@ -29,7 +30,7 @@ fun AuthorSection(
     modifier: Modifier = Modifier,
     author: Author?
 ) {
-    if (author == null || (author.name == null && author.bio == null)) return
+    if (author == null || (author.name == null && author.description == null && author.bio == null)) return
 
     Column(
         modifier = modifier,
@@ -49,13 +50,23 @@ fun AuthorSection(
                     contentScale = ContentScale.Crop
                 )
             }
-            val name = author.name
-            if (name != null) {
-                Text(
-                    text = name,
-                    style = KluvsTheme.typography.title.medium,
-                    color = KluvsTheme.colors.content
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                val name = author.name
+                if (name != null) {
+                    Text(
+                        text = name,
+                        style = KluvsTheme.typography.title.medium,
+                        color = KluvsTheme.colors.content
+                    )
+                }
+                val description = author.description
+                if (description != null) {
+                    Text(
+                        text = description.uppercase(),
+                        style = KluvsTheme.typography.eyebrow,
+                        color = KluvsTheme.colors.contentMuted
+                    )
+                }
             }
         }
         val bio = author.bio
