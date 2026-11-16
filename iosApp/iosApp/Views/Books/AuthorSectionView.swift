@@ -6,9 +6,10 @@ import SwiftUI
 import Shared
 import DesignSystem
 
-/// "About the Author" body: photo + name row, then bio below full-width (mirrors web's
-/// vertical stack). Shows a shimmer while loading, and is silently omitted entirely if
-/// [author] is null once loading finishes — same graceful-degradation semantics as web's
+/// "About the Author" body: photo + name/description row, then bio below full-width (mirrors
+/// web's vertical stack). The description is a one-line eyebrow under the name, as on web.
+/// Shows a shimmer while loading, and is silently omitted entirely if [author] is null or has
+/// no name, description or bio once loading finishes — same graceful-degradation semantics as web's
 /// `BooksPage.tsx`. The section eyebrow header and surrounding divider are owned by the caller.
 struct AuthorSectionView: View {
     let isLoading: Bool
@@ -17,7 +18,7 @@ struct AuthorSectionView: View {
     var body: some View {
         if isLoading {
             AuthorSectionShimmer()
-        } else if let author, author.name != nil || author.bio != nil {
+        } else if let author, author.name != nil || author.description_ != nil || author.bio != nil {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 12) {
                     if let imageUrl = author.imageUrl, let url = URL(string: imageUrl) {
@@ -32,10 +33,17 @@ struct AuthorSectionView: View {
                         .frame(width: 48, height: 48)
                         .clipShape(Circle())
                     }
-                    if let name = author.name {
-                        Text(name)
-                            .kluvsStyle(KluvsTheme.typography.title.medium)
-                            .foregroundColor(KluvsTheme.colors.content)
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let name = author.name {
+                            Text(name)
+                                .kluvsStyle(KluvsTheme.typography.title.medium)
+                                .foregroundColor(KluvsTheme.colors.content)
+                        }
+                        if let description = author.description_ {
+                            Text(description.uppercased())
+                                .kluvsStyle(KluvsTheme.typography.eyebrow)
+                                .foregroundColor(KluvsTheme.colors.contentMuted)
+                        }
                     }
                 }
                 if let bio = author.bio {
@@ -83,7 +91,7 @@ private struct AuthorSectionShimmer: View {
 #Preview {
     AuthorSectionView(
         isLoading: false,
-        author: Author(name: "J.R.R. Tolkien", imageUrl: nil, bio: "English writer and philologist, best known as the author of The Hobbit and The Lord of the Rings.")
+        author: Author(name: "J.R.R. Tolkien", description: "English writer", imageUrl: nil, bio: "English writer and philologist, best known as the author of The Hobbit and The Lord of the Rings.")
     )
     .padding()
 }
