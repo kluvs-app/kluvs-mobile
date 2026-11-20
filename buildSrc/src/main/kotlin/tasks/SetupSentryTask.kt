@@ -37,7 +37,12 @@ abstract class SetupSentryTask : DefaultTask() {
         val zipFile = frameworkDestDir.get().asFile.resolve("Sentry.zip")
 
         println("⬇️ CI: Downloading $url...")
-        URL(url).openStream().use { input ->
+        // Timeouts so a stalled connection fails (and ci_post_clone.sh retries it) instead of hanging.
+        val connection = URL(url).openConnection().apply {
+            connectTimeout = 20_000
+            readTimeout = 20_000
+        }
+        connection.getInputStream().use { input ->
             zipFile.outputStream().use { output -> input.copyTo(output) }
         }
 
