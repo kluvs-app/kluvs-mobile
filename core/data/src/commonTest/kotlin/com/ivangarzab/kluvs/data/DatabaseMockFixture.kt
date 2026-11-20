@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.data
 
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -44,6 +45,7 @@ class DatabaseMockFixture {
     val memberDao: MemberDao = mock<MemberDao>()
     val sessionDao: SessionDao = mock<SessionDao>()
     val bookDao: BookDao = mock<BookDao>()
+    val bookEnrichmentDao: BookEnrichmentDao = mock<BookEnrichmentDao>()
     val discussionDao: DiscussionDao = mock<DiscussionDao>()
     val serverDao: ServerDao = mock<ServerDao>()
     val shelfDao: ShelfDao = mock<ShelfDao>()
@@ -57,6 +59,7 @@ class DatabaseMockFixture {
         every { db.memberDao() } returns memberDao
         every { db.sessionDao() } returns sessionDao
         every { db.bookDao() } returns bookDao
+        every { db.bookEnrichmentDao() } returns bookEnrichmentDao
         every { db.discussionDao() } returns discussionDao
         every { db.serverDao() } returns serverDao
         every { db.shelfDao() } returns shelfDao

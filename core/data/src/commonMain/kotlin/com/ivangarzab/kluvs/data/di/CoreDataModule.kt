@@ -1,6 +1,8 @@
 package com.ivangarzab.kluvs.data.di
 
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.source.BookEnrichmentLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.BookEnrichmentLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.BookLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.BookLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
@@ -130,6 +132,7 @@ val coreDataModule = module {
     single<MemberLocalDataSource> { MemberLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<SessionLocalDataSource> { SessionLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<BookLocalDataSource> { BookLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<BookEnrichmentLocalDataSource> { BookEnrichmentLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<ShelfLocalDataSource> { ShelfLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<LikeLocalDataSource> { LikeLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<ProgressLocalDataSource> { ProgressLocalDataSourceImpl(get<KluvsDatabase>()) }
@@ -178,7 +181,12 @@ val coreDataModule = module {
             get<BookLocalDataSource>()
         )
     }
-    single<BookEnrichmentRepository> { BookEnrichmentRepositoryImpl(get<BookEnrichmentRemoteDataSource>()) }
+    single<BookEnrichmentRepository> { BookEnrichmentRepositoryImpl(
+            get<BookEnrichmentRemoteDataSource>(),
+            get<BookEnrichmentLocalDataSource>(),
+            get<CachePolicy>()
+        )
+    }
     single<ServerRepository> {
         ServerRepositoryImpl(
             get<ServerRemoteDataSource>(),
