@@ -40,7 +40,7 @@ run_gradle() {
         echo "▶️ ./gradlew $* (attempt $attempt/$GRADLE_MAX_ATTEMPTS)"
         log_file=$(mktemp)
         status_file=$(mktemp)
-        { ./gradlew $GRADLE_NET_OPTS "$@" && echo 0 > "$status_file" || echo $? > "$status_file"; } 2>&1 | tee "$log_file"
+        { ./gradlew --console=plain $GRADLE_NET_OPTS "$@" && echo 0 > "$status_file" || echo $? > "$status_file"; } 2>&1 | tee "$log_file"
         status=$(cat "$status_file")
         if [ "$status" = "0" ]; then
             rm -f "$log_file" "$status_file"
