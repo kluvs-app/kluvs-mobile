@@ -7,6 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 import androidx.room.immediateTransaction
 import androidx.room.useWriterConnection
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -17,6 +18,7 @@ import com.ivangarzab.kluvs.database.dao.ProgressDao
 import com.ivangarzab.kluvs.database.dao.ServerDao
 import com.ivangarzab.kluvs.database.dao.SessionDao
 import com.ivangarzab.kluvs.database.dao.ShelfDao
+import com.ivangarzab.kluvs.database.entities.BookEnrichmentEntity
 import com.ivangarzab.kluvs.database.entities.BookEntity
 import com.ivangarzab.kluvs.database.entities.ClubEntity
 import com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef
@@ -39,6 +41,7 @@ interface KluvsDatabase {
     fun memberDao(): MemberDao
     fun sessionDao(): SessionDao
     fun bookDao(): BookDao
+    fun bookEnrichmentDao(): BookEnrichmentDao
     fun discussionDao(): DiscussionDao
     fun serverDao(): ServerDao
     fun shelfDao(): ShelfDao
@@ -57,7 +60,7 @@ interface KluvsDatabase {
 /**
  * Room Database implementation for Kluvs app.
  *
- * Stores cached data for servers, clubs, members, sessions, books, shelf
+ * Stores cached data for servers, clubs, members, sessions, books, book enrichment, shelf
  * entries, likes, reading progress, discussion notes, and discussion attendance.
  */
 @Database(
@@ -69,6 +72,7 @@ interface KluvsDatabase {
         SessionEntity::class,
         SessionMemberEntity::class,
         BookEntity::class,
+        BookEnrichmentEntity::class,
         DiscussionEntity::class,
         ShelfEntity::class,
         LikeEntity::class,
@@ -76,7 +80,7 @@ interface KluvsDatabase {
         DiscussionNoteEntity::class,
         DiscussionAttendanceEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @ConstructedBy(KluvsDatabaseConstructor::class)
@@ -86,6 +90,7 @@ abstract class KluvsDatabaseImpl : RoomDatabase(), KluvsDatabase {
     abstract override fun memberDao(): MemberDao
     abstract override fun sessionDao(): SessionDao
     abstract override fun bookDao(): BookDao
+    abstract override fun bookEnrichmentDao(): BookEnrichmentDao
     abstract override fun discussionDao(): DiscussionDao
     abstract override fun shelfDao(): ShelfDao
     abstract override fun likeDao(): LikeDao
