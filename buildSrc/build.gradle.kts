@@ -4,6 +4,10 @@ plugins {
 
 repositories {
     google()
+    // CI only: see the Maven Central mirror note in the root settings.gradle.kts.
+    if (System.getenv("CI") != null) {
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
+    }
     mavenCentral()
     gradlePluginPortal()
 }

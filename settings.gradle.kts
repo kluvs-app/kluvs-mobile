@@ -10,6 +10,11 @@ pluginManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
+        // CI only: Xcode Cloud can't reliably reach repo.maven.apache.org, so try Google's
+        // Maven Central mirror first. mavenCentral() below stays as the fallback.
+        if (System.getenv("CI") != null) {
+            maven("https://maven-central.storage-download.googleapis.com/maven2/")
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -23,6 +28,10 @@ dependencyResolutionManagement {
                 includeGroupAndSubgroups("com.android")
                 includeGroupAndSubgroups("com.google")
             }
+        }
+        // CI only: see the note in pluginManagement above.
+        if (System.getenv("CI") != null) {
+            maven("https://maven-central.storage-download.googleapis.com/maven2/")
         }
         mavenCentral()
     }
