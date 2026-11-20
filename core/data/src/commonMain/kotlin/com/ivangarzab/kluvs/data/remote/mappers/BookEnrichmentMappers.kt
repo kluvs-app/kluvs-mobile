@@ -57,6 +57,7 @@ private fun stripHtml(html: String): String {
 fun AuthorInfoDto.toDomain(): Author {
     return Author(
         name = name,
+        description = description,
         imageUrl = imageUrl,
         bio = extract
     )
