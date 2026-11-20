@@ -11,6 +11,11 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install openjdk@17
 export JAVA_HOME=$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 
+# Xcode Cloud's network drops Maven downloads ("No route to host"): prefer IPv4 and let
+# Gradle retry with backoff instead of failing the build on one dropped connection.
+# Keep in sync with the "Compile Kotlin Framework" build phase in Kluvs.xcodeproj.
+export JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true -Dorg.gradle.internal.repository.max.retries=10 -Dorg.gradle.internal.repository.initial.backoff=2000 -Dorg.gradle.internal.http.connectionTimeout=60000 -Dorg.gradle.internal.http.socketTimeout=60000"
+
 # 3. Verify Java
 echo "✅ Java version installed:"
 java -version
@@ -29,7 +34,7 @@ fi
 # 5. SETUP SENTRY (Must happen first!)
 # This ensures the .xcframework is downloaded and ready for the test linking
 echo "⬇️ Fetching Sentry Framework..."
-./gradlew setupSentryForCi --refresh-dependencies
+./gradlew setupSentryForCi
 
 # 6. RUN TESTS
 # We run this here to gate the build. If this fails, the build stops.
