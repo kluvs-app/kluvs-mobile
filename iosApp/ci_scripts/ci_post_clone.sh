@@ -29,7 +29,7 @@ fi
 # 5. SETUP SENTRY (Must happen first!)
 # This ensures the .xcframework is downloaded and ready for the test linking
 echo "⬇️ Fetching Sentry Framework..."
-./gradlew setupSentryForCi
+./gradlew setupSentryForCi --refresh-dependencies
 
 # 6. RUN TESTS
 # We run this here to gate the build. If this fails, the build stops.
