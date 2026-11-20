@@ -37,10 +37,12 @@ coil = "3.2.0"
 room = "2.8.4"
 sqlite = "2.6.2"
 sentry = "0.23.0"
+# Sentry Cocoa SDK linked by the iOS app (build/sentry-binary/Sentry.xcframework)
+sentryCocoa = "8.57.3"
 openapiGenerator = "7.16.0"
 
 [libraries]
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "kotlin-coroutines" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
 kotlinx_serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinSerialization" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }

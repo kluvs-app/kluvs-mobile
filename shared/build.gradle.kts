@@ -134,11 +134,9 @@ buildkonfig {
 
 val setupSentryTask = tasks.register<SetupSentryTask>("setupSentryForCi") {
     group = "ci"
-    description = "Downloads Sentry binary matching Package.resolved for CI environments"
+    description = "Downloads the Sentry.xcframework that the iOS app and the Kotlin framework link"
 
-    // Define INPUT: Where is your Package.resolved?
-    val resolvedPath = rootProject.file("iosApp/Kluvs.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
-    packageResolvedFile.set(resolvedPath)
+    sentryVersion.set(libs.versions.sentryCocoa)
 
     // Define OUTPUT: Where should the framework go?
     // We put it in the root 'build' folder to keep the root project clean
