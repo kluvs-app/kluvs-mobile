@@ -3,11 +3,13 @@ plugins {
 }
 
 repositories {
-    google()
-    // CI only: see the Maven Central mirror note in the root settings.gradle.kts.
-    if (System.getenv("CI") != null) {
-        maven("https://maven-central.storage-download.googleapis.com/maven2/")
+    // Xcode Cloud only: see the comment in settings.gradle.kts.
+    if (System.getenv("CI_BUILD_ID") != null) {
+        maven("https://artifacts-caching-proxy.aws.intellij.net/dl.google.com/dl/android/maven2/")
+        maven("https://artifacts-caching-proxy.aws.intellij.net/maven-central/")
+        maven("https://artifacts-caching-proxy.aws.intellij.net/plugins.gradle.org/m2/")
     }
+    google()
     mavenCentral()
     gradlePluginPortal()
 }
