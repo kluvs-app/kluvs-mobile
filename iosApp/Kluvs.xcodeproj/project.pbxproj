@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E57A1C0DE0000000000F002 /* Sentry.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5E57A1C0DE0000000000F001 /* Sentry.xcframework */; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = F2E1D0C9B8A7F6E5D4C3B2A1 /* DesignSystem */; };
 		BE0653EFE97CD16788A5128F /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 2B456756F536AAFE6A53A475 /* DesignSystem */; };
 		E07199C72EE3A87800F5E515 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E07199C62EE3A87800F5E515 /* Localizable.xcstrings */; };
-		5E57A1C0DE0000000000F002 /* Sentry.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5E57A1C0DE0000000000F001 /* Sentry.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,11 +24,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5E57A1C0DE0000000000F001 /* Sentry.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:97JCY7859U:GetSentry LLC"; lastKnownFileType = wrapper.xcframework; name = Sentry.xcframework; path = "../build/sentry-binary/Sentry.xcframework"; sourceTree = SOURCE_ROOT; };
 		B9DA97B12DC1472C00A4DA20 /* Kluvs.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kluvs.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E07199C62EE3A87800F5E515 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E081F1F22F2025CB00AFD427 /* iosAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E081F2C52F248FEA00AFD427 /* iosApp.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = iosApp.xctestplan; sourceTree = "<group>"; };
-		5E57A1C0DE0000000000F001 /* Sentry.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Sentry.xcframework; path = ../build/sentry-binary/Sentry.xcframework; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
