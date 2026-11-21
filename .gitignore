@@ -24,3 +24,5 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 .claude/plans
 .worktrees/
+# Generated per-machine by updateDaemonJvm (IDE/Gradle toolchain criteria)
+gradle/gradle-daemon-jvm.properties
