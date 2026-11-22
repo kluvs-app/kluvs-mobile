@@ -4,9 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
-import com.ivangarzab.kluvs.data.error.toAppError
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
 import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
 import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
@@ -60,9 +58,9 @@ class MeViewModel(
 
             // Aggregate errors
             val errors = listOfNotNull(
-                profileResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                statsResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                shelfResult.exceptionOrNull()?.toAppError()?.toUserMessage()
+                profileResult.exceptionOrNull()?.toDisplayMessage(),
+                statsResult.exceptionOrNull()?.toDisplayMessage(),
+                shelfResult.exceptionOrNull()?.toDisplayMessage()
             )
             val error = when {
                 errors.isEmpty() -> null

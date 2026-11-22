@@ -3,9 +3,7 @@ package com.ivangarzab.kluvs.clubs.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
-import com.ivangarzab.kluvs.data.error.toAppError
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionNoteUseCase
@@ -151,7 +149,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isLoading = false,
                             // Don't replace a club that's already on screen with an error page
-                            error = if (hadSelection) it.error else error.toAppError().toUserMessage()
+                            error = if (hadSelection) it.error else error.toDisplayMessage()
                         )
                     }
                 }
@@ -222,9 +220,9 @@ class ClubDetailsViewModel(
 
             // Aggregate errors
             val errors = listOfNotNull(
-                detailsResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                sessionResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                membersResult.exceptionOrNull()?.toAppError()?.toUserMessage()
+                detailsResult.exceptionOrNull()?.toDisplayMessage(),
+                sessionResult.exceptionOrNull()?.toDisplayMessage(),
+                membersResult.exceptionOrNull()?.toDisplayMessage()
             )
             val error = when {
                 errors.isEmpty() -> null
@@ -425,7 +423,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isSearchingBooks = false,
                             bookSearchResults = emptyList(),
-                            bookSearchError = error.toAppError().toUserMessage()
+                            bookSearchError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -454,7 +452,7 @@ class ClubDetailsViewModel(
                 .onFailure { error ->
                     Bark.e("Book registration failed. Please retry.", error)
                     _state.update {
-                        it.copy(isRegisteringBook = false, bookSearchError = error.toAppError().toUserMessage())
+                        it.copy(isRegisteringBook = false, bookSearchError = error.toDisplayMessage())
                     }
                 }
         }
