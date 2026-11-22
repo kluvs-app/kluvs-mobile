@@ -3,8 +3,8 @@ package com.ivangarzab.kluvs.join.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
-import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.join.domain.JoinClubUseCase
+import com.ivangarzab.kluvs.join.domain.ObserveIsAuthenticatedUseCase
 import com.ivangarzab.kluvs.join.domain.PreviewInviteUseCase
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,16 +26,17 @@ import kotlinx.coroutines.launch
 class JoinViewModel(
     private val previewInvite: PreviewInviteUseCase,
     private val joinClub: JoinClubUseCase,
-    private val authRepository: AuthRepository
+    private val observeIsAuthenticated: ObserveIsAuthenticatedUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(JoinState())
     val state: StateFlow<JoinState> = _state.asStateFlow()
 
     init {
-        _state.update { it.copy(isAuthenticated = authRepository.isAuthenticated.value) }
+        val isAuthenticatedFlow = observeIsAuthenticated()
+        _state.update { it.copy(isAuthenticated = isAuthenticatedFlow.value) }
         viewModelScope.launch {
-            authRepository.isAuthenticated.collect { isAuthenticated ->
+            isAuthenticatedFlow.collect { isAuthenticated ->
                 _state.update { it.copy(isAuthenticated = isAuthenticated) }
             }
         }

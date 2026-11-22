@@ -54,7 +54,7 @@ class AuthViewModelHelperTest {
         testScope = CoroutineScope(testDispatcher + Job())
 
         // Create real ViewModel with mocked repository
-        viewModel = AuthViewModel(authRepository)
+        viewModel = createAuthViewModel(authRepository)
 
         // Start Koin with test module
         startKoin {
@@ -290,19 +290,6 @@ class AuthViewModelHelperTest {
         assertEquals(ForgotPasswordUiState(), receivedStates.first())
 
         closeable.close()
-    }
-
-    @Test
-    fun `signOut calls repository signOut`() = runTest {
-        // Given
-        everySuspend { authRepository.signOut() } returns Result.success(Unit)
-
-        // When
-        helper.signOut()
-
-        // Then - verify ViewModel's signOut was called (which calls repository)
-        // Note: We can't directly verify the repository call since it's internal to ViewModel
-        // But we can verify the helper successfully delegated the call
     }
 
     @Test

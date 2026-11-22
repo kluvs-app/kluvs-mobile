@@ -94,10 +94,6 @@ class AuthViewModelWrapper: ObservableObject {
         helper.validateAndSignUp()
     }
 
-    func signOut() {
-        helper.signOut()
-    }
-
     func signInWithDiscord() {
         helper.signInWithDiscord()
     }
