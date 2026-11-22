@@ -6,7 +6,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.books.domain.AssignShelfUseCase
 import com.ivangarzab.kluvs.books.domain.GetShelfUseCase
 import com.ivangarzab.kluvs.books.domain.RemoveFromShelfUseCase
-import com.ivangarzab.kluvs.books.domain.SearchBooksUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.model.ShelfEntry

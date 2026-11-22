@@ -1,5 +1,7 @@
 package com.ivangarzab.kluvs.data.di
 
+import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.BookEnrichmentLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.BookEnrichmentLocalDataSourceImpl
@@ -257,6 +259,10 @@ val coreDataModule = module {
         )
     }
     single<JoinRepository> { JoinRepositoryImpl(get<JoinRemoteDataSource>()) }
+
+    // Use Cases shared across features
+    factory<SearchBooksUseCase> { SearchBooksUseCase(get<BookRepository>()) }
+    factory<RegisterBookUseCase> { RegisterBookUseCase(get<BookRepository>()) }
 }
 
 expect val databaseModule: Module

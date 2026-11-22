@@ -19,10 +19,10 @@ import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.LeaveClubUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
-import com.ivangarzab.kluvs.clubs.domain.RegisterBookUseCase
+import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
-import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase

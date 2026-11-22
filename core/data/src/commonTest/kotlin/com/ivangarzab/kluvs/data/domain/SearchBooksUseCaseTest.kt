@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.clubs.domain
+package com.ivangarzab.kluvs.data.domain
 
 import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.model.Book
@@ -7,6 +7,7 @@ import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -42,6 +43,7 @@ class SearchBooksUseCaseTest {
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrNull()?.books?.size)
         assertEquals("The Hobbit", result.getOrNull()?.books?.first()?.title)
+        assertEquals(1, result.getOrNull()?.total)
     }
 
     @Test
@@ -53,6 +55,16 @@ class SearchBooksUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals(0, result.getOrNull()?.books?.size)
+    }
+
+    @Test
+    fun `invoke passes offset through to the repository`() = runTest {
+        everySuspend { bookRepository.searchBooks(any(), any()) } returns
+            Result.success(BookSearchResult(books = listOf(testBook), total = 25))
+
+        useCase("hobbit", offset = 10)
+
+        verifySuspend { bookRepository.searchBooks("hobbit", 10) }
     }
 
     @Test

@@ -18,10 +18,8 @@ import com.ivangarzab.kluvs.clubs.domain.GetCurrentMemberIdUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.LeaveClubUseCase
-import com.ivangarzab.kluvs.clubs.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
-import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
 import com.ivangarzab.kluvs.clubs.domain.TransferOwnershipUseCase
@@ -42,8 +40,6 @@ val clubsFeatureModule = module {
     factoryOf(::GetClubMembersUseCase)
     factoryOf(::GetCurrentMemberIdUseCase)
     factoryOf(::GetMemberClubsUseCase)
-    factoryOf(::SearchBooksUseCase)
-    factoryOf(::RegisterBookUseCase)
     factoryOf(::GetAttendanceRosterUseCase)
     factoryOf(::GetDiscussionNoteUseCase)
 
