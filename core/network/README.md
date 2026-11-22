@@ -1,33 +1,36 @@
 # :core:network
 
-Network configuration and utilities for Supabase communication.
+Supabase client setup, build-time config, and network reachability.
 
 ## Purpose
 
-This module provides the foundational networking layer, including Supabase client configuration, custom serializers for API compatibility, and build configuration (API keys, URLs).
+Provides the single `SupabaseClient` (Functions, Auth, Storage) used by `:core:auth` and
+`:core:data`, the generated `BuildKonfig` with Supabase credentials, and the offline signal the
+data layer exposes to the UI.
 
 ## Key Components
 
-### BuildKonfig
-
-Generated configuration object containing:
-- `SUPABASE_URL` / `SUPABASE_KEY` - Production credentials
-- `TEST_SUPABASE_URL` / `TEST_SUPABASE_KEY` - Test credentials
-
-### Custom Serializers
-
-Handle conversion between JSON numbers and Kotlin Strings for database IDs that are auto-increment integers but need to be treated as strings in the app.
+- **`coreNetworkModule`**: Koin module creating `SupabaseClient` and `OfflineStatus`.
+- **`BuildKonfig`** (generated): `SUPABASE_URL` / `SUPABASE_KEY` for the selected flavor
+  (`integration` by default, or `production` via `-Pbuildkonfig.flavor=production`), plus
+  `TEST_SUPABASE_URL` / `TEST_SUPABASE_KEY` for integration tests. Values come from Gradle
+  properties or env vars; never commit them.
+- **`OfflineStatus`**: `isOffline: StateFlow<Boolean>`, fed by `OfflineStatusPlugin` on the
+  client's HTTP pipeline and re-checked in the background by `ConnectivityProbe` while offline.
+  Read only by the data layer (`ConnectivityRepository`).
+- **`JsonHelper`**: the shared `Json` config for Supabase function responses.
+- **`DateParsingUtils`**: `parseDateOnlyString()` / `parseDateTimeString()` for API date strings.
 
 ## Dependencies
 
-- `ktor-client` - HTTP client
-- `supabase-kt` - Supabase client SDK
-- `buildkonfig` - Build-time configuration
+- `:core:model` (api)
+- `supabase-kt` (functions, auth, storage), Ktor client, Koin, barK
 
 ## Usage
 
-```kotlin
-import com.ivangarzab.kluvs.network.BuildKonfig
+Feature modules never use this module directly. Repositories in `:core:data` get the client
+through Koin:
 
-val url = BuildKonfig.SUPABASE_URL
+```kotlin
+internal class ClubServiceImpl(private val supabase: SupabaseClient) : ClubService
 ```
