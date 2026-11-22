@@ -1,40 +1,39 @@
 # :core:presentation
 
-Shared presentation utilities and base components.
+Presentation utilities shared by every feature module.
 
 ## Purpose
 
-This module provides common presentation-layer utilities that are shared across feature modules. It includes state models, formatting utilities, and base classes for ViewModels.
+Holds the one place errors become user-facing text, shared formatting helpers, common screen
+state types, and a few UseCases used by more than one feature (reading progress).
 
 ## Key Components
 
-### FormatDateTimeUseCase
-
-Formats `LocalDateTime` into human-readable strings with various formats:
-- `FULL` - "February 12, 2025 at 7:00 PM"
-- `DATE_ONLY` - "February 12, 2025"
-- `TIME_ONLY` - "7:00 PM"
-- `YEAR_ONLY` - "2025"
-
-### DateTimeFormat
-
-Enum defining available formatting options for dates and times.
+- **`Throwable.toDisplayMessage()`**: the only way a failure becomes UI text.
+  `UserFacingException` messages are shown as written; anything else is classified with
+  `toAppError()` (`:core:data`) and turned into friendly copy by `AppError.toUserMessage()`.
+- **`FormatDateTimeUseCase`** + **`DateTimeFormat`**: `FULL` ("February 12, 2025 at 7:00 PM"),
+  `DATE_ONLY`, `TIME_ONLY`, `YEAR_ONLY`. `formatBookYear()` formats publication years.
+- **`ScreenState`**: `Loading`, `Error(message)`, `Empty`, `Content`.
+- **`GetSessionProgressUseCase`**, **`SaveProgressUseCase`**, **`OwnProgressInfo`**: the
+  member's reading progress for a session (used by `:feature:clubs` and `:feature:member`).
+- **`Closeable`** (iosMain): returned by every `{Name}ViewModelHelper.observeState()` so Swift can
+  cancel observation.
+- `corePresentationModule`: Koin wiring.
 
 ## Dependencies
 
-- `:core:model` - Domain models
-- `androidx.lifecycle.viewmodel` - ViewModel base class
-- `kotlinx-datetime` - Date/time handling
+- `:core:model` (api)
+- `:core:data`
+- `androidx.lifecycle.viewmodel` (api)
 
 ## Usage
 
 ```kotlin
-class MyViewModel(
-    private val formatDateTime: FormatDateTimeUseCase
-) : ViewModel() {
-
-    fun formatDate(date: LocalDateTime): String {
-        return formatDateTime(date, DateTimeFormat.FULL)
+getClubDetails(clubId)
+    .onSuccess { details -> _state.update { it.copy(currentClubDetails = details) } }
+    .onFailure { error ->
+        Bark.e("Failed to load club (ID: $clubId)", error)
+        _state.update { it.copy(error = error.toDisplayMessage()) }
     }
-}
 ```

@@ -6,6 +6,9 @@
 - When a build *is* wanted to verify Android changes, run `./gradlew :composeApp:installDebug --quiet --console=plain` directly. It already compiles, so a standalone `compileDebugKotlinAndroid` first is a wasted run. Use compile-only tasks only for modules with no APK (e.g. `:core:data`, `:feature:clubs`).
 - iOS: a one-off `xcodebuild` correctness check right after Swift edits is fine. Once the user is iterating on device themselves (reporting screenshots, "let's try again"), stop starting builds, because concurrent builds in the same DerivedData lock each other. Make the edits and wait for their report.
 
+- Every Gradle invocation uses `--quiet --console=plain` (or redirects output) to keep token use down.
+- A `PreToolUse` hook (`.claude/hooks/gradle-daemon-cleanup.sh`) kills idle Gradle/Kotlin daemons before each Gradle command to stop RAM bloat across parallel sessions.
+
 ## Iterating on visual changes
 - While the user is iterating on one platform, change only that platform. Mirror to the other platform and to `design-system` docs only after they confirm the result. Touching every platform mid-experiment makes each "try something else" N times as expensive.
 

@@ -35,22 +35,21 @@
 ```
 kluvs-mobile/
 ├── composeApp/           # Android UI (Compose Multiplatform)
-├── iosApp/               # iOS application entry point
+├── iosApp/               # iOS app (native SwiftUI) + DesignSystem Swift package
 ├── shared/               # iOS framework export + DI + AppCoordinator
+├── designsystem/         # Android Compose design system (theme + components)
 ├── core/
 │   ├── model/            # Domain models (User, Club, Member, etc.)
+│   ├── api/              # Generated OpenAPI DTOs (never hand-edit)
 │   ├── network/          # Supabase client configuration
+│   ├── database/         # Room database (local cache)
 │   ├── auth/             # Authentication business logic
 │   ├── data/             # Repositories and data sources
 │   └── presentation/     # Shared UI utilities
-├── feature/
-│   ├── auth/             # Authentication UI
-│   ├── clubs/            # Club details UI
-│   └── member/           # Profile/stats UI
-└── docs/                 # Architecture documentation
+└── feature/              # auth, clubs, books, member, settings, join
 ```
 
-See `docs/MODULE_GRAPH.md` for the full dependency graph.
+Each module has its own `README.md`; `settings.gradle.kts` is the source of truth for the module list.
 
 ## 🚀 Getting Started
 
