@@ -63,7 +63,7 @@ When including build or test steps in plans or agent execution, use `--quiet` fl
 
 ## Project Overview
 
-**Kluvs** is a Kotlin Multiplatform mobile application for managing book clubs and reading sessions. Clubs can optionally link to a Discord server (via the companion bot, `kluvs-bot`) for community features, but Discord is not required — the app and web dashboard both work standalone for web-only clubs (`clubs.discord_channel` is nullable; NULL means not linked to Discord). Android UI is Compose Multiplatform; iOS UI is native SwiftUI (see `iosApp/iosApp/Views/`) sharing business logic via the `:shared` module. Supabase is the backend. The app has six user-facing areas: **Auth** (login/signup/forgot password/OAuth), **Clubs** (club details, sessions, discussions, members, invites), **Books** (shelf, search, book detail/enrichment), **Member/Me** (profile, stats, reading log), **Settings** (profile edit, legal, about), and **Join** (invite-link redemption). The project is heading toward a first public Beta release.
+**Kluvs** is a Kotlin Multiplatform mobile application for managing book clubs and reading sessions. Clubs can optionally link to a Discord server (via the companion bot, `kluvs-bot`) for community features, but Discord is not required — the app and web dashboard both work standalone for web-only clubs (`clubs.discord_channel` is nullable; NULL means not linked to Discord). Android UI is Compose Multiplatform; iOS UI is native SwiftUI (see `iosApp/iosApp/Views/`) sharing business logic via the `:shared` module. Supabase is the backend. The app has six user-facing areas: **Auth** (login/signup/forgot password/OAuth), **Clubs** (club details, sessions, discussions, members, invites), **Books** (shelf, search, book detail/enrichment), **Member/Me** (profile, stats, reading log), **Settings** (profile edit, legal, about), and **Join** (invite-link redemption). Both apps are live in the Google Play Store and the Apple App Store with real users.
 
 ## Build Commands
 
@@ -82,7 +82,7 @@ When including build or test steps in plans or agent execution, use `--quiet` fl
 
 ### iOS
 
-- Open `iosApp/iosApp.xcodeproj` in Xcode
+- Open `iosApp/Kluvs.xcodeproj` in Xcode
 - Select target device/simulator
 - Press Run (⌘R)
 
@@ -150,7 +150,7 @@ When the backend API (`kluvs-backend`) has new database migrations:
 # Navigate to API project
 cd /Users/ivangarzab/Git/KLUVS/kluvs-backend
 
-# Reset local database to apply new migrations and reseed
+# Reset local database to apply new migrations and reseed (the user runs this locally — Claude must not)
 npx supabase db reset
 ```
 
@@ -211,7 +211,7 @@ kluvs-mobile/
 ├── composeApp/           # Android UI (Compose Multiplatform) — NavHost, MainActivity, MainScreen (3-tab bottom nav: Me/Clubs/Books)
 ├── iosApp/               # iOS application (native SwiftUI) — Views/{Auth,Clubs,Books,Me,Join}; DesignSystem/ Swift package for DS parity
 ├── shared/                # iOS framework export + DI setup + AppCoordinator
-├── designsystem/         # Android Compose DS module — EmptyState (Fragmented Hex Grid), ErrorScreen, KluvsSnackbar, skeletons, tokens
+├── designsystem/         # Android Compose DS module — KluvsTheme (typography + colors) and the component library (see its components/ packages)
 ├── core/
 │   ├── model/            # Domain models (User, Club, Member, etc.) — leaf module, no deps
 │   ├── api/              # 100% generated OpenAPI models — never hand-edit, see rule below
@@ -330,7 +330,7 @@ These are scoped to this repo (not portable — see `../CLAUDE.md`'s Skills sect
 
 | Skill | When it applies |
 |---|---|
-| `new-kmp-feature` | New screen/feature module/ViewModel — enforces the 4-phase approach. Invoke explicitly. |
+| `new-kmp-feature` | Brand-new top-level `feature/{name}` module only (not changes to an existing screen/module) — enforces the 4-phase approach. Invoke explicitly. |
 | `code-review` | `/code-review` — project-aware review of staged changes/file/module. Invoke explicitly. |
 | `bark-logging` | Auto-loads on any log statement / Bark call / exception handling work. |
 | `koin-watcher` | Auto-loads when adding injectable classes or wiring Koin modules. |
@@ -339,7 +339,7 @@ These are scoped to this repo (not portable — see `../CLAUDE.md`'s Skills sect
 
 ## CI/CD
 
-The project uses GitHub Actions:
+Android CI, release automation, and API-model regeneration run on GitHub Actions (`.github/workflows/` is the full list); iOS CI and release builds run on Xcode Cloud (`iosApp/ci_scripts/`). Highlights:
 
 - **Unit Tests** (`.github/workflows/unit-tests.yml`) - Fast feedback on PRs, excludes integration tests
 - **Full Tests** (`.github/workflows/full-tests.yml`) - Runs on pushes to `main` and `develop` with local Supabase instance

@@ -55,10 +55,9 @@ revert `core/api/openapi.json` and delete `core/api/build/generated/openapi`.
 **Also revert any files under `core/api/src/commonMain/kotlin/.../api/models/`
 that the generate step modified** (`git status` will show them) — this
 repo's `openApiGenerate` task writes generated output directly into that
-committed source directory, not just `build/generated/openapi`, so the
-documented cleanup in `CLAUDE.md` is incomplete on its own; check `git status
-core/api` after generating and `git checkout --` anything it touched before
-moving on.
+committed source directory, not just `build/generated/openapi`. Run the full
+cleanup from `CLAUDE.md`'s recipe: check `git status core/api` after
+generating and `git checkout --` anything it touched before moving on.
 
 Use this when double-checking a backend PR is correct before telling the
 user so, or when doing parallel-track mobile work against a not-yet-shipped

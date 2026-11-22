@@ -55,7 +55,7 @@ Use this file map as reference:
 - `core/data/src/commonMain/.../remote/api/{Feature}ServiceImpl.kt`
 - `core/data/src/commonMain/.../remote/source/{Feature}RemoteDataSource.kt`
 - `core/data/src/commonMain/.../remote/source/{Feature}RemoteDataSourceImpl.kt`
-- `core/data/src/commonMain/.../mappers/{Feature}Mapper.kt`
+- `core/data/src/commonMain/.../remote/mappers/{Entity}Mappers.kt`
 - `core/data/src/commonMain/.../repositories/{Feature}Repository.kt`
 - `core/data/src/commonMain/.../repositories/{Feature}RepositoryImpl.kt`
 - Register in `CoreDataModule.kt`
