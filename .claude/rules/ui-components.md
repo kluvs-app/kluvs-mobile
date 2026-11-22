@@ -16,7 +16,7 @@ paths:
 - Group components by what they represent to the user, not by how they're implemented. A value selector (`Dropdown`) and a command list (`ActionMenu`) stay separate even though both are a trigger plus a popover. An editable field (`InputField`) and a tap-to-open chooser (`PickerField`) stay separate even though they look alike. Quick test: describe each one in a short phrase. If the phrases differ, they're separate components.
 - Don't add a shared parent or generic abstraction across a couple of similar components. Wait until a third real case exists.
 - Each component family gets its own subpackage, matching the existing ones under `designsystem/.../components/` (`buttons`, `controls`, `fields`, `menus`, `modals`, `pills`, ...) and `iosApp/DesignSystem/Sources/DesignSystem/Components/`. Don't drop files loose in `components/`.
-- New component names carry no `Kluvs` prefix (`Icon`, `PrimaryButton`, `BottomSheet`).
+- Component names carry no `Kluvs` prefix (`Icon`, `PrimaryButton`, `BottomSheet`). The existing `KluvsSnackbar`, `KluvsDatePicker`, and `KluvsTimePicker` are legacy names to be renamed; don't add new ones like them.
 
 ## `:designsystem` (Android) / `DesignSystem` Swift package (iOS)
 - `:designsystem` is an Android-only Compose module at the top level, not under `core/`, and it doesn't use the `kluvs.kmp.library` convention plugin (iOS UI is SwiftUI, not Compose Multiplatform). It's a leaf module with zero `core:*`/`feature:*` dependencies.
