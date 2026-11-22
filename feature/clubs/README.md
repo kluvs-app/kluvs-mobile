@@ -1,59 +1,45 @@
 # :feature:clubs
 
-Club details and reading session UI feature module.
+Clubs screen: club details, active reading session, discussions, members, and admin actions.
 
 ## Purpose
 
-This module contains the presentation layer for viewing club details, active reading sessions, discussion timelines, and member lists. It provides ViewModels and UseCases for the club-related screens.
+Shared presentation and domain logic for the Clubs tab: switching between the user's clubs,
+viewing the active session and discussion timeline, managing members and roles, and the
+owner/admin operations (create/edit/delete club, sessions, discussions, invite links).
 
 ## Key Components
 
-### ClubDetailsViewModel
-
-Manages:
-- Loading club details, active session, and members in parallel
-- Club switching for users with multiple clubs
-- Refresh functionality
-- Error aggregation from multiple data sources
-
-### UseCases
-
-| UseCase | Description |
-|---------|-------------|
-| `GetClubDetailsUseCase` | Transforms Club → ClubDetails (UI model) |
-| `GetActiveSessionUseCase` | Gets current session with discussion timeline |
-| `GetClubMembersUseCase` | Gets members sorted by points |
-| `GetMemberClubsUseCase` | Gets list of clubs for a user |
-
-### UI Models
-
-- `ClubDetails` - Club overview with member count, current book
-- `ActiveSessionDetails` - Session with book info and discussion timeline
-- `ClubMemberInfo` - Member display info (name, points, books read)
-- `DiscussionTimelineItemInfo` - Discussion with status (past/next/future)
+- **`ClubDetailsViewModel`**: single `state: StateFlow<ClubDetailsState>` for the whole screen;
+  loads club details, active session, members and own progress, and exposes `on<Event>()`
+  intents for every action.
+- **UseCases** (`domain/`), e.g.:
+  - `GetClubDetailsUseCase`, `GetActiveSessionUseCase`, `GetMemberClubsUseCase`
+  - `GetClubMembersUseCase`: members sorted by role (owners, then admins, then members)
+  - `CreateClubUseCase`, `CreateSessionUseCase`, `FinishSessionUseCase`, `UpdateJoinPolicyUseCase`
+  - `SetAttendanceUseCase`, `CreateDiscussionNoteUseCase`, `UpdateMemberRoleUseCase`
+- **`BaseAdminUseCase`**: role-gated base class; fails with `UnauthorizedException` when the
+  caller's `Role` isn't allowed.
+- **UI models** (`ClubModels.kt`): `ClubListItem`, `ClubDetails`, `ActiveSessionDetails`,
+  `MemberListItemInfo`, `DiscussionTimelineItemInfo`.
+- **`ClubDetailsViewModelHelper`** (iosMain): iOS bridge, consumed by
+  `iosApp/iosApp/Helpers/ClubDetailsViewModelWrapper.swift`.
+- `clubsFeatureModule`: Koin wiring.
 
 ## Dependencies
 
-- `:core:model` - Domain models
-- `:core:data` - Repositories
-- `:core:auth` - For user context
-- `:core:presentation` - FormatDateTimeUseCase
+- `:core:model`
+- `:core:data`
+- `:core:auth`
+- `:core:presentation`
 
 ## Usage
 
 ```kotlin
 @Composable
-fun ClubScreen(viewModel: ClubDetailsViewModel = koinViewModel()) {
+fun ClubsScreen(userId: String, viewModel: ClubDetailsViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(userId) {
-        viewModel.loadUserClubs(userId)
-    }
-
-    ClubContent(
-        clubDetails = state.currentClubDetails,
-        activeSession = state.activeSession,
-        members = state.members
-    )
+    LaunchedEffect(userId) { viewModel.loadUserClubs(userId) }
+    // render state.currentClubDetails, state.activeSession, state.members
 }
 ```

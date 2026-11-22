@@ -15,6 +15,9 @@ When any new injectable class is created, it MUST be registered in the correct K
 
 | What you're adding | Module file | Variable name |
 |---|---|---|
+| App-wide coordinators / singletons (`AppCoordinator`, `PendingJoinCoordinator`, `ConnectivityCoordinator`, app `CoroutineScope`) | `shared/src/commonMain/.../di/KoinHelper.kt` | `appModule` (private) |
+| Network infrastructure (`SupabaseClient`, connectivity/offline status) | `core/network/src/commonMain/.../di/CoreNetworkModule.kt` | `coreNetworkModule` |
+| Room database instance | `actual val databaseModule` in `core/data/src/{androidMain,iosMain}/.../di/DatabaseModule.{android,ios}.kt` (included by `coreDataModule`) | `databaseModule` |
 | New Service, DataSource, Repository | `core/data/src/commonMain/.../di/CoreDataModule.kt` | `coreDataModule` |
 | New auth-related class | `core/auth/src/commonMain/.../di/CoreAuthModule.kt` | `coreAuthModule` |
 | New shared presentation utility | `core/presentation/src/commonMain/.../di/CorePresentationModule.kt` | `corePresentationModule` |
