@@ -41,6 +41,12 @@ object CacheTTL {
     val BOOK: Duration = 7.days
 
     /**
+     * Book enrichment data TTL: 7 days
+     * Volume info and author info change rarely. Revisit if "More by this author" feels stale.
+     */
+    val BOOK_ENRICHMENT: Duration = 7.days
+
+    /**
      * Shelf data TTL: 15 minutes
      * Shelf assignments are user-authored and change often; mutations
      * already reset freshness, so a short TTL keeps stale reads rare.

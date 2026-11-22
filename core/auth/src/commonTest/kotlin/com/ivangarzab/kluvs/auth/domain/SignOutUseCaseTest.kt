@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.auth.domain
 
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -29,6 +30,7 @@ class SignOutUseCaseTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var database: KluvsDatabase
     private lateinit var clubDao: ClubDao
+    private lateinit var bookEnrichmentDao: BookEnrichmentDao
     private lateinit var useCase: SignOutUseCase
 
     @BeforeTest
@@ -41,6 +43,7 @@ class SignOutUseCaseTest {
         val memberDao = mock<MemberDao>()
         val sessionDao = mock<SessionDao>()
         val bookDao = mock<BookDao>()
+        bookEnrichmentDao = mock<BookEnrichmentDao>()
         val discussionDao = mock<DiscussionDao>()
         val shelfDao = mock<ShelfDao>()
         val likeDao = mock<LikeDao>()
@@ -54,6 +57,7 @@ class SignOutUseCaseTest {
         every { database.memberDao() } returns memberDao
         every { database.sessionDao() } returns sessionDao
         every { database.bookDao() } returns bookDao
+        every { database.bookEnrichmentDao() } returns bookEnrichmentDao
         every { database.discussionDao() } returns discussionDao
         every { database.shelfDao() } returns shelfDao
         every { database.likeDao() } returns likeDao
@@ -68,6 +72,7 @@ class SignOutUseCaseTest {
         everySuspend { memberDao.deleteAllCrossRefs() } returns Unit
         everySuspend { sessionDao.deleteAll() } returns Unit
         everySuspend { bookDao.deleteAll() } returns Unit
+        everySuspend { bookEnrichmentDao.deleteAll() } returns Unit
         everySuspend { discussionDao.deleteAll() } returns Unit
         everySuspend { shelfDao.deleteAll() } returns Unit
         everySuspend { likeDao.deleteAll() } returns Unit
@@ -131,5 +136,17 @@ class SignOutUseCaseTest {
 
         // Then
         verifySuspend { clubDao.deleteAll() }
+    }
+
+    @Test
+    fun `clears cached book enrichment on sign out`() = runTest {
+        // Given
+        everySuspend { authRepository.signOut() } returns Result.success(Unit)
+
+        // When
+        useCase()
+
+        // Then
+        verifySuspend { bookEnrichmentDao.deleteAll() }
     }
 }

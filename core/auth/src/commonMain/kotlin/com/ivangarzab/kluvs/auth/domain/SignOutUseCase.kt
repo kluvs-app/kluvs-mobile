@@ -29,6 +29,7 @@ class SignOutUseCase(
         database.memberDao().deleteAllCrossRefs()
         database.sessionDao().deleteAll()
         database.bookDao().deleteAll()
+        database.bookEnrichmentDao().deleteAll()
         database.discussionDao().deleteAll()
         database.shelfDao().deleteAll()
         database.likeDao().deleteAll()

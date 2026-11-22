@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.database.migrations.MIGRATION_1_2
 import com.ivangarzab.kluvs.database.migrations.MIGRATION_2_3
 import com.ivangarzab.kluvs.database.migrations.MIGRATION_3_4
 import com.ivangarzab.kluvs.database.migrations.MIGRATION_4_5
+import com.ivangarzab.kluvs.database.migrations.MIGRATION_5_6
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 
@@ -18,7 +19,7 @@ fun getKluvsDatabase(
     builder: RoomDatabase.Builder<KluvsDatabaseImpl>
 ): KluvsDatabase {
     return builder
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
 }
