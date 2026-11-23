@@ -4,7 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthError
-import com.ivangarzab.kluvs.auth.domain.AuthRepository
+import com.ivangarzab.kluvs.auth.domain.HandleOAuthCallbackUseCase
+import com.ivangarzab.kluvs.auth.domain.InitializeAuthUseCase
+import com.ivangarzab.kluvs.auth.domain.ObserveCurrentUserUseCase
+import com.ivangarzab.kluvs.auth.domain.ResetPasswordUseCase
+import com.ivangarzab.kluvs.auth.domain.SignInWithAppleUseCase
+import com.ivangarzab.kluvs.auth.domain.SignInWithDiscordUseCase
+import com.ivangarzab.kluvs.auth.domain.SignInWithEmailUseCase
+import com.ivangarzab.kluvs.auth.domain.SignInWithGoogleUseCase
+import com.ivangarzab.kluvs.auth.domain.SignUpWithEmailUseCase
+import com.ivangarzab.kluvs.auth.domain.ValidateCredentialsUseCase
 import com.ivangarzab.kluvs.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,12 +26,17 @@ import kotlinx.coroutines.launch
  * presentation layer.
  */
 class AuthViewModel(
-    private val authRepository: AuthRepository
+    private val initializeAuth: InitializeAuthUseCase,
+    private val observeCurrentUser: ObserveCurrentUserUseCase,
+    private val validateCredentials: ValidateCredentialsUseCase,
+    private val signUpWithEmail: SignUpWithEmailUseCase,
+    private val signInWithEmail: SignInWithEmailUseCase,
+    private val resetPassword: ResetPasswordUseCase,
+    private val signInWithDiscordOAuth: SignInWithDiscordUseCase,
+    private val signInWithGoogleOAuth: SignInWithGoogleUseCase,
+    private val signInWithAppleIdToken: SignInWithAppleUseCase,
+    private val completeOAuthSignIn: HandleOAuthCallbackUseCase,
 ) : ViewModel() {
-
-    companion object {
-        private val EMAIL_REGEX = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-    }
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -36,8 +50,8 @@ class AuthViewModel(
     init {
         Bark.d("AuthViewModel initializing")
         viewModelScope.launch {
-            authRepository.initialize()
-            authRepository.currentUser.collect { user: User? ->
+            initializeAuth()
+            observeCurrentUser().collect { user: User? ->
                 _state.update {
                     user?.let {
                         Bark.i("Authentication state: Authenticated (User: ${it.email})")
@@ -64,20 +78,10 @@ class AuthViewModel(
     }
 
     fun validateAndSignIn() {
-        val emailError = when {
-            _uiState.value.emailField.isBlank() -> "Email is required"
-            !EMAIL_REGEX.matches(_uiState.value.emailField) -> "Please enter a valid email"
-            else -> null
-        }
-
-        val passwordError = when {
-            _uiState.value.passwordField.isBlank() -> "Password is required"
-            _uiState.value.passwordField.length < 6 -> "Password must be at least 6 characters"
-            else -> null
-        }
-
-        if (emailError != null || passwordError != null) {
-            _uiState.update { it.copy(emailError = emailError, passwordError = passwordError) }
+        val form = _uiState.value
+        val errors = validateCredentials(email = form.emailField, password = form.passwordField)
+        if (errors.hasErrors) {
+            _uiState.update { it.copy(emailError = errors.email, passwordError = errors.password) }
             return  // Don't proceed with API call
         }
 
@@ -85,29 +89,18 @@ class AuthViewModel(
     }
 
     fun validateAndSignUp() {
-        val emailError = when {
-            _uiState.value.emailField.isBlank() -> "Email is required"
-            !EMAIL_REGEX.matches(_uiState.value.emailField) -> "Please enter a valid email"
-            else -> null
-        }
-
-        val passwordError = when {
-            _uiState.value.passwordField.isBlank() -> "Password is required"
-            _uiState.value.passwordField.length < 6 -> "Password must be at least 6 characters"
-            else -> null
-        }
-
-        val confirmPasswordError = when {
-            _uiState.value.passwordField != _uiState.value.confirmPasswordField -> "Passowrds must match"
-            else -> null
-        }
-
-        if (emailError != null || passwordError != null || confirmPasswordError != null) {
+        val form = _uiState.value
+        val errors = validateCredentials(
+            email = form.emailField,
+            password = form.passwordField,
+            confirmPassword = form.confirmPasswordField
+        )
+        if (errors.hasErrors) {
             _uiState.update {
                 it.copy(
-                    emailError = emailError,
-                    passwordError = passwordError,
-                    confirmPasswordError = confirmPasswordError
+                    emailError = errors.email,
+                    passwordError = errors.password,
+                    confirmPasswordError = errors.confirmPassword
                 )
             }
             return  // Don't proceed with API call
@@ -119,7 +112,7 @@ class AuthViewModel(
     private fun signUp() = viewModelScope.launch {
         Bark.d("Email sign up initiated")
         _state.update { AuthState.Loading }
-        authRepository.signUpWithEmail(
+        signUpWithEmail(
             email = uiState.value.emailField,
             password = uiState.value.passwordField
         ).onSuccess { user ->
@@ -143,7 +136,7 @@ class AuthViewModel(
     private fun signIn() = viewModelScope.launch {
         Bark.d("Email sign in initiated")
         _state.update { AuthState.Loading }
-        authRepository.signInWithEmail(
+        signInWithEmail(
             email = uiState.value.emailField,
             password = uiState.value.passwordField
         ).onSuccess { user ->
@@ -163,12 +156,7 @@ class AuthViewModel(
     }
 
     fun sendPasswordResetEmail() {
-        val emailError = when {
-            _forgotPasswordState.value.emailField.isBlank() -> "Email is required"
-            !EMAIL_REGEX.matches(_forgotPasswordState.value.emailField) -> "Please enter a valid email"
-            else -> null
-        }
-
+        val emailError = validateCredentials(email = _forgotPasswordState.value.emailField).email
         if (emailError != null) {
             _forgotPasswordState.update { it.copy(emailError = emailError) }
             return
@@ -177,7 +165,7 @@ class AuthViewModel(
         viewModelScope.launch {
             Bark.d("Password reset email requested")
             _forgotPasswordState.update { it.copy(isLoading = true, generalError = null) }
-            authRepository.resetPasswordForEmail(_forgotPasswordState.value.emailField)
+            resetPassword(_forgotPasswordState.value.emailField)
                 .onSuccess {
                     Bark.i("Password reset email sent")
                     _forgotPasswordState.update { it.copy(isLoading = false, isEmailSent = true) }
@@ -198,22 +186,6 @@ class AuthViewModel(
         _forgotPasswordState.update { ForgotPasswordUiState() }
     }
 
-    fun signOut() = viewModelScope.launch {
-        Bark.d("Sign out initiated")
-        _state.update { AuthState.Loading }
-        authRepository.signOut()
-            .onSuccess {
-                Bark.i("User signed out")
-                _state.update { AuthState.Unauthenticated }
-            }
-            .onFailure { error ->
-                Bark.e("Sign out failed. User session may still be active.", error)
-                _state.update {
-                    AuthState.Error(error as? AuthError ?: AuthError.UnexpectedError)
-                }
-            }
-    }
-
     /**
      * Initiates Discord OAuth sign-in flow.
      * Emits [AuthState.OAuthPending] with the OAuth URL to open in browser.
@@ -221,7 +193,7 @@ class AuthViewModel(
     fun signInWithDiscord() = viewModelScope.launch {
         Bark.d("Discord OAuth initiated")
         _state.update { AuthState.Loading }
-        authRepository.signInWithDiscord()
+        signInWithDiscordOAuth()
             .onSuccess { url ->
                 Bark.d("Discord OAuth URL generated")
                 _state.update { AuthState.OAuthPending(url) }
@@ -241,7 +213,7 @@ class AuthViewModel(
     fun signInWithGoogle() = viewModelScope.launch {
         Bark.d("Google OAuth initiated")
         _state.update { AuthState.Loading }
-        authRepository.signInWithGoogle()
+        signInWithGoogleOAuth()
             .onSuccess { url ->
                 Bark.d("Google OAuth URL generated")
                 _state.update { AuthState.OAuthPending(url) }
@@ -277,7 +249,7 @@ class AuthViewModel(
     fun handleOAuthCallback(callbackUrl: String) = viewModelScope.launch {
         Bark.d("OAuth callback processing started")
         _state.update { AuthState.Loading }
-        authRepository.handleOAuthCallback(callbackUrl)
+        completeOAuthSignIn(callbackUrl)
             .onSuccess { user ->
                 Bark.i("User authenticated via OAuth (Email: ${user.email})")
                 _state.update { AuthState.Authenticated(user) }
@@ -298,7 +270,7 @@ class AuthViewModel(
     fun signInWithApple(idToken: String) = viewModelScope.launch {
         Bark.d("Apple native sign in initiated")
         _state.update { AuthState.Loading }
-        authRepository.signInWithAppleNative(idToken)
+        signInWithAppleIdToken(idToken)
             .onSuccess { user ->
                 Bark.i("User authenticated via Apple ID (Email: ${user.email})")
                 _state.update { AuthState.Authenticated(user) }

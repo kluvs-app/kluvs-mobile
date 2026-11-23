@@ -3,7 +3,7 @@ package com.ivangarzab.kluvs.books.presentation
 import com.ivangarzab.kluvs.books.domain.AssignShelfUseCase
 import com.ivangarzab.kluvs.books.domain.GetBookEnrichmentUseCase
 import com.ivangarzab.kluvs.books.domain.GetLikeStatusUseCase
-import com.ivangarzab.kluvs.books.domain.RegisterBookUseCase
+import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.books.domain.RemoveFromShelfUseCase
 import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
 import com.ivangarzab.kluvs.data.repositories.BookEnrichmentRepository

@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.clubs.domain
+package com.ivangarzab.kluvs.data.domain
 
 import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.model.Book

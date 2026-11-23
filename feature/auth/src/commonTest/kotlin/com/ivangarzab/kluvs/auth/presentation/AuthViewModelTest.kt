@@ -43,7 +43,7 @@ class AuthViewModelTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
-        viewModel = AuthViewModel(authRepository)
+        viewModel = createAuthViewModel(authRepository)
     }
 
     @AfterTest
@@ -262,7 +262,7 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Passowrds must match", viewModel.uiState.value.confirmPasswordError) // Note: typo in actual code
+        assertEquals("Passwords must match", viewModel.uiState.value.confirmPasswordError)
         assertIs<AuthState.Unauthenticated>(viewModel.state.value)
     }
 
@@ -412,48 +412,6 @@ class AuthViewModelTest {
         assertIs<AuthState.Unauthenticated>(viewModel.state.value)
     }
 
-    // ========== Sign Out Tests ==========
-
-    @Test
-    fun `signOut success updates state to unauthenticated`() = runTest {
-        // Given - First sign in
-        val user = User("user-id", "test@example.com", "Test User", null, AuthProvider.EMAIL)
-        viewModel.onEmailFieldChanged("test@example.com")
-        viewModel.onPasswordFieldChanged("password123")
-        everySuspend { authRepository.signInWithEmail(any(), any()) } returns Result.success(user)
-        viewModel.validateAndSignIn()
-
-        // Setup sign out
-        everySuspend { authRepository.signOut() } returns Result.success(Unit)
-
-        // When
-        viewModel.signOut()
-
-        // Then
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
-        verifySuspend { authRepository.signOut() }
-    }
-
-    @Test
-    fun `signOut failure updates state to error`() = runTest {
-        // Given - User is signed in
-        val user = User("user-id", "test@example.com", "Test User", null, AuthProvider.EMAIL)
-        viewModel.onEmailFieldChanged("test@example.com")
-        viewModel.onPasswordFieldChanged("password123")
-        everySuspend { authRepository.signInWithEmail(any(), any()) } returns Result.success(user)
-        viewModel.validateAndSignIn()
-
-        // Setup sign out to fail
-        everySuspend { authRepository.signOut() } returns Result.failure(AuthError.NoConnection)
-
-        // When
-        viewModel.signOut()
-
-        // Then
-        assertIs<AuthState.Error>(viewModel.state.value)
-        assertEquals(AuthError.NoConnection, (viewModel.state.value as AuthState.Error).error)
-    }
-
     // ========== Forgot Password Tests ==========
 
     @Test
@@ -569,6 +527,6 @@ class AuthViewModelTest {
         // Then
         assertEquals("Please enter a valid email", viewModel.uiState.value.emailError)
         assertEquals("Password must be at least 6 characters", viewModel.uiState.value.passwordError)
-        assertEquals("Passowrds must match", viewModel.uiState.value.confirmPasswordError)
+        assertEquals("Passwords must match", viewModel.uiState.value.confirmPasswordError)
     }
 }

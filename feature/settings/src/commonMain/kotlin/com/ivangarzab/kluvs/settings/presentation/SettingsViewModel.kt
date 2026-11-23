@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
-import com.ivangarzab.kluvs.data.error.toAppError
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
 import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
@@ -114,10 +112,10 @@ class SettingsViewModel(
                 }
                 .onFailure { error ->
                     // Covers the 409 "handle already taken" case — AppError.Conflict carries the
-                    // backend's own clean, human-readable detail via toUserMessage().
+                    // backend's own clean, human-readable detail via toDisplayMessage().
                     Bark.e("Failed to save profile (Member ID: ${profile.memberId}).", error)
                     _state.update {
-                        it.copy(isSaving = false, saveError = error.toAppError().toUserMessage())
+                        it.copy(isSaving = false, saveError = error.toDisplayMessage())
                     }
                 }
         }
@@ -289,7 +287,7 @@ class SettingsViewModel(
                     _state.update {
                         it.copy(
                             isDeletingAccount = false,
-                            deleteAccountError = error.toAppError().toUserMessage()
+                            deleteAccountError = error.toDisplayMessage()
                         )
                     }
                 }
