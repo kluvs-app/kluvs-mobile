@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
+import com.ivangarzab.kluvs.api.models.MemberCreateResponseMemberDto
 import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
 import com.ivangarzab.kluvs.model.Member
@@ -41,8 +42,29 @@ fun MemberGetResponseDto.toDomain(): Member {
         booksRead = booksRead ?: 0,
         userId = userId,
         createdAt = parseDateTimeString(createdAt),
-        clubs = clubs?.map { it.toDomain() } ?: emptyList(),
-        shameClubs = shameClubs?.map { it.toDomain() } ?: emptyList()
+        clubs = clubs.map { it.toDomain() },
+        shameClubs = shameClubs.map { it.toDomain() }
+    )
+}
+
+/**
+ * Maps the member echoed back by `POST /member` ([MemberCreateResponseMemberDto]) to a
+ * [Member] domain model.
+ *
+ * The echo's `clubs` is only the list of club IDs from the request, not club objects, so
+ * relations (clubs, shameClubs) stay null, as with [MemberDto].
+ */
+fun MemberCreateResponseMemberDto.toDomain(): Member {
+    return Member(
+        id = id.toString(),
+        name = name,
+        handle = handle.normalizeHandle(),
+        avatarPath = avatarPath,
+        booksRead = booksRead ?: 0,
+        userId = userId,
+        createdAt = parseDateTimeString(createdAt),
+        clubs = null,
+        shameClubs = null
     )
 }
 

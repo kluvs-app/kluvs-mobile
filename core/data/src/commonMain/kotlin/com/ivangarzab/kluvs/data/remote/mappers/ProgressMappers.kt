@@ -33,8 +33,8 @@ fun ReadingProgressDto.toDomain(): ReadingProgress {
  * Maps a [com.ivangarzab.kluvs.api.models.BookSummaryDto] to a [BookSummary] domain model.
  */
 fun BookSummaryDto.toDomain(): BookSummary = BookSummary(
-    id = id?.toString() ?: "",
-    title = title ?: "",
+    id = id.toString(),
+    title = title,
     pageCount = pageCount,
     imageUrl = imageUrl
 )

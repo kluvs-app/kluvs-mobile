@@ -39,8 +39,7 @@ class JoinRemoteDataSourceImpl(
             if (response.valid != true) {
                 throw Exception("Invite token is not valid")
             }
-            val club = response.club?.toDomain()
-                ?: throw Exception("Invite preview succeeded but no club returned")
+            val club = response.club.toDomain()
             Bark.d("Previewed invite for club: ${club.name}")
             Result.success(club)
         } catch (e: Exception) {
@@ -56,7 +55,6 @@ class JoinRemoteDataSourceImpl(
                 throw Exception("Join request was rejected")
             }
             val clubId = response.clubId
-                ?: throw Exception("Join succeeded but no club ID returned")
             Bark.i("Joined club (ID: $clubId)")
             Result.success(clubId)
         } catch (e: Exception) {

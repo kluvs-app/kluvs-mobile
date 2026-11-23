@@ -1,9 +1,9 @@
 package com.ivangarzab.kluvs.data.remote.api
 
 import com.ivangarzab.bark.Bark
-import com.ivangarzab.kluvs.api.models.ClubDto
 import com.ivangarzab.kluvs.api.models.ClubCreateResponseDto
 import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
+import com.ivangarzab.kluvs.api.models.ClubDetailDto
 import com.ivangarzab.kluvs.api.models.ClubUpdateResponseDto
 import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.api.models.DeleteResponseDto
@@ -15,8 +15,8 @@ import io.ktor.http.HttpMethod
 import io.ktor.utils.io.InternalAPI
 
 interface ClubService {
-    suspend fun get(clubId: String, serverId: String? = null): ClubDto
-    suspend fun getByChannel(channel: String, serverId: String): ClubDto
+    suspend fun get(clubId: String, serverId: String? = null): ClubDetailDto
+    suspend fun getByChannel(channel: String, serverId: String): ClubDetailDto
     suspend fun create(request: ClubCreateRequestDto): ClubCreateResponseDto
     suspend fun update(request: ClubUpdateRequestDto): ClubUpdateResponseDto
     suspend fun delete(clubId: String, serverId: String? = null): DeleteResponseDto
@@ -25,7 +25,7 @@ interface ClubService {
 @OptIn(InternalAPI::class)
 internal class ClubServiceImpl(private val supabase: SupabaseClient) : ClubService {
 
-    override suspend fun get(clubId: String, serverId: String?): ClubDto {
+    override suspend fun get(clubId: String, serverId: String?): ClubDetailDto {
         Bark.d("Fetching club (ID: $clubId, Server: $serverId)")
         return try {
             val response = supabase.functions.invoke("club") {
@@ -35,7 +35,7 @@ internal class ClubServiceImpl(private val supabase: SupabaseClient) : ClubServi
                     // Only append server_id if provided (Discord use case)
                     serverId?.let { parameters.append("server_id", it) }
                 }
-            }.body<ClubDto>()
+            }.body<ClubDetailDto>()
             Bark.v("Club fetched successfully (ID: $clubId)")
             response
         } catch (error: Exception) {
@@ -44,7 +44,7 @@ internal class ClubServiceImpl(private val supabase: SupabaseClient) : ClubServi
         }
     }
 
-    override suspend fun getByChannel(channel: String, serverId: String): ClubDto {
+    override suspend fun getByChannel(channel: String, serverId: String): ClubDetailDto {
         Bark.d("Fetching club by channel (Channel: $channel, Server: $serverId)")
         return try {
             val response = supabase.functions.invoke("club") {
@@ -53,7 +53,7 @@ internal class ClubServiceImpl(private val supabase: SupabaseClient) : ClubServi
                     parameters.append("discord_channel", channel)
                     parameters.append("server_id", serverId)
                 }
-            }.body<ClubDto>()
+            }.body<ClubDetailDto>()
             Bark.v("Club fetched by channel successfully (Channel: $channel)")
             response
         } catch (error: Exception) {

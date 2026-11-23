@@ -22,6 +22,9 @@ class ProgressRemoteDataSourceTest {
     private lateinit var dataSource: ProgressRemoteDataSource
 
     private val progressDto = ReadingProgressDto(
+        sessionId = null,
+        percentComplete = null,
+        completedAt = null,
         id = "progress-1",
         memberId = 1,
         bookId = 5,
@@ -29,7 +32,8 @@ class ProgressRemoteDataSourceTest {
         status = ReadingProgressDto.Status.in_progress,
         startedAt = "2026-07-01T10:30:00",
         updatedAt = "2026-07-02T11:00:00",
-        currentPage = 50
+        currentPage = 50,
+        book = null
     )
 
     @BeforeTest

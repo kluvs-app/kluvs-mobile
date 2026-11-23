@@ -70,7 +70,7 @@ class ServerMappersTest {
         val minimalClub = ServerClubSummaryDto(
             id = "club-minimal",
             name = "Minimal Club",
-            memberCount = null,
+            memberCount = 0,
             latestSession = null
         )
 

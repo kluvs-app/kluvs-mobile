@@ -61,7 +61,7 @@ class ServerRemoteDataSourceImpl(
     override suspend fun getAllServers(): Result<List<Server>> {
         return try {
             val response = serverService.getAll()
-            val servers = response.servers ?: emptyList()
+            val servers = response.servers
             Bark.i("Fetched all servers (count: ${servers.size})")
             Result.success(servers.map { it.toDomain() })
         } catch (e: Exception) {
@@ -84,7 +84,7 @@ class ServerRemoteDataSourceImpl(
     override suspend fun createServer(request: ServerCreateRequestDto): Result<Server> {
         return try {
             val response = serverService.create(request)
-            val server = response.server ?: error("Server creation response missing server data")
+            val server = response.server
             Bark.i("Server created (name: ${request.name})")
             Result.success(server.toDomain())
         } catch (e: Exception) {
@@ -96,7 +96,7 @@ class ServerRemoteDataSourceImpl(
     override suspend fun updateServer(request: ServerUpdateRequestDto): Result<Server> {
         return try {
             val response = serverService.update(request)
-            val server = response.server ?: error("Server update response missing server data")
+            val server = response.server
             Bark.i("Server updated (ID: ${request.id})")
             Result.success(server.toDomain())
         } catch (e: Exception) {

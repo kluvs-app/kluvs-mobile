@@ -17,6 +17,8 @@ class ProgressMappersTest {
     fun `ReadingProgressDto toDomain maps complete entry`() {
         // Given: A complete page-based progress entry
         val dto = ReadingProgressDto(
+            percentComplete = null,
+            completedAt = null,
             id = "progress-1",
             memberId = 1,
             bookId = 5,
@@ -26,7 +28,9 @@ class ProgressMappersTest {
             updatedAt = "2026-07-02T11:00:00",
             sessionId = "session-1",
             currentPage = 50,
-            book = BookSummaryDto(id = 5, title = "The Hobbit", pageCount = 310)
+            book = BookSummaryDto(
+            imageUrl = null,
+            id = 5, title = "The Hobbit", pageCount = 310)
         )
 
         // When: Mapping to domain
@@ -49,6 +53,8 @@ class ProgressMappersTest {
     @Test
     fun `ReadingProgressDto toDomain maps completed percent entry`() {
         val dto = ReadingProgressDto(
+            sessionId = null,
+            currentPage = null,
             id = "progress-2",
             memberId = 1,
             bookId = 7,
@@ -57,7 +63,8 @@ class ProgressMappersTest {
             startedAt = "2026-07-01T10:30:00",
             updatedAt = "2026-07-05T09:00:00",
             percentComplete = 100f,
-            completedAt = "2026-07-05T09:00:00"
+            completedAt = "2026-07-05T09:00:00",
+            book = null
         )
 
         val progress = dto.toDomain()
@@ -83,13 +90,5 @@ class ProgressMappersTest {
         assertEquals(ProgressUpdateRequestDto.Status.completed, ProgressStatus.COMPLETED.toUpdateDto())
         assertEquals("in_progress", ProgressStatus.IN_PROGRESS.toQueryValue())
         assertEquals("completed", ProgressStatus.COMPLETED.toQueryValue())
-    }
-
-    @Test
-    fun `BookSummaryDto toDomain falls back to empty strings for missing id and title`() {
-        val summary = BookSummaryDto().toDomain()
-
-        assertEquals("", summary.id)
-        assertEquals("", summary.title)
     }
 }

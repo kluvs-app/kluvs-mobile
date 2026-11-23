@@ -32,7 +32,6 @@ class LikeRemoteDataSourceImpl(
         return try {
             val response = likeService.getStatus(bookId)
             val liked = response.liked
-                ?: throw Exception("Like status response missing liked flag")
             Bark.d("Fetched like status for book (ID: $bookId, Liked: $liked)")
             Result.success(liked)
         } catch (e: Exception) {
@@ -45,7 +44,6 @@ class LikeRemoteDataSourceImpl(
         return try {
             val response = likeService.toggle(request)
             val liked = response.liked
-                ?: throw Exception("Like toggle response missing liked flag")
             Bark.i("Toggled like for book (ID: ${request.bookId}, Liked: $liked)")
             Result.success(liked)
         } catch (e: Exception) {

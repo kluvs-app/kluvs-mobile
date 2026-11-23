@@ -57,6 +57,8 @@ class BookRemoteDataSourceTest {
     @Test
     fun `searchBooks success returns list of books`() = runTest {
         everySuspend { bookService.search(any(), any(), any()) } returns BookSearchResponseDto(
+            offset = 0,
+            limit = 20,
             success = true,
             books = listOf(testBookDto),
             total = 1
@@ -74,6 +76,8 @@ class BookRemoteDataSourceTest {
     @Test
     fun `searchBooks returns empty list when no results`() = runTest {
         everySuspend { bookService.search(any(), any(), any()) } returns BookSearchResponseDto(
+            offset = 0,
+            limit = 20,
             success = true,
             books = emptyList(),
             total = 0
@@ -89,6 +93,8 @@ class BookRemoteDataSourceTest {
     @Test
     fun `searchBooks passes offset through to the service`() = runTest {
         everySuspend { bookService.search(any(), any(), any()) } returns BookSearchResponseDto(
+            offset = 0,
+            limit = 20,
             success = true,
             books = listOf(testBookDto),
             total = 25
@@ -118,6 +124,7 @@ class BookRemoteDataSourceTest {
     @Test
     fun `registerBook success returns registered book`() = runTest {
         val response = BookRegistrationResponseDto(
+            message = "ok",
             success = true,
             book = testBookDto,
             created = true

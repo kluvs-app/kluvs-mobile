@@ -4,13 +4,11 @@ import com.ivangarzab.kluvs.api.models.ClubPreviewDto
 import com.ivangarzab.kluvs.model.ClubPreview
 
 /**
- * Maps a [com.ivangarzab.kluvs.api.models.ClubPreviewDto] to a [ClubPreview] domain model,
- * or null when the preview carries no club ID.
+ * Maps a [com.ivangarzab.kluvs.api.models.ClubPreviewDto] to a [ClubPreview] domain model.
  */
-fun ClubPreviewDto.toDomain(): ClubPreview? {
-    val clubId = id ?: return null
+fun ClubPreviewDto.toDomain(): ClubPreview {
     return ClubPreview(
-        id = clubId,
-        name = name ?: ""
+        id = id,
+        name = name
     )
 }

@@ -38,6 +38,8 @@ class ShelfRemoteDataSourceTest {
             success = true,
             shelves = listOf(
                 ShelfEntryDto(
+                    updatedAt = "2026-01-01T00:00:00Z",
+                    source = ShelfEntryDto.Source.manual,
                     shelf = ShelfStatusDto.read,
                     book = BookDto(id = 5, title = "The Hobbit", author = "J.R.R. Tolkien")
                 )
@@ -88,18 +90,8 @@ class ShelfRemoteDataSourceTest {
     }
 
     @Test
-    fun `assignShelf fails when response carries no shelf`() = runTest {
-        val request = ShelfAssignRequestDto(bookId = 5, shelf = ShelfStatusDto.read)
-        everySuspend { shelfService.assign(request) } returns ShelfAssignResponseDto(success = true)
-
-        val result = dataSource.assignShelf(request)
-
-        assertTrue(result.isFailure)
-    }
-
-    @Test
     fun `removeShelf succeeds on successful response`() = runTest {
-        everySuspend { shelfService.remove(5) } returns ShelfSingleResponseDto(success = true)
+        everySuspend { shelfService.remove(5) } returns ShelfSingleResponseDto(success = true, shelf = null)
 
         val result = dataSource.removeShelf(5)
 

@@ -5,9 +5,10 @@ import com.ivangarzab.kluvs.api.models.DeleteResponseDto
 import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.SessionCreateResponseDto
 import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionFinishResponseDto
+import com.ivangarzab.kluvs.api.models.SessionNoChangesResponseDto
 import com.ivangarzab.kluvs.api.models.SessionReadingLogResponseDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
-import com.ivangarzab.kluvs.api.models.UpdateSession200ResponseDto
 import com.ivangarzab.kluvs.network.utils.JsonHelper.getJsonForSupabaseService
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -33,7 +34,22 @@ interface SessionService {
      */
     suspend fun getReadingLog(): SessionReadingLogResponseDto
     suspend fun create(request: SessionCreateRequestDto): SessionCreateResponseDto
-    suspend fun update(request: SessionUpdateRequestDto): UpdateSession200ResponseDto
+
+    /**
+     * Applies a general (non-finish) update.
+     *
+     * PUT /session is a `oneOf` in the spec (finish, general update or no-op), and the
+     * generated merged `UpdateSession200ResponseDto` requires every variant's fields, so
+     * it can't decode any single response. A general update or a no-op both carry
+     * `success` and `message`, so this decodes just that common shape.
+     */
+    suspend fun update(request: SessionUpdateRequestDto): SessionNoChangesResponseDto
+
+    /**
+     * Finishes a session (`finish: true`). A successful finish always returns the finish
+     * variant; an already-finished session is rejected with a 400.
+     */
+    suspend fun finish(sessionId: String): SessionFinishResponseDto
     suspend fun delete(sessionId: String): DeleteResponseDto
 }
 
@@ -88,7 +104,7 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
         }
     }
 
-    override suspend fun update(request: SessionUpdateRequestDto): UpdateSession200ResponseDto {
+    override suspend fun update(request: SessionUpdateRequestDto): SessionNoChangesResponseDto {
         Bark.d("Updating session (ID: ${request.id})")
         return try {
             val json = getJsonForSupabaseService()
@@ -97,11 +113,29 @@ internal class SessionServiceImpl(private val supabase: SupabaseClient) : Sessio
             val response = supabase.functions.invoke("session") {
                 method = HttpMethod.Put
                 body = jsonString
-            }.body<UpdateSession200ResponseDto>()
+            }.body<SessionNoChangesResponseDto>()
             Bark.v("Session updated successfully (ID: ${request.id})")
             response
         } catch (error: Exception) {
             Bark.e("Failed to update session (ID: ${request.id}). Check network/API status and retry.", error)
+            throw error
+        }
+    }
+
+    override suspend fun finish(sessionId: String): SessionFinishResponseDto {
+        Bark.d("Finishing session (ID: $sessionId)")
+        return try {
+            val json = getJsonForSupabaseService()
+            val jsonString = json.encodeToString(SessionUpdateRequestDto(id = sessionId, finish = true))
+
+            val response = supabase.functions.invoke("session") {
+                method = HttpMethod.Put
+                body = jsonString
+            }.body<SessionFinishResponseDto>()
+            Bark.v("Session finished successfully (ID: $sessionId)")
+            response
+        } catch (error: Exception) {
+            Bark.e("Failed to finish session (ID: $sessionId). Check network/API status and retry.", error)
             throw error
         }
     }
