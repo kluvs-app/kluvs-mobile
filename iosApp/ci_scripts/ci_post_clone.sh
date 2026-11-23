@@ -4,6 +4,14 @@ set -x
 
 echo "🚀 Starting post-cloning task for KMP build"
 
+# Resolved before the `cd ../..` below.
+SCRIPTS_DIR=$(cd "$(dirname "$0")" && pwd)
+
+# Mirror a terminal Gradle failure onto the PR (see report_failure.swift). Never fails the build.
+report_failure() {
+    ( set +x; xcrun swift "$SCRIPTS_DIR/report_failure.swift" --stage "ci_post_clone: ./gradlew $1" --gradle-log "$2" ) || true
+}
+
 # Heartbeat: Xcode Cloud kills a script that prints nothing for 15 minutes, and Gradle can stay
 # silent that long while it resolves dependencies. Print a line every minute while we run.
 ( set +x; while true; do sleep 60; echo "⏱️ ci_post_clone still running ($(date -u +%H:%M:%S) UTC)"; done ) &
@@ -32,14 +40,17 @@ run_gradle() {
         fi
         if ! grep -Eq 'Could not (GET|HEAD|download|resolve)|No route to host|timed out|Connection reset|Got socket exception|Remote host terminated|UnknownHostException' "$log_file"; then
             echo "❌ ./gradlew $* failed for a non-network reason; not retrying"
+            report_failure "$1" "$log_file"
+            rm -f "$log_file" "$status_file"
+            return "$status"
+        fi
+        if [ "$attempt" -ge "$GRADLE_MAX_ATTEMPTS" ]; then
+            echo "❌ ./gradlew $* still failing on network errors after $attempt attempts"
+            report_failure "$1" "$log_file"
             rm -f "$log_file" "$status_file"
             return "$status"
         fi
         rm -f "$log_file" "$status_file"
-        if [ "$attempt" -ge "$GRADLE_MAX_ATTEMPTS" ]; then
-            echo "❌ ./gradlew $* still failing on network errors after $attempt attempts"
-            return "$status"
-        fi
         attempt=$((attempt + 1))
         echo "🔁 Network failure; retrying in 10s"
         sleep 10
