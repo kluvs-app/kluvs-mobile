@@ -29,7 +29,7 @@ import kotlinx.serialization.encoding.*
 
 data class ProgressDeleteResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null
+    @SerialName(value = "success") @Required val success: kotlin.Boolean
 
 ) {
 

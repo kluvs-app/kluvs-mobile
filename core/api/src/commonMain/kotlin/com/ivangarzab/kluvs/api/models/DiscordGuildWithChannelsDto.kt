@@ -33,11 +33,11 @@ import kotlinx.serialization.encoding.*
 data class DiscordGuildWithChannelsDto (
 
     /* Discord guild snowflake ID. */
-    @SerialName(value = "id") val id: kotlin.String? = null,
+    @SerialName(value = "id") @Required val id: kotlin.String,
 
-    @SerialName(value = "name") val name: kotlin.String? = null,
+    @SerialName(value = "name") @Required val name: kotlin.String,
 
-    @SerialName(value = "channels") val channels: kotlin.collections.List<DiscordChannelSummaryDto>? = null
+    @SerialName(value = "channels") @Required val channels: kotlin.collections.List<DiscordChannelSummaryDto>
 
 ) {
 

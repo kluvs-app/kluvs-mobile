@@ -27,13 +27,13 @@ import kotlinx.serialization.encoding.*
  * @param id 
  * @param memberId 
  * @param bookId 
+ * @param sessionId 
  * @param progressType 
+ * @param currentPage 
+ * @param percentComplete 
  * @param status 
  * @param startedAt 
  * @param updatedAt 
- * @param sessionId 
- * @param currentPage 
- * @param percentComplete 
  * @param completedAt 
  * @param book 
  */
@@ -47,7 +47,13 @@ data class ReadingProgressDto (
 
     @SerialName(value = "book_id") @Required val bookId: kotlin.Int,
 
+    @SerialName(value = "session_id") @Required val sessionId: kotlin.String?,
+
     @SerialName(value = "progress_type") @Required val progressType: ReadingProgressDto.ProgressType,
+
+    @SerialName(value = "current_page") @Required val currentPage: kotlin.Int?,
+
+    @SerialName(value = "percent_complete") @Required val percentComplete: kotlin.Float?,
 
     @SerialName(value = "status") @Required val status: ReadingProgressDto.Status,
 
@@ -55,15 +61,9 @@ data class ReadingProgressDto (
 
     @SerialName(value = "updated_at") @Required val updatedAt: kotlin.String,
 
-    @SerialName(value = "session_id") val sessionId: kotlin.String? = null,
+    @SerialName(value = "completed_at") @Required val completedAt: kotlin.String?,
 
-    @SerialName(value = "current_page") val currentPage: kotlin.Int? = null,
-
-    @SerialName(value = "percent_complete") val percentComplete: kotlin.Float? = null,
-
-    @SerialName(value = "completed_at") val completedAt: kotlin.String? = null,
-
-    @SerialName(value = "book") val book: BookSummaryDto? = null
+    @SerialName(value = "book") @Required val book: BookSummaryDto?
 
 ) {
 

@@ -16,7 +16,7 @@
 package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.BookDto
-import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.ClubActiveSessionDiscussionInputDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -28,7 +28,7 @@ import kotlinx.serialization.encoding.*
  * @param id 
  * @param dueDate 
  * @param book 
- * @param discussions 
+ * @param discussions Entries missing id, title or scheduled_at are skipped.
  */
 @Serializable
 
@@ -40,7 +40,8 @@ data class ClubActiveSessionInputDto (
 
     @SerialName(value = "book") val book: BookDto? = null,
 
-    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null
+    /* Entries missing id, title or scheduled_at are skipped. */
+    @SerialName(value = "discussions") val discussions: kotlin.collections.List<ClubActiveSessionDiscussionInputDto>? = null
 
 ) {
 

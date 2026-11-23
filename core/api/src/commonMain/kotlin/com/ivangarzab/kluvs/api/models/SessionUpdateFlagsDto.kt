@@ -32,13 +32,13 @@ import kotlinx.serialization.encoding.*
 data class SessionUpdateFlagsDto (
 
     /* Whether the associated book was updated */
-    @SerialName(value = "book") val book: kotlin.Boolean? = null,
+    @SerialName(value = "book") @Required val book: kotlin.Boolean,
 
     /* Whether session fields (club_id, due_date) were updated */
-    @SerialName(value = "session") val session: kotlin.Boolean? = null,
+    @SerialName(value = "session") @Required val session: kotlin.Boolean,
 
     /* Whether session_members rows were upserted */
-    @SerialName(value = "session_members") val sessionMembers: kotlin.Boolean? = null
+    @SerialName(value = "session_members") @Required val sessionMembers: kotlin.Boolean
 
 ) {
 

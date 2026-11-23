@@ -31,9 +31,9 @@ import kotlinx.serialization.encoding.*
 
 data class SessionReadingLogResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "reading_log") val readingLog: SessionReadingLogGroupsDto? = null
+    @SerialName(value = "reading_log") @Required val readingLog: SessionReadingLogGroupsDto
 
 ) {
 

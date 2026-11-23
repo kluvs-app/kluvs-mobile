@@ -36,19 +36,19 @@ import kotlinx.serialization.encoding.*
 
 data class SessionReadingLogEntryDto (
 
-    @SerialName(value = "id") val id: kotlin.String? = null,
+    @SerialName(value = "id") @Required val id: kotlin.String,
 
-    @SerialName(value = "due_date") val dueDate: kotlin.String? = null,
+    @SerialName(value = "due_date") @Required val dueDate: kotlin.String?,
 
     /* When the session started. Server-set on insert; null for sessions created before this field existed. */
-    @SerialName(value = "started_at") val startedAt: kotlin.String? = null,
+    @SerialName(value = "started_at") @Required val startedAt: kotlin.String?,
 
     /* When the session was finished. Null while the session is active. */
-    @SerialName(value = "ended_at") val endedAt: kotlin.String? = null,
+    @SerialName(value = "ended_at") @Required val endedAt: kotlin.String?,
 
-    @SerialName(value = "book") val book: SessionReadingLogBookDto? = null,
+    @SerialName(value = "book") @Required val book: SessionReadingLogBookDto,
 
-    @SerialName(value = "club") val club: SessionReadingLogClubDto? = null
+    @SerialName(value = "club") @Required val club: SessionReadingLogClubDto
 
 ) {
 
