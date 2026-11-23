@@ -1,7 +1,7 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
-import com.ivangarzab.kluvs.api.models.GetShelf200ResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfEntryDto
+import com.ivangarzab.kluvs.api.models.ShelfListResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import com.ivangarzab.kluvs.model.ShelfEntry
 import com.ivangarzab.kluvs.model.ShelfSource
@@ -48,5 +48,5 @@ fun ShelfEntryDto.toDomain(): ShelfEntry? {
 /**
  * Maps a shelf list response to domain entries, skipping malformed entries.
  */
-fun GetShelf200ResponseDto.toDomain(): List<ShelfEntry> =
+fun ShelfListResponseDto.toDomain(): List<ShelfEntry> =
     shelves.orEmpty().mapNotNull { it.toDomain() }

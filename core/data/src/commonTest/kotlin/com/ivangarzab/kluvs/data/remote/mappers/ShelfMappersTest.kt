@@ -1,8 +1,8 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.api.models.BookDto
-import com.ivangarzab.kluvs.api.models.GetShelf200ResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfEntryDto
+import com.ivangarzab.kluvs.api.models.ShelfListResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
@@ -74,9 +74,9 @@ class ShelfMappersTest {
     }
 
     @Test
-    fun `GetShelf200ResponseDto toDomain skips malformed entries`() {
+    fun `ShelfListResponseDto toDomain skips malformed entries`() {
         // Given: A response with one valid and one bookless entry
-        val response = GetShelf200ResponseDto(
+        val response = ShelfListResponseDto(
             success = true,
             shelves = listOf(
                 ShelfEntryDto(shelf = ShelfStatusDto.read, book = bookDto),
@@ -92,7 +92,7 @@ class ShelfMappersTest {
     }
 
     @Test
-    fun `GetShelf200ResponseDto toDomain handles null shelves list`() {
-        assertEquals(emptyList(), GetShelf200ResponseDto(success = true).toDomain())
+    fun `ShelfListResponseDto toDomain handles null shelves list`() {
+        assertEquals(emptyList(), ShelfListResponseDto(success = true).toDomain())
     }
 }
