@@ -6,8 +6,9 @@ import com.ivangarzab.kluvs.api.models.DiscussionDto
 import com.ivangarzab.kluvs.api.models.SessionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.SessionCreateResponseDto
 import com.ivangarzab.kluvs.api.models.SessionDto
+import com.ivangarzab.kluvs.api.models.SessionFinishResponseDto
+import com.ivangarzab.kluvs.api.models.SessionNoChangesResponseDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
-import com.ivangarzab.kluvs.api.models.UpdateSession200ResponseDto
 import com.ivangarzab.kluvs.data.remote.api.SessionService
 import dev.mokkery.answering.returns
 import dev.mokkery.answering.throws
@@ -35,6 +36,8 @@ class SessionRemoteDataSourceTest {
     fun `getSession success returns mapped Session domain model`() = runTest {
         // Given: Service returns the generated SessionDto (GET /session?id= now documented)
         val dto = SessionDto(
+            startedAt = null,
+            endedAt = null,
             id = "session-1",
             clubId = "club-1",
             status = SessionDto.Status.active,
@@ -90,6 +93,8 @@ class SessionRemoteDataSourceTest {
             success = true,
             message = "Created",
             session = SessionDto(
+                startedAt = null,
+                endedAt = null,
                 id = "session-2",
                 clubId = "club-1",
                 status = SessionDto.Status.active,
@@ -114,32 +119,6 @@ class SessionRemoteDataSourceTest {
     }
 
     @Test
-    fun `createSession with null session in response returns failure`() = runTest {
-        // Given: Service returns response without session
-        val request = SessionCreateRequestDto(
-            clubId = "club-1",
-            bookId = 1
-        )
-
-        val responseDto = SessionCreateResponseDto(
-            success = true,
-            message = "Created but no session returned",
-            session = null
-        )
-
-        everySuspend { sessionService.create(request) } returns responseDto
-
-        // When: Creating session
-        val result = dataSource.createSession(request)
-
-        // Then: Result is failure
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("no session returned") == true)
-
-        verifySuspend { sessionService.create(request) }
-    }
-
-    @Test
     fun `updateSession success returns Unit since PUT response carries no session data`() = runTest {
         // Given: Service returns the general-update branch response
         val request = SessionUpdateRequestDto(
@@ -147,7 +126,7 @@ class SessionRemoteDataSourceTest {
             dueDate = "2025-12-31T23:59:59"
         )
 
-        val responseDto = UpdateSession200ResponseDto(
+        val responseDto = SessionNoChangesResponseDto(
             success = true,
             message = "Updated"
         )
@@ -166,9 +145,9 @@ class SessionRemoteDataSourceTest {
     @Test
     fun `updateSession with success false returns failure`() = runTest {
         // Given: Service returns a failure-flagged response
-        val request = SessionUpdateRequestDto(id = "session-1", finish = true)
+        val request = SessionUpdateRequestDto(id = "session-1", dueDate = "2025-12-31T23:59:59")
 
-        val responseDto = UpdateSession200ResponseDto(
+        val responseDto = SessionNoChangesResponseDto(
             success = false,
             message = "Session already finished"
         )
@@ -188,15 +167,13 @@ class SessionRemoteDataSourceTest {
     @Test
     fun `finishSession success returns members credited count`() = runTest {
         // Given: Service returns the finish branch response
-        val responseDto = UpdateSession200ResponseDto(
+        val responseDto = SessionFinishResponseDto(
             success = true,
             message = "Session finished",
             membersCredited = 3
         )
 
-        everySuspend {
-            sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true))
-        } returns responseDto
+        everySuspend { sessionService.finish("session-1") } returns responseDto
 
         // When: Finishing session
         val result = dataSource.finishSession("session-1")
@@ -205,20 +182,19 @@ class SessionRemoteDataSourceTest {
         assertTrue(result.isSuccess)
         assertEquals(3, result.getOrNull())
 
-        verifySuspend { sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true)) }
+        verifySuspend { sessionService.finish("session-1") }
     }
 
     @Test
     fun `finishSession with success false returns failure`() = runTest {
         // Given: Service returns a failure-flagged response (idempotent guard)
-        val responseDto = UpdateSession200ResponseDto(
+        val responseDto = SessionFinishResponseDto(
             success = false,
-            message = "Session already finished"
+            message = "Session already finished",
+            membersCredited = 0
         )
 
-        everySuspend {
-            sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true))
-        } returns responseDto
+        everySuspend { sessionService.finish("session-1") } returns responseDto
 
         // When: Finishing session
         val result = dataSource.finishSession("session-1")
@@ -232,9 +208,7 @@ class SessionRemoteDataSourceTest {
     fun `finishSession service exception returns failure`() = runTest {
         // Given: Service throws exception
         val exception = Exception("Network error")
-        everySuspend {
-            sessionService.update(SessionUpdateRequestDto(id = "session-1", finish = true))
-        } throws exception
+        everySuspend { sessionService.finish("session-1") } throws exception
 
         // When: Finishing session
         val result = dataSource.finishSession("session-1")

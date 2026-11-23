@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.source
 
+import com.ivangarzab.kluvs.api.models.ClubDetailDto
 import com.ivangarzab.kluvs.api.models.ClubDto
 import com.ivangarzab.kluvs.api.models.ClubMemberDto
 import com.ivangarzab.kluvs.api.models.ClubCreateResponseDto
@@ -32,18 +33,25 @@ class ClubRemoteDataSourceTest {
 
     @Test
     fun `getClub success returns mapped Club domain model`() = runTest {
-        // Given: Service returns ClubDto
-        val dto = ClubDto(
+        // Given: Service returns ClubDetailDto
+        val dto = ClubDetailDto(
             id = "club-1",
             name = "Test Club",
             discordChannel = "123456789",
             serverId = "987654321",
+            foundedDate = null,
+            inviteToken = null,
             members = listOf(
                 ClubMemberDto(
+                    joinedAt = "2026-01-01T00:00:00Z",
+                    handle = "member-handle",
+                    avatarPath = null,
+                    createdAt = "2026-01-01T00:00:00Z",
                     id = 1,
                     name = "John",
                     booksRead = 5,
-                    role = ClubMemberDto.Role.owner
+                    role = ClubMemberDto.Role.owner,
+                    clubs = listOf("club-1")
                 )
             ),
             activeSession = null,
@@ -87,11 +95,13 @@ class ClubRemoteDataSourceTest {
     @Test
     fun `getClubByChannel success returns mapped Club`() = runTest {
         // Given: Service returns club by channel
-        val dto = ClubDto(
+        val dto = ClubDetailDto(
             id = "club-2",
             name = "Channel Club",
             discordChannel = "555666777",
             serverId = "987654321",
+            foundedDate = null,
+            inviteToken = null,
             members = emptyList(),
             activeSession = null,
             pastSessions = emptyList(),
@@ -154,6 +164,7 @@ class ClubRemoteDataSourceTest {
         )
 
         val responseDto = ClubUpdateResponseDto(
+            shameListUpdated = false,
             success = true,
             message = "Updated",
             club = ClubDto(

@@ -13,6 +13,8 @@ import kotlin.test.assertNull
 class ReadingLogMappersTest {
 
     private val entryDto = SessionReadingLogEntryDto(
+        startedAt = null,
+        endedAt = null,
         id = "session-1",
         dueDate = "2026-08-01",
         book = SessionReadingLogBookDto(
@@ -50,25 +52,21 @@ class ReadingLogMappersTest {
     }
 
     @Test
-    fun `response toDomain handles missing reading log`() {
-        val log = SessionReadingLogResponseDto(success = true).toDomain()
+    fun `response toDomain handles empty groups`() {
+        val log = SessionReadingLogResponseDto(
+            success = true,
+            readingLog = SessionReadingLogGroupsDto(active = emptyList(), finished = emptyList())
+        ).toDomain()
 
         assertEquals(emptyList(), log.active)
         assertEquals(emptyList(), log.finished)
     }
 
     @Test
-    fun `entry toDomain returns null without a session ID`() {
-        assertNull(entryDto.copy(id = null).toDomain())
-    }
+    fun `entry toDomain maps a null due date`() {
+        val entry = entryDto.copy(dueDate = null).toDomain()
 
-    @Test
-    fun `entry toDomain tolerates missing book and club`() {
-        val entry = SessionReadingLogEntryDto(id = "session-3").toDomain()
-
-        assertNotNull(entry)
-        assertNull(entry.book)
-        assertNull(entry.club)
         assertNull(entry.dueDate)
+        assertEquals("The Hobbit", entry.book?.title)
     }
 }

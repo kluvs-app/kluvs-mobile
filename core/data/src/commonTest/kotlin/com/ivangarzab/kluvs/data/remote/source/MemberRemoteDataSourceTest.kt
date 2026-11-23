@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.api.models.DeleteResponseDto
 import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
 import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberCreateResponseDto
+import com.ivangarzab.kluvs.api.models.MemberCreateResponseMemberDto
 import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
 import com.ivangarzab.kluvs.api.models.MemberRemoveFromClubResponseDto
@@ -37,6 +38,9 @@ class MemberRemoteDataSourceTest {
     fun `getMember success returns mapped Member domain model`() = runTest {
         // Given: Service returns MemberGetResponseDto
         val dto = MemberGetResponseDto(
+            avatarPath = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Alice",
             handle = "member-handle",
@@ -45,6 +49,8 @@ class MemberRemoteDataSourceTest {
             userId = "user-123",
             clubs = listOf(
                 MemberClubEntryDto(
+                    joinedAt = "2026-01-01T00:00:00Z",
+                    role = MemberClubEntryDto.Role.member,
                     id = "club-1",
                     name = "Fiction Club",
                     discordChannel = "123456789",
@@ -91,6 +97,9 @@ class MemberRemoteDataSourceTest {
     fun `getMemberByUserId success returns mapped Member`() = runTest {
         // Given: Service returns member by user ID
         val dto = MemberGetResponseDto(
+            avatarPath = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 2,
             name = "Bob",
             handle = "member-handle",
@@ -125,12 +134,17 @@ class MemberRemoteDataSourceTest {
         val responseDto = MemberCreateResponseDto(
             success = true,
             message = "Created",
-            member = MemberDto(
+            member = MemberCreateResponseMemberDto(
+                avatarPath = null,
+                userId = null,
+                discordId = null,
+                createdAt = "2026-01-01T00:00:00Z",
                 id = 3,
                 name = "Charlie",
                 handle = "member-handle",
                 platformMetadata = JsonObject(emptyMap()),
-                booksRead = 0
+                booksRead = 0,
+                clubs = emptyList()
             )
         )
 
@@ -149,21 +163,6 @@ class MemberRemoteDataSourceTest {
     }
 
     @Test
-    fun `createMember with null member in response returns failure`() = runTest {
-        // Given: Service returns response without member data
-        val request = MemberCreateRequestDto(name = "Charlie")
-        val responseDto = MemberCreateResponseDto(success = true, message = "Created", member = null)
-
-        everySuspend { memberService.create(request) } returns responseDto
-
-        // When: Creating member
-        val result = dataSource.createMember(request)
-
-        // Then: Result is failure
-        assertTrue(result.isFailure)
-    }
-
-    @Test
     fun `updateMember success returns updated Member`() = runTest {
         // Given: Service returns success response
         val request = MemberUpdateRequestDto(
@@ -175,6 +174,9 @@ class MemberRemoteDataSourceTest {
             success = true,
             message = "Updated",
             member = MemberDto(
+                avatarPath = null,
+                discordId = null,
+                createdAt = "2026-01-01T00:00:00Z",
                 id = 1,
                 name = "Alice Updated",
                 handle = "member-handle",
@@ -209,6 +211,9 @@ class MemberRemoteDataSourceTest {
             success = true,
             message = "Updated",
             member = MemberDto(
+                avatarPath = null,
+                discordId = null,
+                createdAt = "2026-01-01T00:00:00Z",
                 id = 1,
                 name = "Alice",
                 platformMetadata = JsonObject(emptyMap()),
@@ -228,6 +233,35 @@ class MemberRemoteDataSourceTest {
         assertEquals("alice_reads", result.getOrNull()?.handle)
 
         verifySuspend { memberService.update(request) }
+    }
+
+    @Test
+    fun `updateMember with no changes re-fetches and returns the current member`() = runTest {
+        // Given: A no-op update, whose response carries no member
+        val request = MemberUpdateRequestDto(id = 1)
+        everySuspend { memberService.update(request) } returns
+            MemberUpdateResponseDto(success = true, message = "No changes to apply")
+        everySuspend { memberService.get("1") } returns MemberGetResponseDto(
+            id = 1,
+            name = "Alice",
+            handle = "alice",
+            avatarPath = null,
+            userId = "user-123",
+            discordId = null,
+            platformMetadata = JsonObject(emptyMap()),
+            booksRead = 12,
+            createdAt = "2026-01-01T00:00:00Z",
+            clubs = emptyList(),
+            shameClubs = emptyList()
+        )
+
+        // When: Updating member
+        val result = dataSource.updateMember(request)
+
+        // Then: The update succeeds with the current member
+        assertTrue(result.isSuccess)
+        assertEquals("Alice", result.getOrNull()?.name)
+        verifySuspend { memberService.get("1") }
     }
 
     @Test
@@ -290,7 +324,7 @@ class MemberRemoteDataSourceTest {
         // The remove_from_club response is { success, member_id, club_id } with no `member`;
         // reusing updateMember's "response.member ?: error(...)" would wrongly fail this.
         everySuspend { memberService.removeFromClub(5, "club-1") } returns
-            MemberRemoveFromClubResponseDto(success = true)
+            MemberRemoveFromClubResponseDto(success = true, memberId = 5, clubId = "club-1")
 
         assertTrue(dataSource.removeMemberFromClub("5", "club-1").isSuccess)
     }
@@ -298,7 +332,7 @@ class MemberRemoteDataSourceTest {
     @Test
     fun `removeMemberFromClub with success not true returns failure`() = runTest {
         everySuspend { memberService.removeFromClub(5, "club-1") } returns
-            MemberRemoveFromClubResponseDto(success = false)
+            MemberRemoveFromClubResponseDto(success = false, memberId = 5, clubId = "club-1")
 
         assertTrue(dataSource.removeMemberFromClub("5", "club-1").isFailure)
     }

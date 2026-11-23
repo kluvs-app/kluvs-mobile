@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.api.models.BookDto
+import com.ivangarzab.kluvs.api.models.ClubDetailDto
 import com.ivangarzab.kluvs.api.models.ClubDto
 import com.ivangarzab.kluvs.api.models.ClubMemberDto
 import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
@@ -42,13 +43,18 @@ class ClubMappersTest {
     }
 
     @Test
-    fun `ClubDto toDomain maps nested relations`() {
-        // Given: A ClubDto with nested data
+    fun `ClubDetailDto toDomain maps nested relations`() {
+        // Given: A ClubDetailDto (GET /club) with nested data
         val clubMemberDto = ClubMemberDto(
+            joinedAt = "2026-01-01T00:00:00Z",
+            handle = "member-handle",
+            avatarPath = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "John Doe",
             booksRead = 5,
-            role = ClubMemberDto.Role.admin
+            role = ClubMemberDto.Role.admin,
+            clubs = listOf("club-1")
         )
 
         val bookDto = BookDto(
@@ -58,6 +64,8 @@ class ClubMappersTest {
         )
 
         val sessionDto = SessionDto(
+            startedAt = null,
+            endedAt = null,
             id = "session-1",
             clubId = "club-1",
             status = SessionDto.Status.active,
@@ -66,13 +74,16 @@ class ClubMappersTest {
             discussions = emptyList()
         )
 
-        val dto = ClubDto(
+        val dto = ClubDetailDto(
             id = "club-1",
             name = "Full Club",
             discordChannel = "123456789",
             serverId = "987654321",
+            foundedDate = null,
+            inviteToken = null,
             members = listOf(clubMemberDto),
             activeSession = sessionDto,
+            pastSessions = emptyList(),
             shameList = listOf(1, 2)
         )
 
@@ -95,9 +106,34 @@ class ClubMappersTest {
     }
 
     @Test
+    fun `ClubDetailDto toDomain maps an empty roster and no active session`() {
+        // Given: A club with no members and no active session
+        val dto = ClubDetailDto(
+            id = "club-1",
+            name = "Quiet Club",
+            discordChannel = null,
+            serverId = null,
+            foundedDate = null,
+            inviteToken = null,
+            members = emptyList(),
+            activeSession = null,
+            pastSessions = emptyList()
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Members are loaded (empty not null) so the club counts as complete
+        assertNotNull(domain.members)
+        assertTrue(domain.members!!.isEmpty())
+        assertNull(domain.activeSession)
+    }
+
+    @Test
     fun `MemberClubEntryDto toDomain populates role`() {
         // Given: A club embedded within a member's clubs list, with a role
         val dto = MemberClubEntryDto(
+            joinedAt = "2026-01-01T00:00:00Z",
             id = "club-1",
             name = "Full Club",
             discordChannel = "123456789",
@@ -151,6 +187,7 @@ class ClubMappersTest {
     fun `MemberClubEntryDto toDomain maps joinPolicy and inviteToken`() {
         // Given: A club embedded within a member's clubs list, with an active invite link
         val dto = MemberClubEntryDto(
+            joinedAt = "2026-01-01T00:00:00Z",
             id = "club-1",
             name = "Full Club",
             joinPolicy = MemberClubEntryDto.JoinPolicy.INVITE_LINK,

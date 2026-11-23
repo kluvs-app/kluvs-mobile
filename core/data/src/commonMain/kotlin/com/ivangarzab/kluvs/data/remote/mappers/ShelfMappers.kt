@@ -28,25 +28,22 @@ fun ShelfStatus.toDto(): ShelfStatusDto = when (this) {
 }
 
 /**
- * Maps a [com.ivangarzab.kluvs.api.models.ShelfEntryDto] to a [ShelfEntry] domain model,
- * or null when the entry is missing its shelf or book (the domain model requires both).
+ * Maps a [com.ivangarzab.kluvs.api.models.ShelfEntryDto] to a [ShelfEntry] domain model.
  */
-fun ShelfEntryDto.toDomain(): ShelfEntry? {
-    val shelfStatus = shelf ?: return null
-    val bookDto = book ?: return null
+fun ShelfEntryDto.toDomain(): ShelfEntry {
     return ShelfEntry(
-        shelf = shelfStatus.toDomain(),
+        shelf = shelf.toDomain(),
         source = when (source) {
             ShelfEntryDto.Source.session -> ShelfSource.SESSION
-            else -> ShelfSource.MANUAL
+            ShelfEntryDto.Source.manual -> ShelfSource.MANUAL
         },
         updatedAt = updatedAt.parseDateStringOrNull(),
-        book = bookDto.toDomain()
+        book = book.toDomain()
     )
 }
 
 /**
- * Maps a shelf list response to domain entries, skipping malformed entries.
+ * Maps a shelf list response to domain entries.
  */
 fun ShelfListResponseDto.toDomain(): List<ShelfEntry> =
-    shelves.orEmpty().mapNotNull { it.toDomain() }
+    shelves.map { it.toDomain() }

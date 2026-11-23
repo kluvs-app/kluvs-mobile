@@ -89,7 +89,6 @@ class SessionRemoteDataSourceImpl(
         return try {
             val response = sessionService.create(request)
             val session = response.session
-                ?: throw Exception("Session creation succeeded but no session returned")
             Bark.i("Session created for club (ID: ${request.clubId})")
             Result.success(session.toDomain())
         } catch (e: Exception) {
@@ -101,7 +100,7 @@ class SessionRemoteDataSourceImpl(
     override suspend fun updateSession(request: SessionUpdateRequestDto): Result<Unit> {
         return try {
             val response = sessionService.update(request)
-            if (response.success == false) {
+            if (!response.success) {
                 throw Exception("Update failed: ${response.message}")
             }
             Bark.i("Session updated (ID: ${request.id})")
@@ -114,10 +113,8 @@ class SessionRemoteDataSourceImpl(
 
     override suspend fun finishSession(sessionId: String): Result<Int?> {
         return try {
-            val response = sessionService.update(
-                SessionUpdateRequestDto(id = sessionId, finish = true)
-            )
-            if (response.success == false) {
+            val response = sessionService.finish(sessionId)
+            if (!response.success) {
                 throw Exception("Finish failed: ${response.message}")
             }
             Bark.i("Session finished (ID: $sessionId, members credited: ${response.membersCredited})")

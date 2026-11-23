@@ -14,10 +14,10 @@ import com.ivangarzab.kluvs.network.utils.parseDateTimeString
  */
 fun ClubMemberDto.toDomain(): ClubMember {
     return ClubMember(
-        role = role?.let { Role.fromString(it.value) } ?: Role.MEMBER,
+        role = Role.fromString(role.value),
         member = Member(
-            id = id?.toString() ?: "",
-            name = name ?: "",
+            id = id.toString(),
+            name = name,
             handle = handle.normalizeHandle(),
             avatarPath = avatarPath,
             booksRead = booksRead ?: 0,
