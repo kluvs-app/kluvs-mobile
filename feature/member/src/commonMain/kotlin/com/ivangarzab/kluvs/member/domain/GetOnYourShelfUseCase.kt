@@ -6,11 +6,13 @@ import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.member.presentation.OnYourShelfResult
 import com.ivangarzab.kluvs.member.presentation.ShelfItem
 import com.ivangarzab.kluvs.member.presentation.UpNextItem
-import com.ivangarzab.kluvs.model.Discussion
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.presentation.state.DateTimeFormat
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -51,53 +53,53 @@ class GetOnYourShelfUseCase(
             Bark.d("Found ${clubs.size} clubs for user (User ID: $userId)")
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
-            var nearestDiscussion: Discussion? = null
-            var nearestDiscussionClubName: String? = null
+            // Each club's read (and its progress read) is independent, so they run concurrently
+            // instead of one after another. Order is that of `member.clubs` as returned by the
+            // backend (soonest upcoming discussion first, then alphabetically by club name) —
+            // no client-side re-sorting.
+            val rows = coroutineScope {
+                clubs.map { club ->
+                    async {
+                        val fullClub = clubRepository.getClub(club.id, forceRefresh = forceRefresh).getOrNull()
+                        fullClub?.activeSession?.let { session ->
+                            val ownProgress = getSessionProgress(session.id, session.book.pageCount).getOrNull()
+                            val nextDiscussion = session.discussions
+                                .filter { it.date > now }
+                                .minByOrNull { it.date }
 
-            // Order is that of `member.clubs` as returned by the backend (soonest upcoming
-            // discussion first, then alphabetically by club name) — no client-side re-sorting.
-            val items = clubs.mapNotNull { club ->
-                val fullClub = clubRepository.getClub(club.id, forceRefresh = forceRefresh).getOrNull()
-                fullClub?.activeSession?.let { session ->
-                    val ownProgress = getSessionProgress(session.id, session.book.pageCount).getOrNull()
-                    val upcomingDiscussions = session.discussions.filter { it.date > now }
-                    val nextDiscussionDate = upcomingDiscussions
-                        .minByOrNull { it.date }
-                        ?.date
-                        ?.let { formatDateTime(it, DateTimeFormat.DATE_ONLY) }
-
-                    upcomingDiscussions.minByOrNull { it.date }?.let { candidate ->
-                        if (nearestDiscussion == null || candidate.date < nearestDiscussion!!.date) {
-                            nearestDiscussion = candidate
-                            nearestDiscussionClubName = club.name
+                            val item = ShelfItem(
+                                sessionId = session.id,
+                                bookId = session.book.id,
+                                bookTitle = session.book.title,
+                                bookAuthor = session.book.author,
+                                bookCoverUrl = session.book.imageUrl,
+                                bookPageCount = session.book.pageCount,
+                                clubId = club.id,
+                                clubName = club.name,
+                                nextDiscussionDate = nextDiscussion?.date?.let { formatDateTime(it, DateTimeFormat.DATE_ONLY) },
+                                ownProgress = ownProgress
+                            )
+                            Bark.d("Added shelf item (Title: ${session.book.title}, Club: ${club.name})")
+                            item to nextDiscussion
                         }
                     }
+                }.awaitAll().filterNotNull()
+            }
+            val items = rows.map { (item, _) -> item }
 
-                    val item = ShelfItem(
-                        sessionId = session.id,
-                        bookId = session.book.id,
-                        bookTitle = session.book.title,
-                        bookAuthor = session.book.author,
-                        bookCoverUrl = session.book.imageUrl,
-                        bookPageCount = session.book.pageCount,
-                        clubId = club.id,
-                        clubName = club.name,
-                        nextDiscussionDate = nextDiscussionDate,
-                        ownProgress = ownProgress
+            // Nearest upcoming discussion across all clubs; on a tie the earlier club in
+            // `member.clubs` order wins.
+            val upNext = rows
+                .mapNotNull { (item, discussion) -> discussion?.let { it to item.clubName } }
+                .minByOrNull { (discussion, _) -> discussion.date }
+                ?.let { (discussion, clubName) ->
+                    UpNextItem(
+                        title = discussion.title,
+                        clubName = clubName,
+                        location = discussion.location,
+                        date = formatDateTime(discussion.date, DateTimeFormat.DATE_ONLY)
                     )
-                    Bark.d("Added shelf item (Title: ${session.book.title}, Club: ${club.name})")
-                    item
                 }
-            }
-
-            val upNext = nearestDiscussion?.let { discussion ->
-                UpNextItem(
-                    title = discussion.title,
-                    clubName = nearestDiscussionClubName.orEmpty(),
-                    location = discussion.location,
-                    date = formatDateTime(discussion.date, DateTimeFormat.DATE_ONLY)
-                )
-            }
 
             Bark.i("Loaded on-your-shelf items (Count: ${items.size}, Up next: ${upNext != null})")
             OnYourShelfResult(shelf = items, upNext = upNext)

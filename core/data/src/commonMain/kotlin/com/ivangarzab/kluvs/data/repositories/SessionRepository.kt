@@ -156,7 +156,7 @@ internal class SessionRepositoryImpl(
         }
 
         Bark.d("Fetching session from remote (ID: $sessionId)")
-        val result = sessionRemoteDataSource.getSession(sessionId)
+        val result = timedRemote("session (ID: $sessionId)") { sessionRemoteDataSource.getSession(sessionId) }
 
         result.onSuccess { session ->
             Bark.v("Persisting session to cache (ID: ${session.id})")

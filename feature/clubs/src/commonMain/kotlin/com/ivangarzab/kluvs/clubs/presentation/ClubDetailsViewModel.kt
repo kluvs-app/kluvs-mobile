@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import kotlin.time.TimeSource
 
 /**
  * The purpose of this [ViewModel] class is to serve the Club screen.
@@ -195,6 +196,8 @@ class ClubDetailsViewModel(
                 }
             }
 
+            val loadStart = TimeSource.Monotonic.markNow()
+
             // Launch all UseCase calls in parallel
             val deferredDetails = async { getClubDetails(clubId, forceRefresh) }
             val deferredSession = async { getActiveSession(clubId, forceRefresh) }
@@ -232,6 +235,7 @@ class ClubDetailsViewModel(
             error?.let { e ->
                 Bark.e("Failed to fetch club details (ID: $clubId). ${if (keepContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded club details (ID: $clubId)")
+            Bark.d("Club load took ${loadStart.elapsedNow().inWholeMilliseconds} ms (ID: $clubId, forceRefresh=$forceRefresh)")
 
             if (currentClubId != clubId) return@launch
 

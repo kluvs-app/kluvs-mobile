@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.TimeSource
 
 /**
  * The purpose of this [ViewModel] class is to serve the Me screen.
@@ -45,6 +46,7 @@ class MeViewModel(
         loadUserDataJob?.cancel()
         loadUserDataJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
+            val loadStart = TimeSource.Monotonic.markNow()
 
             // Launch all 3 UseCase calls in parallel
             val deferredProfile = async { getCurrentUserProfile(userId, forceRefresh) }
@@ -73,6 +75,7 @@ class MeViewModel(
             error?.let { e ->
                 Bark.e("Failed to fetch member details (ID: $userId). ${if (hadContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded member details (ID: $userId)")
+            Bark.d("Me load took ${loadStart.elapsedNow().inWholeMilliseconds} ms (ID: $userId, forceRefresh=$forceRefresh)")
 
             // Update state with all results. When keeping content, each piece only changes if
             // its fetch succeeded.
