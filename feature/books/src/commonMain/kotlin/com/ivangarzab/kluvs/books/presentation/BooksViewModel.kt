@@ -6,10 +6,9 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.books.domain.AssignShelfUseCase
 import com.ivangarzab.kluvs.books.domain.GetShelfUseCase
 import com.ivangarzab.kluvs.books.domain.RemoveFromShelfUseCase
-import com.ivangarzab.kluvs.books.domain.SearchBooksUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
-import com.ivangarzab.kluvs.data.error.toAppError
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.model.ShelfEntry
 import com.ivangarzab.kluvs.model.ShelfStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,7 +45,7 @@ class BooksViewModel(
                     _state.update {
                         it.copy(
                             isLoadingShelf = false,
-                            shelfError = error.toAppError().toUserMessage()
+                            shelfError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -85,7 +84,7 @@ class BooksViewModel(
                             isSearching = false,
                             searchResults = emptyList(),
                             searchTotal = 0,
-                            searchError = error.toAppError().toUserMessage()
+                            searchError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -156,7 +155,7 @@ class BooksViewModel(
                     _state.update {
                         it.copy(
                             isMutationInProgress = false,
-                            operationError = error.message ?: "Failed to update shelf"
+                            operationError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -182,7 +181,7 @@ class BooksViewModel(
                     _state.update {
                         it.copy(
                             isMutationInProgress = false,
-                            operationError = error.message ?: "Failed to update shelf"
+                            operationError = error.toDisplayMessage()
                         )
                     }
                 }

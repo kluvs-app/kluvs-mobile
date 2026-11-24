@@ -34,6 +34,8 @@ class SessionMappersTest {
         )
 
         val dto = SessionDto(
+            startedAt = null,
+            endedAt = null,
             id = "session-1",
             clubId = "club-1",
             status = SessionDto.Status.active,
@@ -55,15 +57,17 @@ class SessionMappersTest {
     }
 
     @Test
-    fun `SessionDto toDomain handles null discussions and dueDate`() {
-        // Given: A SessionDto without discussions/dueDate
+    fun `SessionDto toDomain handles empty discussions and null dueDate`() {
+        // Given: A SessionDto with no discussions and no dueDate
         val dto = SessionDto(
+            startedAt = null,
+            endedAt = null,
             id = "session-2",
             clubId = "club-2",
             status = SessionDto.Status.active,
             book = BookDto(id = 2, title = "Book", author = "Author"),
             dueDate = null,
-            discussions = null
+            discussions = emptyList()
         )
 
         // When: Mapping to domain
@@ -79,6 +83,10 @@ class SessionMappersTest {
     fun `SessionDto toDomain maps members participation list`() {
         // Given: A SessionDto with an active_session-style members list
         val dto = SessionDto(
+            dueDate = null,
+            startedAt = null,
+            endedAt = null,
+            discussions = emptyList(),
             id = "session-3",
             clubId = "club-3",
             status = SessionDto.Status.active,
@@ -106,6 +114,10 @@ class SessionMappersTest {
     fun `SessionDto toDomain handles null members list`() {
         // Given: A SessionDto without members (e.g. GET /session?id= response)
         val dto = SessionDto(
+            dueDate = null,
+            startedAt = null,
+            endedAt = null,
+            discussions = emptyList(),
             id = "session-4",
             clubId = "club-4",
             status = SessionDto.Status.active,
@@ -124,6 +136,8 @@ class SessionMappersTest {
     fun `SessionDto toDomain handles empty discussions list`() {
         // Given: A SessionDto with an empty discussions list
         val dto = SessionDto(
+            startedAt = null,
+            endedAt = null,
             id = "session-3",
             clubId = "club-3",
             status = SessionDto.Status.active,
@@ -151,6 +165,8 @@ class SessionMappersTest {
         )
 
         val dto = SessionDto(
+            startedAt = null,
+            endedAt = null,
             id = "session-6",
             clubId = "club-4",
             status = SessionDto.Status.active,
@@ -173,6 +189,9 @@ class SessionMappersTest {
     fun `SessionDto toDomain maps finished status session`() {
         // Given: A finished SessionDto
         val dto = SessionDto(
+            startedAt = null,
+            endedAt = null,
+            discussions = emptyList(),
             id = "session-7",
             clubId = "club-5",
             status = SessionDto.Status.finished,

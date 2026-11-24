@@ -35,4 +35,10 @@ interface DiscussionDao {
 
     @Query("DELETE FROM discussions")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM discussions WHERE sessionId = :sessionId")
+    suspend fun deleteDiscussionsForSession(sessionId: String)
+
+    @Query("DELETE FROM discussions WHERE id = :discussionId")
+    suspend fun deleteDiscussionById(discussionId: String)
 }

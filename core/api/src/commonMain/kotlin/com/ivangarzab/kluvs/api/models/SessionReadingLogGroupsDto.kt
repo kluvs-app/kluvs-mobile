@@ -31,9 +31,9 @@ import kotlinx.serialization.encoding.*
 
 data class SessionReadingLogGroupsDto (
 
-    @SerialName(value = "active") val active: kotlin.collections.List<SessionReadingLogEntryDto>? = null,
+    @SerialName(value = "active") @Required val active: kotlin.collections.List<SessionReadingLogEntryDto>,
 
-    @SerialName(value = "finished") val finished: kotlin.collections.List<SessionReadingLogEntryDto>? = null
+    @SerialName(value = "finished") @Required val finished: kotlin.collections.List<SessionReadingLogEntryDto>
 
 ) {
 

@@ -70,6 +70,17 @@
         }
       }
     },
+    "help_faq" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help / FAQ"
+          }
+        }
+      }
+    },
     "credits_title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -577,6 +588,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No upcoming discussion"
+          }
+        }
+      }
+    },
+    "error_apple_sign_in_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple didn’t work. Please try again."
+          }
+        }
+      }
+    },
+    "error_apple_sign_in_icloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make sure you’re signed in to iCloud and try again."
           }
         }
       }

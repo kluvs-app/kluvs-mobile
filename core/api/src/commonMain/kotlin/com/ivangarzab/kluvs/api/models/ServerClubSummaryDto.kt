@@ -15,10 +15,7 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.ClubMemberDto
-import com.ivangarzab.kluvs.api.models.PastSessionDto
 import com.ivangarzab.kluvs.api.models.ServerClubLatestSessionDto
-import com.ivangarzab.kluvs.api.models.SessionDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -30,16 +27,13 @@ import kotlinx.serialization.encoding.*
  * @param id 
  * @param name 
  * @param joinPolicy Controls how new members can join. PRIVATE = by admin only; INVITE_LINK = anyone with the link.
+ * @param memberCount Number of members in this club
+ * @param latestSession 
  * @param discordChannel Discord channel ID
  * @param serverId Parent server ID
  * @param foundedDate 
  * @param inviteToken Active invite token UUID (present when join_policy is INVITE_LINK, null otherwise).
- * @param members Club members with their per-club role.
- * @param activeSession 
- * @param pastSessions 
  * @param shameList Array of member IDs on shame list
- * @param memberCount Number of members in this club
- * @param latestSession 
  */
 @Serializable
 
@@ -52,6 +46,11 @@ data class ServerClubSummaryDto (
     /* Controls how new members can join. PRIVATE = by admin only; INVITE_LINK = anyone with the link. */
     @SerialName(value = "join_policy") @Required val joinPolicy: ServerClubSummaryDto.JoinPolicy = JoinPolicy.PRIVATE,
 
+    /* Number of members in this club */
+    @SerialName(value = "member_count") @Required val memberCount: kotlin.Int,
+
+    @SerialName(value = "latest_session") @Required val latestSession: ServerClubLatestSessionDto?,
+
     /* Discord channel ID */
     @SerialName(value = "discord_channel") val discordChannel: kotlin.String? = null,
 
@@ -63,20 +62,8 @@ data class ServerClubSummaryDto (
     /* Active invite token UUID (present when join_policy is INVITE_LINK, null otherwise). */
     @SerialName(value = "invite_token") val inviteToken: kotlin.String? = null,
 
-    /* Club members with their per-club role. */
-    @SerialName(value = "members") val members: kotlin.collections.List<ClubMemberDto>? = null,
-
-    @SerialName(value = "active_session") val activeSession: SessionDto? = null,
-
-    @SerialName(value = "past_sessions") val pastSessions: kotlin.collections.List<PastSessionDto>? = null,
-
     /* Array of member IDs on shame list */
-    @SerialName(value = "shame_list") val shameList: kotlin.collections.List<kotlin.Int>? = null,
-
-    /* Number of members in this club */
-    @SerialName(value = "member_count") val memberCount: kotlin.Int? = null,
-
-    @SerialName(value = "latest_session") val latestSession: ServerClubLatestSessionDto? = null
+    @SerialName(value = "shame_list") val shameList: kotlin.collections.List<kotlin.Int>? = null
 
 ) {
 

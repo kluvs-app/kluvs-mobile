@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.DiscussionNoteCreateRequestDto
 import com.ivangarzab.kluvs.api.models.DiscussionNoteUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.DiscussionNoteRemoteDataSource
@@ -90,11 +91,11 @@ internal class DiscussionNoteRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Discussion note cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch discussion note. Cached data may be unavailable.", error)
         }
 
-        return result
+        // `cachedNote` was already read above for the TTL check; a null there means "no note
+        // cached", which isn't servable, so the failure stays a failure.
+        return result.recoverWithCache("discussion note (discussion ID: $discussionId)") { cachedNote }
     }
 
     override suspend fun createNote(discussionId: String, content: String): Result<DiscussionNote> {

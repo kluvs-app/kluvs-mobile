@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.clubs.domain
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.model.UserFacingException
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.mock
@@ -62,7 +63,7 @@ class UpdateMemberRoleUseCaseTest {
         val result = useCase(ownerParams, Role.OWNER)
 
         assertTrue(result.isFailure)
-        assertIs<IllegalArgumentException>(result.exceptionOrNull())
+        assertIs<UserFacingException>(result.exceptionOrNull())
     }
 
     @Test
@@ -77,7 +78,7 @@ class UpdateMemberRoleUseCaseTest {
         val result = useCase(selfParams, Role.OWNER)
 
         assertTrue(result.isFailure)
-        assertIs<IllegalArgumentException>(result.exceptionOrNull())
+        assertIs<UserFacingException>(result.exceptionOrNull())
     }
 
     @Test

@@ -31,9 +31,9 @@ fun ServerDto.toDomain(): Server {
  */
 fun ServerGetSingleResponseDto.toDomain(): Server {
     return Server(
-        id = id ?: "",
-        name = name ?: "",
-        clubs = clubs?.map { it.toDomain() }
+        id = id,
+        name = name,
+        clubs = clubs.map { it.toDomain() }
     )
 }
 
@@ -57,7 +57,7 @@ fun ServerClubSummaryDto.toDomain(): Club {
         foundedDate = parseDateOnlyString(foundedDate),
         shameList = shameList?.map { it.toString() } ?: emptyList(),
         role = null,
-        members = members?.map { it.toDomain() },
+        members = null,
         activeSession = null,
         pastSessions = null,
         joinPolicy = when (joinPolicy) {

@@ -25,14 +25,22 @@ import kotlinx.serialization.encoding.*
  *
  * @param id 
  * @param dueDate 
+ * @param startedAt When the session started. Server-set on insert; null for sessions created before this field existed.
+ * @param endedAt When the session was finished. Null while the session is active.
  */
 @Serializable
 
 data class PastSessionDto (
 
-    @SerialName(value = "id") val id: kotlin.String? = null,
+    @SerialName(value = "id") @Required val id: kotlin.String,
 
-    @SerialName(value = "due_date") val dueDate: kotlin.String? = null
+    @SerialName(value = "due_date") @Required val dueDate: kotlin.String?,
+
+    /* When the session started. Server-set on insert; null for sessions created before this field existed. */
+    @SerialName(value = "started_at") @Required val startedAt: kotlin.String?,
+
+    /* When the session was finished. Null while the session is active. */
+    @SerialName(value = "ended_at") @Required val endedAt: kotlin.String?
 
 ) {
 

@@ -32,13 +32,13 @@ import kotlinx.serialization.encoding.*
 
 data class SessionReadingLogBookDto (
 
-    @SerialName(value = "id") val id: kotlin.Int? = null,
+    @SerialName(value = "id") @Required val id: kotlin.Int,
 
-    @SerialName(value = "title") val title: kotlin.String? = null,
+    @SerialName(value = "title") @Required val title: kotlin.String,
 
-    @SerialName(value = "author") val author: kotlin.String? = null,
+    @SerialName(value = "author") @Required val author: kotlin.String,
 
-    @SerialName(value = "image_url") val imageUrl: kotlin.String? = null
+    @SerialName(value = "image_url") @Required val imageUrl: kotlin.String?
 
 ) {
 

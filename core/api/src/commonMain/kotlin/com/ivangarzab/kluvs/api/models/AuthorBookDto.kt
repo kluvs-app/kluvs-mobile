@@ -39,9 +39,9 @@ data class AuthorBookDto (
 
     @SerialName(value = "authors") @Required val authors: kotlin.collections.List<kotlin.String>,
 
-    @SerialName(value = "imageUrl") val imageUrl: kotlin.String? = null,
+    @SerialName(value = "imageUrl") @Required val imageUrl: kotlin.String?,
 
-    @SerialName(value = "publishedDate") val publishedDate: kotlin.String? = null
+    @SerialName(value = "publishedDate") @Required val publishedDate: kotlin.String?
 
 ) {
 

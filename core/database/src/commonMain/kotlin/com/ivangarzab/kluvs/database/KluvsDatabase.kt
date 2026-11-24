@@ -4,7 +4,10 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -15,6 +18,7 @@ import com.ivangarzab.kluvs.database.dao.ProgressDao
 import com.ivangarzab.kluvs.database.dao.ServerDao
 import com.ivangarzab.kluvs.database.dao.SessionDao
 import com.ivangarzab.kluvs.database.dao.ShelfDao
+import com.ivangarzab.kluvs.database.entities.BookEnrichmentEntity
 import com.ivangarzab.kluvs.database.entities.BookEntity
 import com.ivangarzab.kluvs.database.entities.ClubEntity
 import com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef
@@ -24,6 +28,7 @@ import com.ivangarzab.kluvs.database.entities.DiscussionNoteEntity
 import com.ivangarzab.kluvs.database.entities.LikeEntity
 import com.ivangarzab.kluvs.database.entities.MemberEntity
 import com.ivangarzab.kluvs.database.entities.ProgressEntity
+import com.ivangarzab.kluvs.database.entities.ProgressQueryEntity
 import com.ivangarzab.kluvs.database.entities.ServerEntity
 import com.ivangarzab.kluvs.database.entities.SessionEntity
 import com.ivangarzab.kluvs.database.entities.SessionMemberEntity
@@ -37,6 +42,7 @@ interface KluvsDatabase {
     fun memberDao(): MemberDao
     fun sessionDao(): SessionDao
     fun bookDao(): BookDao
+    fun bookEnrichmentDao(): BookEnrichmentDao
     fun discussionDao(): DiscussionDao
     fun serverDao(): ServerDao
     fun shelfDao(): ShelfDao
@@ -44,12 +50,18 @@ interface KluvsDatabase {
     fun progressDao(): ProgressDao
     fun discussionNoteDao(): DiscussionNoteDao
     fun discussionAttendanceDao(): DiscussionAttendanceDao
+
+    /**
+     * Runs [block] inside a single write transaction. DAO calls made inside the block share the
+     * transaction, so a multi-table write either lands completely or not at all.
+     */
+    suspend fun <R> withTransaction(block: suspend () -> R): R
 }
 
 /**
  * Room Database implementation for Kluvs app.
  *
- * Stores cached data for servers, clubs, members, sessions, books, shelf
+ * Stores cached data for servers, clubs, members, sessions, books, book enrichment, shelf
  * entries, likes, reading progress, discussion notes, and discussion attendance.
  */
 @Database(
@@ -61,14 +73,16 @@ interface KluvsDatabase {
         SessionEntity::class,
         SessionMemberEntity::class,
         BookEntity::class,
+        BookEnrichmentEntity::class,
         DiscussionEntity::class,
         ShelfEntity::class,
         LikeEntity::class,
         ProgressEntity::class,
+        ProgressQueryEntity::class,
         DiscussionNoteEntity::class,
         DiscussionAttendanceEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = true
 )
 @ConstructedBy(KluvsDatabaseConstructor::class)
@@ -78,12 +92,16 @@ abstract class KluvsDatabaseImpl : RoomDatabase(), KluvsDatabase {
     abstract override fun memberDao(): MemberDao
     abstract override fun sessionDao(): SessionDao
     abstract override fun bookDao(): BookDao
+    abstract override fun bookEnrichmentDao(): BookEnrichmentDao
     abstract override fun discussionDao(): DiscussionDao
     abstract override fun shelfDao(): ShelfDao
     abstract override fun likeDao(): LikeDao
     abstract override fun progressDao(): ProgressDao
     abstract override fun discussionNoteDao(): DiscussionNoteDao
     abstract override fun discussionAttendanceDao(): DiscussionAttendanceDao
+
+    override suspend fun <R> withTransaction(block: suspend () -> R): R =
+        useWriterConnection { transactor -> transactor.immediateTransaction { block() } }
 }
 
 /**

@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.Role
+import com.ivangarzab.kluvs.model.UserFacingException
 
 /**
  * UseCase for changing a member's role within a club.
@@ -28,10 +29,10 @@ class UpdateMemberRoleUseCase(
 
     override suspend fun execute(params: Params): Result<Member> {
         if (params.memberId == params.currentMemberId) {
-            return Result.failure(IllegalArgumentException("Cannot change your own role"))
+            return Result.failure(UserFacingException("Cannot change your own role"))
         }
         if (params.newRole == Role.OWNER) {
-            return Result.failure(IllegalArgumentException("Cannot assign the OWNER role"))
+            return Result.failure(UserFacingException("Cannot assign the OWNER role"))
         }
         Bark.d("Updating member role (Member ID: ${params.memberId}, Club ID: ${params.clubId}, New Role: ${params.newRole})")
         return memberRepository.updateMember(

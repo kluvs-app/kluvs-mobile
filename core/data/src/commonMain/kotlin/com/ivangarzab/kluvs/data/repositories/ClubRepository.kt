@@ -3,14 +3,14 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ClubCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
-import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.JoinPolicy
-import kotlinx.serialization.json.JsonObject
 
 /**
  * Repository for managing Club data.
@@ -33,15 +33,11 @@ interface ClubRepository {
     suspend fun getClub(clubId: String, serverId: String? = null, forceRefresh: Boolean = false): Result<Club>
 
     /**
-     * Creates a new club. The backend does not infer the caller as a member — the creator
-     * must be passed explicitly as the first entry of the `members` array, which is how it
-     * becomes the club's owner (see `club/handlers/create.ts`).
+     * Creates a new club. The backend resolves the caller from their auth token and makes
+     * them the club's owner, so no member data is sent in the request.
      *
      * @param name The name of the club
-     * @param creatorMemberId The creating member's ID — becomes the club's owner
-     * @param creatorMemberName The creating member's display name
-     * @param creatorMemberHandle The creating member's handle (null if not yet known locally)
-     * @param creatorBooksRead The creating member's current books-read count (denormalized on the members row)
+     * @param creatorMemberId The creating member's ID (validated as numeric; not sent — the backend derives the owner from the caller)
      * @param serverId Optional server ID for Discord integration (defaults to null for mobile-only clubs)
      * @param discordChannel Optional Discord channel to associate with this club
      * @return Result containing the created Club if successful, or an error if the operation failed
@@ -49,9 +45,6 @@ interface ClubRepository {
     suspend fun createClub(
         name: String,
         creatorMemberId: String,
-        creatorMemberName: String,
-        creatorMemberHandle: String?,
-        creatorBooksRead: Int = 0,
         serverId: String? = null,
         discordChannel: String? = null
     ): Result<Club>
@@ -102,34 +95,45 @@ interface ClubRepository {
 internal class ClubRepositoryImpl(
     private val clubRemoteDataSource: ClubRemoteDataSource,
     private val clubLocalDataSource: ClubLocalDataSource,
+    private val memberLocalDataSource: MemberLocalDataSource,
     private val cachePolicy: CachePolicy
 ) : ClubRepository {
 
+    private val clubFetches = SingleFlight<Pair<String, String?>, Result<Club>>()
+
     override suspend fun getClub(clubId: String, serverId: String?, forceRefresh: Boolean): Result<Club> {
+        // Only a complete club (roster loaded) is servable: an incidental row cached from a Member
+        // response has no members and would render as an empty club screen.
+        // A complete club was fetched by ClubRepository and includes members (possibly empty)
+        // and activeSession (null when there is none).
+        val cachedClub = clubLocalDataSource.getClub(clubId)?.takeIf { it.members != null }
+
         // 1. Check local cache (unless force refresh)
         if (!forceRefresh) {
-            val cachedClub = clubLocalDataSource.getClub(clubId)
             val lastFetchedAt = clubLocalDataSource.getLastFetchedAt(clubId)
-
-            // Check if cached club is complete (has relationships loaded)
-            // A complete club should have been fetched by ClubRepository and includes:
-            // - members (may be empty list but should not be null for a complete fetch)
-            // - activeSession (may be null if no active session)
-            val isComplete = cachedClub?.let {
-                // If members is null, this is an incomplete club (cached from Member response)
-                it.members != null
-            } ?: false
-
-            if (cachedClub != null && isComplete && cachePolicy.isFresh(lastFetchedAt, CacheTTL.CLUB)) {
+            if (cachedClub != null && cachePolicy.isFresh(lastFetchedAt, CacheTTL.CLUB)) {
                 Bark.d("Cache hit for club (ID: $clubId)")
                 return Result.success(cachedClub)
             }
             Bark.d("Cache miss for club (ID: $clubId)")
         }
 
-        // 2. Fetch from remote
-        Bark.d("Fetching club (ID: $clubId) from remote")
-        val result = clubRemoteDataSource.getClub(clubId, serverId)
+        if (cachedClub != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached club (ID: $clubId) without a network attempt")
+            return Result.success(cachedClub)
+        }
+
+        // 2. Fetch from remote. The club screen reads the same club from several UseCases at
+        // once, so concurrent fetches for one club share a single request.
+        return clubFetches.run(clubId to serverId) { fetchClub(clubId, serverId, cachedClub) }
+    }
+
+    private suspend fun fetchClub(clubId: String, serverId: String?, fallback: Club?): Result<Club> {
+        val what = "club (ID: $clubId)"
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = fallback != null) {
+            timedRemote(what) { clubRemoteDataSource.getClub(clubId, serverId) }
+        }
 
         // 3. Cache on success
         result.onSuccess { club ->
@@ -140,42 +144,32 @@ internal class ClubRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Failed to cache club (ID: ${club.id}). Retry on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch club (ID: $clubId). Serving cached data if available.", error)
         }
 
-        return result
+        return result.recoverWithCache(what) { fallback }
     }
 
     override suspend fun createClub(
         name: String,
         creatorMemberId: String,
-        creatorMemberName: String,
-        creatorMemberHandle: String?,
-        creatorBooksRead: Int,
         serverId: String?,
         discordChannel: String?
     ): Result<Club> {
-        val creatorMemberIdInt = creatorMemberId.toIntOrNull()
-            ?: return Result.failure(IllegalArgumentException("Invalid creator member ID: $creatorMemberId"))
+        if (creatorMemberId.toIntOrNull() == null) {
+            return Result.failure(IllegalArgumentException("Invalid creator member ID: $creatorMemberId"))
+        }
         return clubRemoteDataSource.createClub(
             ClubCreateRequestDto(
                 name = name,
                 serverId = serverId,
-                discordChannel = discordChannel,
-                members = listOf(
-                    MemberDto(
-                        id = creatorMemberIdInt,
-                        name = creatorMemberName,
-                        // The spec requires MemberDto.handle, though club-create ignores it today.
-                        // Falls back to empty only if the cached member predates handles.
-                        handle = creatorMemberHandle.orEmpty(),
-                        platformMetadata = JsonObject(emptyMap()),
-                        booksRead = creatorBooksRead
-                    )
-                )
+                discordChannel = discordChannel
             )
-        )
+        ).onSuccess { club ->
+            // The creator's cached club list doesn't include the new club yet
+            invalidate("creator member (ID: $creatorMemberId) after creating club (ID: ${club.id})") {
+                memberLocalDataSource.markStale(creatorMemberId)
+            }
+        }
     }
 
     override suspend fun updateClub(
@@ -198,8 +192,27 @@ internal class ClubRepositoryImpl(
                     }
                 }
             )
-        )
+        ).onSuccess {
+            // The update response is partial (no members or session), so caching it would wipe
+            // the club's relationships. Mark it stale so the next read refetches it instead.
+            invalidate("club (ID: $clubId) after update") { clubLocalDataSource.markStale(clubId) }
+        }
 
     override suspend fun deleteClub(clubId: String, serverId: String?): Result<String> =
-        clubRemoteDataSource.deleteClub(clubId, serverId)
+        clubRemoteDataSource.deleteClub(clubId, serverId).onSuccess {
+            invalidate("club (ID: $clubId) after deletion") { clubLocalDataSource.deleteClub(clubId) }
+        }
+
+    /**
+     * Runs a post-mutation cache cleanup. The mutation already succeeded remotely, so a cache
+     * failure is logged rather than surfaced; the next forced refresh corrects the cache.
+     */
+    private suspend fun invalidate(what: String, block: suspend () -> Unit) {
+        try {
+            block()
+            Bark.v("Invalidated cache for $what")
+        } catch (e: Exception) {
+            Bark.e("Failed to invalidate cache for $what. Pull to refresh will correct it.", e)
+        }
+    }
 }

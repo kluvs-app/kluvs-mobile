@@ -23,10 +23,7 @@ class CreateClubUseCase(
         return memberRepository.getMemberByUserId(params.userId).mapCatching { member ->
             clubRepository.createClub(
                 name = params.clubName,
-                creatorMemberId = member.id,
-                creatorMemberName = member.name,
-                creatorMemberHandle = member.handle,
-                creatorBooksRead = member.booksRead
+                creatorMemberId = member.id
             ).getOrThrow()
         }.map { club ->
             ClubListItem(id = club.id, name = club.name, role = Role.OWNER)

@@ -20,7 +20,7 @@ abstract class BaseAdminUseCase<Params, T> {
     suspend operator fun invoke(params: Params, userRole: Role): Result<T> {
         if (userRole !in requiredRoles) {
             return Result.failure(
-                UnauthorizedException("Role $userRole is not authorized for this operation")
+                UnauthorizedException("You don't have permission to do that.")
             )
         }
         return execute(params)

@@ -3,8 +3,7 @@ package com.ivangarzab.kluvs.clubs.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
-import com.ivangarzab.kluvs.data.error.toAppError
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.clubs.domain.ClearAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateClubUseCase
 import com.ivangarzab.kluvs.clubs.domain.CreateDiscussionNoteUseCase
@@ -24,10 +23,10 @@ import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetClubMembersUseCase
 import com.ivangarzab.kluvs.clubs.domain.LeaveClubUseCase
-import com.ivangarzab.kluvs.clubs.domain.RegisterBookUseCase
+import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
-import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
@@ -51,6 +50,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import kotlin.time.TimeSource
 
 /**
  * The purpose of this [ViewModel] class is to serve the Club screen.
@@ -97,31 +97,51 @@ class ClubDetailsViewModel(
     private var currentClubId: String? = null
     private var currentUserId: String? = null
     private var loadClubDataJob: Job? = null
+    private var loadUserClubsJob: Job? = null
 
     /**
-     * Loads the user's clubs and displays the first club.
-     * If the user has no clubs, sets state to show empty state.
+     * Loads the user's clubs. Auto-selects the first club only when nothing is selected
+     * yet (or the selection is no longer in the list); otherwise the current selection is
+     * kept and just the list (and, on [forceRefresh], the selected club) is refreshed.
+     *
+     * This runs on every Clubs tab entry on both platforms, so it must never yank the user
+     * out of the club they're looking at.
      */
     fun loadUserClubs(userId: String, forceRefresh: Boolean = false) {
         currentUserId = userId
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+
+        // Cancel the previous list load so a slow, stale completion can't overwrite a newer
+        // list or re-select a club behind the user's back.
+        loadUserClubsJob?.cancel()
+        loadUserClubsJob = viewModelScope.launch {
+            // Only take over the screen with a loader when there's no club selected yet; a
+            // background list refresh keeps whatever the user is looking at on screen.
+            val hadSelection = currentClubId != null
+            if (!hadSelection) _state.update { it.copy(isLoading = true, error = null) }
 
             getMemberClubsUseCase(userId, forceRefresh)
                 .onSuccess { clubListItems ->
                     _state.update { it.copy(availableClubs = clubListItems) }
 
-                    if (clubListItems.isNotEmpty()) {
-                        Bark.i("Loaded ${clubListItems.size} club(s) for user (ID: $userId)")
-                        // Load full details for the first club only
+                    if (clubListItems.isEmpty()) {
+                        Bark.i("User has no clubs (ID: $userId)")
+                        currentClubId = null
+                        _state.update { it.copy(isLoading = false, selectedClubId = null) }
+                        return@onSuccess
+                    }
+                    Bark.i("Loaded ${clubListItems.size} club(s) for user (ID: $userId)")
+
+                    // `currentClubId` is read again here, not from `hadSelection`: the user may
+                    // have tapped a club while this load was in flight, and that choice wins.
+                    val selected = currentClubId?.let { id -> clubListItems.find { it.id == id } }
+                    if (selected != null) {
+                        Bark.d("Keeping selected club (ID: ${selected.id}) across club list reload")
+                        _state.update { it.copy(selectedClubId = selected.id, userRole = selected.role) }
+                        if (forceRefresh) loadClubData(selected.id, forceRefresh = true)
+                    } else {
                         val firstClub = clubListItems.first()
                         _state.update { it.copy(selectedClubId = firstClub.id, userRole = firstClub.role) }
                         loadClubData(firstClub.id)
-                    } else {
-                        Bark.i("User has no clubs (ID: $userId)")
-                        _state.update {
-                            it.copy(isLoading = false)
-                        }
                     }
                 }
                 .onFailure { error ->
@@ -129,7 +149,8 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = error.toAppError().toUserMessage()
+                            // Don't replace a club that's already on screen with an error page
+                            error = if (hadSelection) it.error else error.toDisplayMessage()
                         )
                     }
                 }
@@ -142,7 +163,14 @@ class ClubDetailsViewModel(
         loadClubData(clubId)
     }
 
-    fun loadClubData(clubId: String, forceRefresh: Boolean = false) {
+    fun loadClubData(clubId: String, forceRefresh: Boolean = false) =
+        loadClub(clubId, forceRefresh, isReload = forceRefresh)
+
+    /**
+     * @param isReload true when reloading the club already on screen (a refresh), which keeps
+     *        its content up instead of starting from a clean slate
+     */
+    private fun loadClub(clubId: String, forceRefresh: Boolean, isReload: Boolean) {
         currentClubId = clubId
 
         // Cancel any still-in-flight load for a previously-selected club — without this, a
@@ -152,18 +180,31 @@ class ClubDetailsViewModel(
         // narrow window where cancellation races with completion.
         loadClubDataJob?.cancel()
         loadClubDataJob = viewModelScope.launch {
-            // Reset state for subsequent calls
+            // A reload of the club already on screen (a forced refresh, or the cache-backed
+            // reload after a discussion change) keeps its content up while it runs; if it then
+            // fails (e.g. offline) the content stays and the failure is reported through a
+            // snackbar instead of an error page.
+            // Any other load (first load, switching clubs) starts from a clean slate.
+            val keepContent = isReload &&
+                _state.value.currentClubDetails != null &&
+                _state.value.selectedClubId == clubId
             _state.update {
-                it.copy(
-                    isLoading = true,
-                    error = null,
-                    currentClubDetails = null,
-                    activeSession = null,
-                    ownProgress = null,
-                    members = emptyList(),
-                    currentMemberId = null
-                )
+                if (keepContent) {
+                    it.copy(isLoading = true, error = null)
+                } else {
+                    it.copy(
+                        isLoading = true,
+                        error = null,
+                        currentClubDetails = null,
+                        activeSession = null,
+                        ownProgress = null,
+                        members = emptyList(),
+                        currentMemberId = null
+                    )
+                }
             }
+
+            val loadStart = TimeSource.Monotonic.markNow()
 
             // Launch all UseCase calls in parallel
             val deferredDetails = async { getClubDetails(clubId, forceRefresh) }
@@ -190,9 +231,9 @@ class ClubDetailsViewModel(
 
             // Aggregate errors
             val errors = listOfNotNull(
-                detailsResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                sessionResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                membersResult.exceptionOrNull()?.toAppError()?.toUserMessage()
+                detailsResult.exceptionOrNull()?.toDisplayMessage(),
+                sessionResult.exceptionOrNull()?.toDisplayMessage(),
+                membersResult.exceptionOrNull()?.toDisplayMessage()
             )
             val error = when {
                 errors.isEmpty() -> null
@@ -200,8 +241,9 @@ class ClubDetailsViewModel(
                 else -> "Multiple things went wrong. Please try again."
             }
             error?.let { e ->
-                Bark.e("Failed to fetch club details (ID: $clubId). Serving cached data if available.", Exception(e))
+                Bark.e("Failed to fetch club details (ID: $clubId). ${if (keepContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded club details (ID: $clubId)")
+            Bark.d("Club load took ${loadStart.elapsedNow().inWholeMilliseconds} ms (ID: $clubId, forceRefresh=$forceRefresh)")
 
             if (currentClubId != clubId) return@launch
 
@@ -210,20 +252,22 @@ class ClubDetailsViewModel(
             // transfer) updates `members` here but wouldn't otherwise be reflected until the user
             // navigated away and back, since `userRole`/`availableClubs` aren't touched elsewhere
             // on refresh.
-            val members = membersResult.getOrNull() ?: emptyList()
+            val members = membersResult.getOrNull() ?: if (keepContent) _state.value.members else emptyList()
             val refreshedRole = currentMemberId?.let { id -> members.find { it.memberId == id }?.role }
 
-            // Update state with all results
+            // Update state with all results. When keeping content, each piece only changes if its
+            // fetch succeeded (a successful "no active session" is still a change).
             _state.update {
                 it.copy(
                     isLoading = false,
-                    error = error,
+                    error = if (keepContent) null else error,
+                    operationResult = if (keepContent && error != null) OperationResult.Error(error) else it.operationResult,
                     selectedClubId = clubId,
-                    currentClubDetails = detailsResult.getOrNull(),
-                    activeSession = sessionResult.getOrNull(),
-                    ownProgress = ownProgress,
+                    currentClubDetails = detailsResult.getOrNull() ?: if (keepContent) it.currentClubDetails else null,
+                    activeSession = if (sessionResult.isSuccess) sessionResult.getOrNull() else if (keepContent) it.activeSession else null,
+                    ownProgress = if (sessionResult.isSuccess) ownProgress else if (keepContent) it.ownProgress else null,
                     members = members,
-                    currentMemberId = currentMemberId,
+                    currentMemberId = currentMemberId ?: if (keepContent) it.currentMemberId else null,
                     userRole = refreshedRole ?: it.userRole,
                     availableClubs = refreshedRole?.let { role ->
                         it.availableClubs.map { club -> if (club.id == clubId) club.copy(role = role) else club }
@@ -235,7 +279,7 @@ class ClubDetailsViewModel(
 
     fun refresh(forceRefresh: Boolean = false) {
         Bark.d("Refreshing club data (forceRefresh=$forceRefresh)")
-        currentClubId?.let { loadClubData(it, forceRefresh) }
+        currentClubId?.let { loadClub(it, forceRefresh, isReload = true) }
     }
 
     /**
@@ -263,7 +307,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -283,7 +327,14 @@ class ClubDetailsViewModel(
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Club name updated") {
-            updateClubUseCase(UpdateClubUseCase.Params(clubId, newName), role)
+            updateClubUseCase(UpdateClubUseCase.Params(clubId, newName), role).onSuccess {
+                // The clubs list is only reloaded on tab entry, so patch the renamed row here
+                _state.update { state ->
+                    state.copy(availableClubs = state.availableClubs.map { club ->
+                        if (club.id == clubId) club.copy(name = newName) else club
+                    })
+                }
+            }
         }
     }
 
@@ -300,11 +351,13 @@ class ClubDetailsViewModel(
             _state.update { it.copy(isOperationInProgress = true) }
             deleteClubUseCase(DeleteClubUseCase.Params(clubId), role)
                 .onSuccess {
+                    currentClubId = null
                     _state.update {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             deletedClubId = clubId,
+                            selectedClubId = null,
                             operationResult = OperationResult.Success("Club deleted")
                         )
                     }
@@ -315,7 +368,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -382,7 +435,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isSearchingBooks = false,
                             bookSearchResults = emptyList(),
-                            bookSearchError = error.toAppError().toUserMessage()
+                            bookSearchError = error.toDisplayMessage()
                         )
                     }
                 }
@@ -411,7 +464,7 @@ class ClubDetailsViewModel(
                 .onFailure { error ->
                     Bark.e("Book registration failed. Please retry.", error)
                     _state.update {
-                        it.copy(isRegisteringBook = false, bookSearchError = error.toAppError().toUserMessage())
+                        it.copy(isRegisteringBook = false, bookSearchError = error.toDisplayMessage())
                     }
                 }
         }
@@ -503,7 +556,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -542,7 +595,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -587,7 +640,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -602,7 +655,7 @@ class ClubDetailsViewModel(
     fun onCreateDiscussion(title: String, location: String, date: LocalDateTime) {
         val role = _state.value.userRole ?: return
         val sessionId = _state.value.activeSession?.sessionId ?: return
-        launchMutation("Discussion created") {
+        launchMutation("Discussion created", refreshFromCache = true) {
             createDiscussionUseCase(CreateDiscussionUseCase.Params(sessionId, title, location, date), role)
         }
     }
@@ -610,7 +663,7 @@ class ClubDetailsViewModel(
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, date: LocalDateTime?) {
         val role = _state.value.userRole ?: return
         _state.value.activeSession ?: return
-        launchMutation("Discussion updated") {
+        launchMutation("Discussion updated", refreshFromCache = true) {
             updateDiscussionUseCase(UpdateDiscussionUseCase.Params(discussionId, title, location, date), role)
         }
     }
@@ -618,7 +671,7 @@ class ClubDetailsViewModel(
     fun onDeleteDiscussion(discussionId: String) {
         val role = _state.value.userRole ?: return
         _state.value.activeSession ?: return
-        launchMutation("Discussion deleted") {
+        launchMutation("Discussion deleted", refreshFromCache = true) {
             deleteDiscussionUseCase(DeleteDiscussionUseCase.Params(discussionId), role)
         }
     }
@@ -695,7 +748,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             discussionRosters = it.discussionRosters + (discussionId to roster.copy(myStatus = previousStatus)),
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -729,7 +782,7 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo(
-                                error = error.message ?: "An unexpected error occurred"
+                                error = error.toDisplayMessage()
                             ))
                         )
                     }
@@ -772,7 +825,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to current.copy(
                                 isSaving = false,
-                                error = error.message ?: "An unexpected error occurred"
+                                error = error.toDisplayMessage()
                             ))
                         )
                     }
@@ -795,7 +848,7 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to it.discussionNotes.getValue(discussionId).copy(
-                                error = error.message ?: "An unexpected error occurred"
+                                error = error.toDisplayMessage()
                             ))
                         )
                     }
@@ -837,11 +890,13 @@ class ClubDetailsViewModel(
             _state.update { it.copy(isOperationInProgress = true) }
             leaveClubUseCase(LeaveClubUseCase.Params(memberId, clubId), role)
                 .onSuccess {
+                    currentClubId = null
                     _state.update {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             leftClubId = clubId,
+                            selectedClubId = null,
                             operationResult = OperationResult.Success("Left club")
                         )
                     }
@@ -852,7 +907,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }
@@ -884,20 +939,28 @@ class ClubDetailsViewModel(
     /**
      * Shared mutation runner: sets loading flags, invokes [block], and handles
      * success/failure by updating [operationResult] and triggering a refresh.
+     *
+     * [refreshFromCache] is for mutations whose repository writes the result into the cache
+     * (discussions): the reload reads the cache instead of forcing a full refetch. Every other
+     * mutation forces one.
      */
-    private fun launchMutation(successMessage: String, block: suspend () -> Result<*>) {
+    private fun launchMutation(
+        successMessage: String,
+        refreshFromCache: Boolean = false,
+        block: suspend () -> Result<*>
+    ) {
         viewModelScope.launch {
             _state.update { it.copy(isOperationInProgress = true) }
             val result = block()
             result
                 .onSuccess {
-                    _state.update {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Success(successMessage)
-                        )
-                    }
-                    refresh(forceRefresh = true)
+                    // The success message shows right away, but the in-progress indicator stays
+                    // on until the follow-up refetch lands; otherwise the screen sits unchanged
+                    // (and looks like nothing happened) while the club reloads.
+                    _state.update { it.copy(operationResult = OperationResult.Success(successMessage)) }
+                    refresh(forceRefresh = !refreshFromCache)
+                    loadClubDataJob?.join()
+                    _state.update { it.copy(isOperationInProgress = false) }
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: $successMessage. ${error.message}", error)
@@ -905,7 +968,7 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
-                                error.message ?: "An unexpected error occurred"
+                                error.toDisplayMessage()
                             )
                         )
                     }

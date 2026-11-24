@@ -19,10 +19,10 @@ import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.LeaveClubUseCase
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
-import com.ivangarzab.kluvs.clubs.domain.RegisterBookUseCase
+import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
 import com.ivangarzab.kluvs.clubs.domain.RotateInviteLinkUseCase
-import com.ivangarzab.kluvs.clubs.domain.SearchBooksUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.clubs.domain.SetAttendanceUseCase
 import com.ivangarzab.kluvs.clubs.domain.ToggleSessionParticipationUseCase
@@ -59,6 +59,7 @@ import com.ivangarzab.kluvs.model.ReadingProgress
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.model.SessionMember
+import com.ivangarzab.kluvs.model.UserFacingException
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -71,8 +72,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -731,6 +736,52 @@ class ClubDetailsViewModelTest {
         viewModel.onTransferOwnership("m2")
 
         assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+    }
+
+    @Test
+    fun `failed mutation with an unexpected exception shows generic copy not raw text`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Some Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend {
+            memberRepository.updateMember(memberId = "m2", clubRoles = mapOf(clubId to "owner"))
+        } returns Result.failure(RuntimeException("Unable to resolve host kluvs.supabase.co"))
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onTransferOwnership("m2")
+
+        val result = viewModel.state.value.operationResult
+        assertIs<OperationResult.Error>(result)
+        assertEquals("Something went wrong. Please try again.", result.message)
+    }
+
+    @Test
+    fun `failed mutation with a user facing exception keeps its message`() = runTest {
+        val clubId = "club-1"
+        val club = Club(
+            id = clubId, name = "Some Club", serverId = null, discordChannel = null,
+            members = emptyList(), activeSession = null, pastSessions = emptyList(),
+            shameList = emptyList(), role = Role.OWNER
+        )
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend {
+            memberRepository.updateMember(memberId = "m2", clubRoles = mapOf(clubId to "owner"))
+        } returns Result.failure(UserFacingException("Cannot remove yourself from the club"))
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onTransferOwnership("m2")
+
+        val result = viewModel.state.value.operationResult
+        assertIs<OperationResult.Error>(result)
+        assertEquals("Cannot remove yourself from the club", result.message)
     }
 
     @Test
@@ -1428,5 +1479,250 @@ class ClubDetailsViewModelTest {
         viewModel.onDeleteDiscussionNote("d1")
 
         verifySuspend(VerifyMode.not) { discussionNoteRepository.deleteNote(any()) }
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-322: club list reloads must not override the user's selection
+    // -------------------------------------------------------------------------
+
+    private fun twoClubsMember(userId: String = "u1"): Member {
+        val clubA = Club(id = "club-a", name = "Club A", members = emptyList())
+        val clubB = Club(id = "club-b", name = "Club B", members = emptyList())
+        everySuspend { clubRepository.getClub("club-a") } returns Result.success(clubA)
+        everySuspend { clubRepository.getClub("club-b") } returns Result.success(clubB)
+        everySuspend { clubRepository.getClub("club-a", null, true) } returns Result.success(clubA)
+        everySuspend { clubRepository.getClub("club-b", null, true) } returns Result.success(clubB)
+        return Member(id = "m1", userId = userId, name = "Alice", clubs = listOf(clubA, clubB))
+    }
+
+    @Test
+    fun `loadUserClubs keeps the selected club when it is still in the list`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+        viewModel.loadUserClubs("u1") // tab re-entry
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+    }
+
+    @Test
+    fun `selectClub during an in-flight loadUserClubs wins over the auto-select`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } calls {
+            delay(1_000)
+            Result.success(member)
+        }
+
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b") // user taps B while the list is still loading
+        advanceUntilIdle()
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+        assertEquals(2, viewModel.state.value.availableClubs.size)
+    }
+
+    @Test
+    fun `a newer loadUserClubs cancels the older one so the latest list wins`() = runTest {
+        val staleMember = Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(Club(id = "club-old", name = "Old")))
+        val freshMember = twoClubsMember()
+        var calls = 0
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } calls {
+            if (calls++ == 0) { delay(1_000); Result.success(staleMember) } else Result.success(freshMember)
+        }
+
+        viewModel.loadUserClubs("u1")
+        viewModel.loadUserClubs("u1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("club-a", "club-b"), viewModel.state.value.availableClubs.map { it.id })
+        assertEquals("club-a", viewModel.state.value.selectedClubId)
+        verifySuspend(VerifyMode.not) { clubRepository.getClub("club-old") }
+    }
+
+    @Test
+    fun `loadUserClubs falls back to the first club when the selection is gone from the list`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+
+        val onlyA = member.copy(clubs = member.clubs!!.filter { it.id == "club-a" })
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(onlyA)
+        viewModel.loadUserClubs("u1")
+
+        assertEquals("club-a", viewModel.state.value.selectedClubId)
+        assertEquals("Club A", viewModel.state.value.currentClubDetails?.clubName)
+    }
+
+    @Test
+    fun `loadUserClubs with forceRefresh reloads the selected club rather than the first one`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+
+        viewModel.loadUserClubs("u1", forceRefresh = true)
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+    }
+
+    @Test
+    fun `loadUserClubs does not show the loader or an error over a club already on screen`() = runTest {
+        val member = twoClubsMember()
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.failure(Exception("offline"))
+        viewModel.loadUserClubs("u1")
+
+        assertEquals("club-b", viewModel.state.value.selectedClubId)
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+        assertEquals(false, viewModel.state.value.isLoading)
+        assertEquals(null, viewModel.state.value.error)
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-323: a failed forced refresh never removes content from the screen
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `a failed forced refresh keeps the club on screen and reports via snackbar`() = runTest {
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(twoClubsMember())
+        viewModel.loadUserClubs("u1")
+        viewModel.selectClub("club-b")
+        assertEquals("Club B", viewModel.state.value.currentClubDetails?.clubName)
+
+        everySuspend { clubRepository.getClub("club-b", null, true) } returns Result.failure(Exception("offline"))
+        viewModel.refresh(forceRefresh = true)
+
+        val state = viewModel.state.value
+        assertEquals("Club B", state.currentClubDetails?.clubName)
+        assertEquals(null, state.error)
+        assertEquals(false, state.isLoading)
+        assertIs<OperationResult.Error>(state.operationResult)
+    }
+
+    @Test
+    fun `a failed first load still shows the error page`() = runTest {
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(twoClubsMember())
+        everySuspend { clubRepository.getClub("club-a") } returns Result.failure(Exception("offline"))
+
+        viewModel.loadUserClubs("u1")
+
+        assertEquals(null, viewModel.state.value.currentClubDetails)
+        assertNotNull(viewModel.state.value.error)
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-323 follow-ups: list row patch and in-progress indicator
+    // -------------------------------------------------------------------------
+
+    private fun ownedClub(clubId: String, name: String) = Club(
+        id = clubId, name = name, serverId = null, discordChannel = null,
+        members = emptyList(), activeSession = null, pastSessions = emptyList(),
+        shameList = emptyList(), role = Role.OWNER
+    )
+
+    @Test
+    fun `renaming the club updates its row in the clubs list`() = runTest {
+        val old = ownedClub("club-1", "Old Name")
+        val renamed = ownedClub("club-1", "New Name")
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
+            Result.success(Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(old)))
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(old)
+        everySuspend { clubRepository.getClub("club-1", forceRefresh = true) } returns Result.success(renamed)
+        everySuspend { clubRepository.updateClub(clubId = "club-1", name = "New Name") } returns Result.success(renamed)
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onUpdateClubName("New Name")
+
+        assertEquals(listOf("New Name"), viewModel.state.value.availableClubs.map { it.name })
+    }
+
+    @Test
+    fun `the in-progress indicator stays on until the post-mutation refetch finishes`() = runTest {
+        val old = ownedClub("club-1", "Old Name")
+        val renamed = ownedClub("club-1", "New Name")
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
+            Result.success(Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(old)))
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(old)
+        everySuspend { clubRepository.getClub("club-1", forceRefresh = true) } calls {
+            delay(1_000)
+            Result.success(renamed)
+        }
+        everySuspend { clubRepository.updateClub(clubId = "club-1", name = "New Name") } returns Result.success(renamed)
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onUpdateClubName("New Name")
+
+        // The success message is already visible, but the refetch is still running
+        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(true, viewModel.state.value.isOperationInProgress)
+
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.state.value.isOperationInProgress)
+        assertEquals("New Name", viewModel.state.value.currentClubDetails?.clubName)
+    }
+
+    // ========================================
+    // KT-344: CACHE-BACKED RELOAD AFTER DISCUSSION CHANGES
+    // ========================================
+
+    private fun clubWithActiveSession(clubId: String) = Club(
+        id = clubId, name = "Some Club", serverId = null, discordChannel = null,
+        members = emptyList(),
+        activeSession = Session(
+            id = "session-1",
+            clubId = clubId,
+            book = Book(id = "b1", title = "Dune", author = "Frank Herbert", edition = null, year = 1965, isbn = null),
+            dueDate = null,
+            discussions = emptyList()
+        ),
+        pastSessions = emptyList(), shameList = emptyList(), role = Role.OWNER
+    )
+
+    @Test
+    fun `onCreateDiscussion reloads the club from cache instead of forcing a refetch`() = runTest {
+        val clubId = "club-1"
+        val club = clubWithActiveSession(clubId)
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { discussionRepository.createDiscussion(any(), any(), any(), any()) } returns Result.success(
+            Discussion(id = "d1", sessionId = "session-1", title = "Ch. 1", date = LocalDateTime(2026, 12, 1, 19, 0))
+        )
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onCreateDiscussion("Ch. 1", "Discord", LocalDateTime(2026, 12, 1, 19, 0))
+
+        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(false, viewModel.state.value.isOperationInProgress)
+        verifySuspend(VerifyMode.not) { clubRepository.getClub(clubId, forceRefresh = true) }
+    }
+
+    @Test
+    fun `cache-backed reload keeps the club on screen while it runs`() = runTest {
+        val clubId = "club-1"
+        val club = clubWithActiveSession(clubId)
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { discussionRepository.deleteDiscussion(any()) } returns Result.success(Unit)
+        viewModel.loadUserClubs("u1")
+        val shownBefore = viewModel.state.value.currentClubDetails
+        val seen = mutableListOf<Boolean>()
+        val collector = backgroundScope.launch { viewModel.state.collect { seen += it.currentClubDetails != null } }
+
+        viewModel.onDeleteDiscussion("d1")
+
+        assertTrue(shownBefore != null)
+        assertEquals(false, seen.contains(false), "Club details should never be cleared during the reload")
+        collector.cancel()
     }
 }

@@ -30,9 +30,9 @@ import kotlinx.serialization.encoding.*
 
 data class ClubPreviewDto (
 
-    @SerialName(value = "id") val id: kotlin.String? = null,
+    @SerialName(value = "id") @Required val id: kotlin.String,
 
-    @SerialName(value = "name") val name: kotlin.String? = null
+    @SerialName(value = "name") @Required val name: kotlin.String
 
 ) {
 

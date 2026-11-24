@@ -70,7 +70,6 @@ class ShelfRemoteDataSourceImpl(
         return try {
             val response = shelfService.assign(request)
             val shelf = response.shelf
-                ?: throw Exception("Shelf assignment succeeded but no shelf returned")
             Bark.i("Book shelved (ID: ${request.bookId}, Shelf: ${shelf.value})")
             Result.success(shelf.toDomain())
         } catch (e: Exception) {

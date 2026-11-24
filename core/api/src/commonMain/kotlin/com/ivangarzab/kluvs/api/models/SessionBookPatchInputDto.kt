@@ -25,6 +25,9 @@ import kotlinx.serialization.encoding.*
  *
  * @param title 
  * @param author 
+ * @param edition 
+ * @param year 
+ * @param isbn 
  */
 @Serializable
 
@@ -32,7 +35,13 @@ data class SessionBookPatchInputDto (
 
     @SerialName(value = "title") val title: kotlin.String? = null,
 
-    @SerialName(value = "author") val author: kotlin.String? = null
+    @SerialName(value = "author") val author: kotlin.String? = null,
+
+    @SerialName(value = "edition") val edition: kotlin.String? = null,
+
+    @SerialName(value = "year") val year: kotlin.Int? = null,
+
+    @SerialName(value = "isbn") val isbn: kotlin.String? = null
 
 ) {
 

@@ -1,4 +1,28 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git blame:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(./gradlew --status:*)"
+    ],
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(npx supabase db reset:*)",
+      "Bash(supabase db reset:*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

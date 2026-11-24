@@ -17,6 +17,7 @@ package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.MemberAddToClubResponseDto
 import com.ivangarzab.kluvs.api.models.MemberDto
+import com.ivangarzab.kluvs.api.models.MemberRemoveFromClubResponseDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateResponseDto
 
 import kotlinx.serialization.*
@@ -28,29 +29,29 @@ import kotlinx.serialization.encoding.*
  *
  * @param success 
  * @param message 
+ * @param memberId 
+ * @param clubId 
  * @param member 
  * @param clubsUpdated 
  * @param rolesUpdated 
- * @param memberId 
- * @param clubId 
  */
 @Serializable
 
 data class UpdateMember200ResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null,
+    @SerialName(value = "message") @Required val message: kotlin.String,
+
+    @SerialName(value = "member_id") @Required val memberId: kotlin.Int,
+
+    @SerialName(value = "club_id") @Required val clubId: kotlin.String,
 
     @SerialName(value = "member") val member: MemberDto? = null,
 
     @SerialName(value = "clubs_updated") val clubsUpdated: kotlin.Boolean? = null,
 
-    @SerialName(value = "roles_updated") val rolesUpdated: kotlin.Boolean? = null,
-
-    @SerialName(value = "member_id") val memberId: kotlin.Int? = null,
-
-    @SerialName(value = "club_id") val clubId: kotlin.String? = null
+    @SerialName(value = "roles_updated") val rolesUpdated: kotlin.Boolean? = null
 
 ) {
 

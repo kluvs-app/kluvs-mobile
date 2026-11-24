@@ -24,7 +24,7 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
- * @param id The ID of the member to update (or the target member for add_to_club).
+ * @param id The ID of the member to update (or the target member for add_to_club / remove_from_club).
  * @param name 
  * @param booksRead 
  * @param handle Must be lowercase letters, numbers, and hyphens only (2-30 chars). Must not already be taken by another member.
@@ -34,12 +34,13 @@ import kotlinx.serialization.encoding.*
  * @param clubs Full list of Club IDs this member should belong to. Diffed against existing to add/remove.
  * @param clubRoles Map of club_id → role to update per-club roles.
  * @param addToClub Club ID to add the target member (`id`) to. When present, all other update fields are ignored. The calling user's JWT must belong to a member who is an admin or owner of the target club. The target member is added with the `member` role. 
+ * @param removeFromClub Club ID to remove the target member (`id`) from. Cannot be combined with any other update field. The calling user's JWT must belong to an admin or owner of the club; removing an admin requires the owner, and the club owner cannot be removed. Only the target's membership in this club is deleted. 
  */
 @Serializable
 
 data class MemberUpdateRequestDto (
 
-    /* The ID of the member to update (or the target member for add_to_club). */
+    /* The ID of the member to update (or the target member for add_to_club / remove_from_club). */
     @SerialName(value = "id") @Required val id: kotlin.Int,
 
     @SerialName(value = "name") val name: kotlin.String? = null,
@@ -64,7 +65,10 @@ data class MemberUpdateRequestDto (
     @SerialName(value = "club_roles") val clubRoles: kotlin.collections.Map<kotlin.String, MemberAssignableRoleDto>? = null,
 
     /* Club ID to add the target member (`id`) to. When present, all other update fields are ignored. The calling user's JWT must belong to a member who is an admin or owner of the target club. The target member is added with the `member` role.  */
-    @SerialName(value = "add_to_club") val addToClub: kotlin.String? = null
+    @SerialName(value = "add_to_club") val addToClub: kotlin.String? = null,
+
+    /* Club ID to remove the target member (`id`) from. Cannot be combined with any other update field. The calling user's JWT must belong to an admin or owner of the club; removing an admin requires the owner, and the club owner cannot be removed. Only the target's membership in this club is deleted.  */
+    @SerialName(value = "remove_from_club") val removeFromClub: kotlin.String? = null
 
 ) {
 

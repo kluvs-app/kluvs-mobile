@@ -61,6 +61,16 @@ interface MemberDao {
     @Query("DELETE FROM club_members WHERE clubId = :clubId AND memberId = :memberId")
     suspend fun deleteClubMemberCrossRef(clubId: String, memberId: String)
 
+    @Query("DELETE FROM club_members WHERE clubId = :clubId")
+    suspend fun deleteCrossRefsForClub(clubId: String)
+
+    @Query("DELETE FROM club_members WHERE memberId = :memberId")
+    suspend fun deleteCrossRefsForMember(memberId: String)
+
+    /** Forces the next read of this member to refetch, while keeping the row available. */
+    @Query("UPDATE members SET lastFetchedAt = 0 WHERE id = :memberId")
+    suspend fun markStale(memberId: String)
+
     @Query("SELECT lastFetchedAt FROM members WHERE id = :memberId")
     suspend fun getLastFetchedAt(memberId: String): Long?
 

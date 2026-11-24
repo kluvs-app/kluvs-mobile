@@ -1,11 +1,16 @@
 package com.ivangarzab.kluvs.data.local.cache
 
+import com.ivangarzab.kluvs.model.AppError
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -112,5 +117,63 @@ class CachePolicyTest {
 
         // Then
         assertFalse(result, "Data older than TTL should not be fresh")
+    }
+
+    @Test
+    fun testShouldServeCacheOnly_offlineWithCache_returnsTrue() {
+        val offlinePolicy = CachePolicy(isOffline = { true })
+
+        assertTrue(offlinePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh = false))
+    }
+
+    @Test
+    fun testShouldServeCacheOnly_offlineForcedRefresh_returnsFalse() {
+        val offlinePolicy = CachePolicy(isOffline = { true })
+
+        assertFalse(offlinePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh = true))
+    }
+
+    @Test
+    fun testShouldServeCacheOnly_offlineWithoutCache_returnsFalse() {
+        val offlinePolicy = CachePolicy(isOffline = { true })
+
+        assertFalse(offlinePolicy.shouldServeCacheOnly(hasServableCache = false, forceRefresh = false))
+    }
+
+    @Test
+    fun testShouldServeCacheOnly_online_returnsFalse() {
+        assertFalse(cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh = false))
+    }
+
+    @Test
+    fun testFetchRemote_withFallback_givesUpAfterFallbackTimeout() = runTest {
+        val result = cachePolicy.fetchRemote("club", hasFallback = true) {
+            delay(10.seconds)
+            Result.success("fresh")
+        }
+
+        assertEquals(AppError.Timeout, result.exceptionOrNull())
+        assertEquals(CachePolicy.FALLBACK_TIMEOUT.inWholeMilliseconds, testScheduler.currentTime)
+    }
+
+    @Test
+    fun testFetchRemote_withFallback_returnsAFetchThatFinishesInTime() = runTest {
+        val result = cachePolicy.fetchRemote("club", hasFallback = true) {
+            delay(2.seconds)
+            Result.success("fresh")
+        }
+
+        assertEquals("fresh", result.getOrNull())
+    }
+
+    @Test
+    fun testFetchRemote_withoutFallback_waitsForTheFetch() = runTest {
+        val result = cachePolicy.fetchRemote("club", hasFallback = false) {
+            delay(10.seconds)
+            Result.success("fresh")
+        }
+
+        assertEquals("fresh", result.getOrNull())
+        assertEquals(10.seconds.inWholeMilliseconds, testScheduler.currentTime)
     }
 }

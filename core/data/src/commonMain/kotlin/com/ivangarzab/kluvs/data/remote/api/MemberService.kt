@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.api.models.DeleteResponseDto
 import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberCreateResponseDto
 import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
+import com.ivangarzab.kluvs.api.models.MemberRemoveFromClubResponseDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateResponseDto
 import com.ivangarzab.kluvs.network.utils.JsonHelper.getJsonForSupabaseService
@@ -19,6 +20,14 @@ interface MemberService {
     suspend fun getByUserId(userId: String): MemberGetResponseDto
     suspend fun create(request: MemberCreateRequestDto): MemberCreateResponseDto
     suspend fun update(request: MemberUpdateRequestDto): MemberUpdateResponseDto
+
+    /**
+     * Removes [memberId] from [clubId] via the `remove_from_club` action of `PUT /member`.
+     *
+     * The backend rejects this action when combined with any other update field, so the
+     * request carries only `id` and `remove_from_club` (null fields are omitted on encode).
+     */
+    suspend fun removeFromClub(memberId: Int, clubId: String): MemberRemoveFromClubResponseDto
     suspend fun delete(memberId: String): DeleteResponseDto
 }
 
@@ -87,6 +96,24 @@ internal class MemberServiceImpl(private val supabase: SupabaseClient) : MemberS
             response
         } catch (error: Exception) {
             Bark.e("Failed to update member (ID: ${request.id}). Check network/API status and retry.", error)
+            throw error
+        }
+    }
+
+    override suspend fun removeFromClub(memberId: Int, clubId: String): MemberRemoveFromClubResponseDto {
+        Bark.d("Removing member from club (Member ID: $memberId, Club ID: $clubId)")
+        return try {
+            val json = getJsonForSupabaseService()
+            val jsonString = json.encodeToString(MemberUpdateRequestDto(id = memberId, removeFromClub = clubId))
+
+            val response = supabase.functions.invoke("member") {
+                method = HttpMethod.Put
+                body = jsonString
+            }.body<MemberRemoveFromClubResponseDto>()
+            Bark.v("Member removed from club successfully (Member ID: $memberId, Club ID: $clubId)")
+            response
+        } catch (error: Exception) {
+            Bark.e("Failed to remove member from club (Member ID: $memberId, Club ID: $clubId). Check network/API status and retry.", error)
             throw error
         }
     }

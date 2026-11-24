@@ -6,6 +6,7 @@
     <string name="clubs">Kluvs</string>
     <string name="me">Me</string>
     <string name="books">Books</string>
+    <string name="offline_banner">You\'re offline. Showing saved data.</string>
     <string name="your_shelf_title">Your Shelf</string>
     <string name="general">Overview</string>
     <string name="club_eyebrow">Club</string>
@@ -121,6 +122,7 @@
     <string name="terms_of_use">Terms of Use</string>
     <string name="data_deletion">Data Deletion</string>
     <string name="about_title">About</string>
+    <string name="help_faq">Help / FAQ</string>
     <string name="credits_title">Credits</string>
     <!-- Attribution strings are HTML (CDATA keeps the tags literal) — rendered via CreditText,
          which turns the <a> tags into tappable links. Wikipedia text is CC BY-SA, which requires

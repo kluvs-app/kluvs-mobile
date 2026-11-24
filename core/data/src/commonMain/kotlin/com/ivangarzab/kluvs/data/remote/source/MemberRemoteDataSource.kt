@@ -48,6 +48,14 @@ interface MemberRemoteDataSource {
     suspend fun updateMember(request: MemberUpdateRequestDto): Result<Member>
 
     /**
+     * Removes a member from a single club (the club's owner/admin acting on someone else).
+     *
+     * Does not touch the member's other clubs. Fails if the server rejects the removal
+     * (e.g. 403 for insufficient role, 400 for the club owner).
+     */
+    suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit>
+
+    /**
      * Deletes a member by ID.
      *
      * Returns success message on successful deletion.
@@ -65,7 +73,7 @@ class MemberRemoteDataSourceImpl(
             Bark.i("Fetched member (ID: $memberId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch member (ID: $memberId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch member (ID: $memberId).", e)
             Result.failure(e)
         }
     }
@@ -76,7 +84,7 @@ class MemberRemoteDataSourceImpl(
             Bark.i("Fetched member by user ID (ID: $userId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch member by user ID (ID: $userId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch member by user ID (ID: $userId).", e)
             Result.failure(e)
         }
     }
@@ -84,7 +92,7 @@ class MemberRemoteDataSourceImpl(
     override suspend fun createMember(request: MemberCreateRequestDto): Result<Member> {
         return try {
             val response = memberService.create(request)
-            val member = response.member ?: error("Member creation response missing member data")
+            val member = response.member
             Bark.i("Member created (ID: ${member.id})")
             Result.success(member.toDomain())
         } catch (e: Exception) {
@@ -96,11 +104,31 @@ class MemberRemoteDataSourceImpl(
     override suspend fun updateMember(request: MemberUpdateRequestDto): Result<Member> {
         return try {
             val response = memberService.update(request)
-            val member = response.member ?: error("Member update response missing member data")
+            // A no-op update ("No changes to apply") succeeds without echoing the member,
+            // so fetch the current one to keep returning it.
+            val member = response.member?.toDomain()
+                ?: memberService.get(request.id.toString()).toDomain()
             Bark.i("Member updated (ID: ${request.id})")
-            Result.success(member.toDomain())
+            Result.success(member)
         } catch (e: Exception) {
             Bark.e("Failed to update member (ID: ${request.id}). Please retry.", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit> {
+        val memberIdInt = memberId.toIntOrNull()
+            ?: return Result.failure(IllegalArgumentException("Invalid member ID: $memberId"))
+        return try {
+            val response = memberService.removeFromClub(memberIdInt, clubId)
+            if (response.success == true) {
+                Bark.i("Member removed from club (Member ID: $memberId, Club ID: $clubId)")
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Remove from club failed (Member ID: $memberId, Club ID: $clubId)"))
+            }
+        } catch (e: Exception) {
+            Bark.e("Failed to remove member from club (Member ID: $memberId, Club ID: $clubId). Please retry.", e)
             Result.failure(e)
         }
     }

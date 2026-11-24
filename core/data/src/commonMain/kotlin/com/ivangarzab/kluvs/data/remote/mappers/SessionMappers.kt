@@ -15,9 +15,9 @@ fun SessionDto.toDomain(): Session {
     return Session(
         id = id,
         clubId = clubId,
-        book = book?.toDomain() ?: error("SessionDto missing required book data"),
+        book = book.toDomain(),
         dueDate = dueDate?.parseDateString(),
-        discussions = discussions?.map { it.toDomain() } ?: emptyList(),
+        discussions = discussions.map { it.toDomain() },
         members = members?.map { it.toDomain() } ?: emptyList()
     )
 }

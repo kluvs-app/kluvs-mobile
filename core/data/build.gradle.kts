@@ -18,6 +18,7 @@ kotlin {
             implementation(libs.supabase.storage)
 
             implementation(libs.room.runtime)
+            implementation(libs.kotlinx.serialization)
 
             implementation(libs.koin)
             implementation(libs.bark)

@@ -7,10 +7,16 @@ import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
 import com.ivangarzab.kluvs.model.Member
 import dev.mokkery.answering.returns
+import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -39,6 +45,9 @@ class MemberRepositoryTest {
         everySuspend { localDataSource.getLastFetchedAt(any()) } returns null
         everySuspend { localDataSource.insertMember(any()) } returns Unit
         everySuspend { localDataSource.deleteMember(any()) } returns Unit
+        everySuspend { localDataSource.removeClubMembershipsExcept(any(), any()) } returns Unit
+        everySuspend { localDataSource.markStale(any()) } returns Unit
+        everySuspend { localDataSource.deleteClubMemberRelationship(any(), any()) } returns Unit
     }
 
     // ========================================
@@ -409,5 +418,124 @@ class MemberRepositoryTest {
 
         assertTrue(result.isFailure)
         verifySuspend { remoteDataSource.deleteMember(memberId) }
+    }
+
+    // ========================================
+    // CACHE INVALIDATION ON UPDATE
+    // ========================================
+
+    @Test
+    fun `updateMember with clubIds prunes dropped club links and marks member stale`() = runTest {
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(Member(id = "123", name = "M"))
+
+        repository.updateMember(memberId = "123", clubIds = listOf("club-1"))
+
+        verifySuspend { localDataSource.removeClubMembershipsExcept("123", listOf("club-1")) }
+        verifySuspend { localDataSource.markStale("123") }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.insertMember(any()) }
+    }
+
+    @Test
+    fun `updateMember without clubIds keeps club links but marks member stale`() = runTest {
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.success(Member(id = "123", name = "M"))
+
+        repository.updateMember(memberId = "123", name = "New")
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
+        verifySuspend { localDataSource.markStale("123") }
+    }
+
+    @Test
+    fun `updateMember failure does not touch the cache`() = runTest {
+        everySuspend { remoteDataSource.updateMember(any()) } returns Result.failure(Exception("boom"))
+
+        repository.updateMember(memberId = "123", clubIds = emptyList())
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
+    }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getMember serves the cached member when the remote fetch fails`() = runTest {
+        val cached = Member(id = "123", name = "Cached")
+        everySuspend { remoteDataSource.getMember("123") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getMember("123") } returns cached
+
+        assertEquals(cached, repository.getMember("123", forceRefresh = true).getOrNull())
+    }
+
+    @Test
+    fun `getMemberByUserId serves the cached member when the remote fetch fails`() = runTest {
+        val cached = Member(id = "123", name = "Cached", userId = "u1")
+        everySuspend { remoteDataSource.getMemberByUserId("u1") } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getMemberByUserId("u1") } returns cached
+
+        assertEquals(cached, repository.getMemberByUserId("u1", forceRefresh = true).getOrNull())
+    }
+
+    @Test
+    fun `getMemberByUserId with nothing cached returns the remote failure`() = runTest {
+        everySuspend { remoteDataSource.getMemberByUserId("u1") } returns Result.failure(Exception("offline"))
+
+        assertTrue(repository.getMemberByUserId("u1", forceRefresh = true).isFailure)
+    }
+
+    // ========================================
+    // REMOVE FROM CLUB
+    // ========================================
+
+    @Test
+    fun `removeMemberFromClub success drops only that club link and marks member stale`() = runTest {
+        everySuspend { remoteDataSource.removeMemberFromClub("123", "club-1") } returns Result.success(Unit)
+
+        val result = repository.removeMemberFromClub("123", "club-1")
+
+        assertTrue(result.isSuccess)
+        verifySuspend { localDataSource.deleteClubMemberRelationship("club-1", "123") }
+        verifySuspend { localDataSource.markStale("123") }
+        // Other clubs are untouched: no bulk pruning, no member overwrite
+        verifySuspend(mode = VerifyMode.not) { localDataSource.removeClubMembershipsExcept(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.insertMember(any()) }
+    }
+
+    @Test
+    fun `removeMemberFromClub failure does not touch the cache`() = runTest {
+        everySuspend { remoteDataSource.removeMemberFromClub("123", "club-1") } returns
+            Result.failure(Exception("Forbidden"))
+
+        val result = repository.removeMemberFromClub("123", "club-1")
+
+        assertTrue(result.isFailure)
+        verifySuspend(mode = VerifyMode.not) { localDataSource.deleteClubMemberRelationship(any(), any()) }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
+    }
+
+    @Test
+    fun `removeMemberFromClub still succeeds when the cache update fails`() = runTest {
+        everySuspend { remoteDataSource.removeMemberFromClub("123", "club-1") } returns Result.success(Unit)
+        everySuspend { localDataSource.deleteClubMemberRelationship(any(), any()) } throws Exception("db error")
+
+        val result = repository.removeMemberFromClub("123", "club-1")
+
+        assertTrue(result.isSuccess)
+    }
+
+    // ========================================
+    // KT-338: SINGLE-FLIGHT READS
+    // ========================================
+
+    @Test
+    fun `concurrent getMemberByUserId calls for the same user share one remote request`() = runTest {
+        val member = Member(id = "member-123", name = "John", booksRead = 3, userId = "user-789")
+        everySuspend { remoteDataSource.getMemberByUserId("user-789") } calls { delay(100); Result.success(member) }
+
+        val results = List(3) { async { repository.getMemberByUserId("user-789", forceRefresh = true) } }.awaitAll()
+
+        results.forEach { assertEquals(member, it.getOrNull()) }
+        verifySuspend(VerifyMode.exactly(1)) { remoteDataSource.getMemberByUserId("user-789") }
     }
 }

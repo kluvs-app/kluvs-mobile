@@ -4,6 +4,7 @@ import com.ivangarzab.kluvs.api.models.MemberAssignableRoleDto
 import com.ivangarzab.kluvs.api.models.MemberCreateRequestDto
 import com.ivangarzab.kluvs.api.models.MemberUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.MemberRemoteDataSource
@@ -76,6 +77,19 @@ interface MemberRepository {
     ): Result<Member>
 
     /**
+     * Removes a member from one club, leaving their other club memberships untouched.
+     *
+     * Authorized by the caller's role in [clubId] (owner/admin), not by owning the target
+     * member's record, so it works for removing someone else. On success the cached
+     * (club, member) link is dropped so rosters stop showing the member immediately.
+     *
+     * @param memberId The ID of the member to remove
+     * @param clubId The ID of the club to remove them from
+     * @return Result of the removal; failure carries the server's rejection (e.g. 403/400)
+     */
+    suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit>
+
+    /**
      * Deletes a member by their ID.
      *
      * @param memberId The ID of the member to delete
@@ -102,20 +116,30 @@ internal class MemberRepositoryImpl(
     private val cachePolicy: CachePolicy
 ) : MemberRepository {
 
+    private val memberByUserIdFetches = SingleFlight<String, Result<Member>>()
+
     override suspend fun getMember(memberId: String, forceRefresh: Boolean): Result<Member> {
+        val what = "member (ID: $memberId)"
+        val cachedMember = memberLocalDataSource.getMember(memberId)
         if (!forceRefresh) {
-            val cachedMember = memberLocalDataSource.getMember(memberId)
             val lastFetchedAt = memberLocalDataSource.getLastFetchedAt(memberId)
 
             if (cachedMember != null && !cachePolicy.isStale(lastFetchedAt, CacheTTL.MEMBER)) {
-                Bark.d("Cache hit for member (ID: $memberId)")
+                Bark.d("Cache hit for $what")
                 return Result.success(cachedMember)
             }
-            Bark.d("Cache miss for member (ID: $memberId)")
+            Bark.d("Cache miss for $what")
         }
 
-        Bark.d("Fetching member from remote (ID: $memberId)")
-        val result = memberRemoteDataSource.getMember(memberId)
+        if (cachedMember != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached $what without a network attempt")
+            return Result.success(cachedMember)
+        }
+
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = cachedMember != null) {
+            timedRemote(what) { memberRemoteDataSource.getMember(memberId) }
+        }
 
         result.onSuccess { member ->
             Bark.v("Persisting member to cache (ID: ${member.id})")
@@ -125,20 +149,16 @@ internal class MemberRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Member cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch member. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache(what) { cachedMember }
     }
 
     override suspend fun getMemberByUserId(userId: String, forceRefresh: Boolean): Result<Member> {
+        val cachedMember = memberLocalDataSource.getMemberByUserId(userId)
         if (forceRefresh) {
             Bark.d("Forced cache refresh for user (ID: $userId)")
-        }
-
-        if (!forceRefresh) {
-            val cachedMember = memberLocalDataSource.getMemberByUserId(userId)
+        } else {
             val lastFetchedAt = cachedMember?.let {
                 memberLocalDataSource.getLastFetchedAt(it.id)
             }
@@ -150,8 +170,22 @@ internal class MemberRepositoryImpl(
             Bark.d("Cache miss for user (ID: $userId)")
         }
 
-        Bark.d("Fetching member from remote (User ID: $userId)")
-        val result = memberRemoteDataSource.getMemberByUserId(userId)
+        if (cachedMember != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached member (User ID: $userId) without a network attempt")
+            return Result.success(cachedMember)
+        }
+
+        // The Me screen reads the signed-in member from several UseCases at once, so concurrent
+        // fetches for one user share a single request.
+        return memberByUserIdFetches.run(userId) { fetchMemberByUserId(userId, cachedMember) }
+    }
+
+    private suspend fun fetchMemberByUserId(userId: String, fallback: Member?): Result<Member> {
+        val what = "member (User ID: $userId)"
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = fallback != null) {
+            timedRemote(what) { memberRemoteDataSource.getMemberByUserId(userId) }
+        }
 
         result.onSuccess { member ->
             Bark.v("Persisting member to cache (ID: ${member.id})")
@@ -161,11 +195,9 @@ internal class MemberRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Member cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch member by user ID. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache(what) { fallback }
     }
 
     override suspend fun createMember(
@@ -223,9 +255,40 @@ internal class MemberRepositoryImpl(
         // MemberDto (basic info only, fields like name/handle may be null), which would
         // corrupt the shared memberDao used by ClubLocalDataSource to load club members.
         // Fresh data is fetched via a force-refresh of club data after the mutation completes.
+        // We can still keep the cache honest without writing that partial response: drop links to
+        // clubs the member left or was removed from (so club rosters and the member's club list
+        // stop showing them), and mark the member stale so the next read refetches it.
         result
-            .onSuccess { member -> Bark.i("Member updated (ID: ${member.id})") }
+            .onSuccess { member ->
+                Bark.i("Member updated (ID: ${member.id})")
+                try {
+                    clubIds?.let { memberLocalDataSource.removeClubMembershipsExcept(memberId, it) }
+                    memberLocalDataSource.markStale(memberId)
+                } catch (e: Exception) {
+                    Bark.e("Failed to invalidate cache for member (ID: $memberId). Pull to refresh will correct it.", e)
+                }
+            }
             .onFailure { error -> Bark.e("Member update failed. Verify input and retry.", error) }
+
+        return result
+    }
+
+    override suspend fun removeMemberFromClub(memberId: String, clubId: String): Result<Unit> {
+        Bark.d("Removing member from club (Member ID: $memberId, Club ID: $clubId)")
+        val result = memberRemoteDataSource.removeMemberFromClub(memberId, clubId)
+
+        // Keep the cache honest: drop only this (club, member) link and mark the member stale
+        // so the next read refetches. Never touches the member's other clubs.
+        result
+            .onSuccess {
+                try {
+                    memberLocalDataSource.deleteClubMemberRelationship(clubId, memberId)
+                    memberLocalDataSource.markStale(memberId)
+                } catch (e: Exception) {
+                    Bark.e("Failed to update cache after removing member (ID: $memberId) from club (ID: $clubId). Pull to refresh will correct it.", e)
+                }
+            }
+            .onFailure { error -> Bark.e("Failed to remove member from club. Verify permissions and retry.", error) }
 
         return result
     }

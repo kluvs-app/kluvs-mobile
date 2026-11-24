@@ -29,20 +29,28 @@ import kotlinx.serialization.encoding.*
  * @param success 
  * @param books 
  * @param total Google Books' estimated corpus count (not the number of items returned on this page — use books.length for that). Approximate; Google caps actual delivery at ~1,000 items regardless of the reported total.
+ * @param offset The 0-based offset applied to this page (echo of the normalized `offset` query parameter).
+ * @param limit The page size applied (echo of the normalized `limit` query parameter, max 40).
  * @param book 
  */
 @Serializable
 
 data class GetBooks200ResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "books") val books: kotlin.collections.List<BookDto>? = null,
+    @SerialName(value = "books") @Required val books: kotlin.collections.List<BookDto>,
 
     /* Google Books' estimated corpus count (not the number of items returned on this page — use books.length for that). Approximate; Google caps actual delivery at ~1,000 items regardless of the reported total. */
-    @SerialName(value = "total") val total: kotlin.Int? = null,
+    @SerialName(value = "total") @Required val total: kotlin.Int,
 
-    @SerialName(value = "book") val book: BookDto? = null
+    /* The 0-based offset applied to this page (echo of the normalized `offset` query parameter). */
+    @SerialName(value = "offset") @Required val offset: kotlin.Int,
+
+    /* The page size applied (echo of the normalized `limit` query parameter, max 40). */
+    @SerialName(value = "limit") @Required val limit: kotlin.Int,
+
+    @SerialName(value = "book") @Required val book: BookDto
 
 ) {
 

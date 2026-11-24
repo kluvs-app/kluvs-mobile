@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.DiscussionCreateRequestDto
 import com.ivangarzab.kluvs.api.models.DiscussionUpdateRequestDto
+import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.DiscussionRemoteDataSource
 import com.ivangarzab.kluvs.model.Discussion
 import kotlinx.datetime.LocalDateTime
@@ -59,7 +60,8 @@ interface DiscussionRepository {
 }
 
 internal class DiscussionRepositoryImpl(
-    private val discussionRemoteDataSource: DiscussionRemoteDataSource
+    private val discussionRemoteDataSource: DiscussionRemoteDataSource,
+    private val discussionLocalDataSource: DiscussionLocalDataSource
 ) : DiscussionRepository {
 
     override suspend fun createDiscussion(
@@ -76,7 +78,11 @@ internal class DiscussionRepositoryImpl(
                 scheduledAt = date.toString(),
                 location = location
             )
-        )
+        ).onSuccess { discussion ->
+            writeThrough(discussion.copy(sessionId = discussion.sessionId ?: sessionId)) {
+                discussionLocalDataSource.markClubStaleForSession(sessionId)
+            }
+        }
     }
 
     override suspend fun updateDiscussion(
@@ -93,11 +99,48 @@ internal class DiscussionRepositoryImpl(
                 scheduledAt = date?.toString(),
                 location = location
             )
-        )
+        ).onSuccess { discussion ->
+            writeThrough(discussion) {
+                discussionLocalDataSource.markClubStaleForDiscussion(discussionId)
+            }
+        }
     }
 
     override suspend fun deleteDiscussion(discussionId: String): Result<Unit> {
         Bark.d("Deleting discussion (ID: $discussionId)")
-        return discussionRemoteDataSource.deleteDiscussion(discussionId)
+        return discussionRemoteDataSource.deleteDiscussion(discussionId).onSuccess {
+            invalidate("discussion (ID: $discussionId) after deletion") {
+                discussionLocalDataSource.deleteDiscussion(discussionId)
+            }
+        }
+    }
+
+    /**
+     * Writes a mutated discussion into the cached club, so the club screen can show it from the
+     * cache instead of refetching the whole club. If the write fails, [markStale] makes the next
+     * read refetch instead.
+     */
+    private suspend fun writeThrough(discussion: Discussion, markStale: suspend () -> Unit) {
+        try {
+            if (discussionLocalDataSource.upsertDiscussion(discussion)) {
+                Bark.v("Wrote discussion (ID: ${discussion.id}) through to cache")
+            }
+        } catch (e: Exception) {
+            Bark.e("Failed to write discussion (ID: ${discussion.id}) to cache. Marking its club stale instead.", e)
+            invalidate("club of discussion (ID: ${discussion.id})", markStale)
+        }
+    }
+
+    /**
+     * Runs a post-mutation cache cleanup. The mutation already succeeded remotely, so a cache
+     * failure is logged rather than surfaced; the next forced refresh corrects the cache.
+     */
+    private suspend fun invalidate(what: String, block: suspend () -> Unit) {
+        try {
+            block()
+            Bark.v("Invalidated cache for $what")
+        } catch (e: Exception) {
+            Bark.e("Failed to invalidate cache for $what. Pull to refresh will correct it.", e)
+        }
     }
 }

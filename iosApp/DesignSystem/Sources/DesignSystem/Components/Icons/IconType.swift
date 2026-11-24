@@ -14,6 +14,7 @@ public enum IconType {
     case club, clubs, user, book, location, settings, help, checkmark
     case signOut, email, password, edit, back, info, crown, shield
     case discord, google, apple
+    case visibility, visibilityOff
 
     // SF Symbol-backed — mirrors Android's Material-icon half of IconType.
     case arrowBack, add, search, moreVert, chevronRight, chevronDown, check, close
@@ -42,6 +43,8 @@ public enum IconType {
         case .shield: "ic_shield"
         case .discord: "ic_discord"
         case .google: "ic_google"
+        case .visibility: "ic_visibility"
+        case .visibilityOff: "ic_visibility_off"
         default: nil
         }
     }

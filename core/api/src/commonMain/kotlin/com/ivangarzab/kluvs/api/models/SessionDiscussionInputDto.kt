@@ -23,6 +23,7 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
+ * @param id Optional discussion ID. Generated (UUID) when omitted.
  * @param title 
  * @param scheduledAt ISO 8601 timestamp (with timezone offset) for the discussion
  * @param location 
@@ -30,6 +31,9 @@ import kotlinx.serialization.encoding.*
 @Serializable
 
 data class SessionDiscussionInputDto (
+
+    /* Optional discussion ID. Generated (UUID) when omitted. */
+    @SerialName(value = "id") val id: kotlin.String? = null,
 
     @SerialName(value = "title") val title: kotlin.String? = null,
 

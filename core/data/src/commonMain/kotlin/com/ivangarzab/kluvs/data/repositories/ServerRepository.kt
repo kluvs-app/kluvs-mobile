@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.kluvs.api.models.ServerCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ServerUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ServerLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ServerRemoteDataSource
@@ -89,11 +90,9 @@ internal class ServerRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Failed to cache server (ID: ${server.id}). Retry on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch server (ID: $serverId). Serving cached data if available.", error)
         }
 
-        return result
+        return result.recoverWithCache("server (ID: $serverId)") { serverLocalDataSource.getServer(serverId) }
     }
 
     override suspend fun getAllServers(forceRefresh: Boolean): Result<List<Server>> {
@@ -108,11 +107,9 @@ internal class ServerRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Failed to cache servers. Retry on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch all servers. Serving cached data if available.", error)
         }
 
-        return result
+        return result.recoverWithCache("servers") { serverLocalDataSource.getAllServers().takeIf { it.isNotEmpty() } }
     }
 
     override suspend fun createServer(name: String): Result<Server> =

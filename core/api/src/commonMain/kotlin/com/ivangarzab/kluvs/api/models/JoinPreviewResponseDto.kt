@@ -31,9 +31,9 @@ import kotlinx.serialization.encoding.*
 
 data class JoinPreviewResponseDto (
 
-    @SerialName(value = "valid") val valid: kotlin.Boolean? = null,
+    @SerialName(value = "valid") @Required val valid: kotlin.Boolean,
 
-    @SerialName(value = "club") val club: ClubPreviewDto? = null
+    @SerialName(value = "club") @Required val club: ClubPreviewDto
 
 ) {
 

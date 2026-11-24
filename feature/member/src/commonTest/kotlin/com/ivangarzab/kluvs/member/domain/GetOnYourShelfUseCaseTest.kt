@@ -13,11 +13,13 @@ import com.ivangarzab.kluvs.model.ReadingProgress
 import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
+import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verifySuspend
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.BeforeTest
@@ -240,5 +242,27 @@ class GetOnYourShelfUseCaseTest {
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())
         verifySuspend { memberRepository.getMemberByUserId(userId) }
+    }
+
+    @Test
+    fun `fetches clubs concurrently and keeps the member clubs order`() = runTest {
+        val userId = "user-123"
+        val club1 = Club(id = "c1", name = "Sci-Fi Club", serverId = null, discordChannel = null)
+        val club2 = Club(id = "c2", name = "Mystery Club", serverId = null, discordChannel = null)
+        val member = Member(id = "member-456", name = "John Doe", userId = userId, booksRead = 0, clubs = listOf(club1, club2))
+        val book = Book(id = "b1", title = "Dune", author = "Frank Herbert", edition = null, year = 1965, isbn = null)
+        val fullClub1 = club1.copy(activeSession = Session(id = "s1", clubId = "c1", book = book, dueDate = null, discussions = emptyList()))
+        val fullClub2 = club2.copy(activeSession = Session(id = "s2", clubId = "c2", book = book, dueDate = null, discussions = emptyList()))
+
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
+        // The first club is the slower one, so it finishes last
+        everySuspend { clubRepository.getClub("c1") } calls { delay(200); Result.success(fullClub1) }
+        everySuspend { clubRepository.getClub("c2") } calls { delay(100); Result.success(fullClub2) }
+
+        val result = useCase(userId)
+
+        assertEquals(listOf("c1", "c2"), result.getOrNull()!!.shelf.map { it.clubId })
+        // Run one after another this would take 300 ms of virtual time
+        assertEquals(200L, testScheduler.currentTime)
     }
 }

@@ -5,8 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
-import com.ivangarzab.kluvs.data.error.toAppError
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
 import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
@@ -56,7 +55,7 @@ class SettingsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Failed to load profile for Settings screen.", error)
-                    _state.update { it.copy(isLoading = false, error = error.message) }
+                    _state.update { it.copy(isLoading = false, error = error.toDisplayMessage()) }
                 }
         }
     }
@@ -113,10 +112,10 @@ class SettingsViewModel(
                 }
                 .onFailure { error ->
                     // Covers the 409 "handle already taken" case — AppError.Conflict carries the
-                    // backend's own clean, human-readable detail via toUserMessage().
+                    // backend's own clean, human-readable detail via toDisplayMessage().
                     Bark.e("Failed to save profile (Member ID: ${profile.memberId}).", error)
                     _state.update {
-                        it.copy(isSaving = false, saveError = error.toAppError().toUserMessage())
+                        it.copy(isSaving = false, saveError = error.toDisplayMessage())
                     }
                 }
         }
@@ -151,7 +150,7 @@ class SettingsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Failed to upload avatar (ID: $memberId). Please retry.", error)
-                    _state.update { it.copy(avatarError = error.message) }
+                    _state.update { it.copy(avatarError = error.toDisplayMessage()) }
                 }
 
             _state.update { it.copy(isUploadingAvatar = false) }
@@ -288,7 +287,7 @@ class SettingsViewModel(
                     _state.update {
                         it.copy(
                             isDeletingAccount = false,
-                            deleteAccountError = error.toAppError().toUserMessage()
+                            deleteAccountError = error.toDisplayMessage()
                         )
                     }
                 }

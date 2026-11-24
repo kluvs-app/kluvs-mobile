@@ -82,5 +82,7 @@ internal fun IconType.toDrawableRes(): Int = when (this) {
     IconType.Settings -> R.drawable.ic_settings
     IconType.SignOut -> R.drawable.ic_signout
     IconType.User -> R.drawable.ic_user
+    IconType.Visibility -> R.drawable.ic_visibility
+    IconType.VisibilityOff -> R.drawable.ic_visibility_off
     else -> error("$this is Material-backed; has no drawable resource")
 }

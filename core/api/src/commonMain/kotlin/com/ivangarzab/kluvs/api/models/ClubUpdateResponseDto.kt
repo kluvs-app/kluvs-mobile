@@ -34,17 +34,17 @@ import kotlinx.serialization.encoding.*
 
 data class ClubUpdateResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null,
+    @SerialName(value = "message") @Required val message: kotlin.String,
 
-    @SerialName(value = "club") val club: ClubDto? = null,
+    @SerialName(value = "club") @Required val club: ClubDto,
 
     /* Whether the clubs table row was updated. */
-    @SerialName(value = "club_updated") val clubUpdated: kotlin.Boolean? = null,
+    @SerialName(value = "club_updated") @Required val clubUpdated: kotlin.Boolean,
 
     /* Whether the shame list membership changed. */
-    @SerialName(value = "shame_list_updated") val shameListUpdated: kotlin.Boolean? = null
+    @SerialName(value = "shame_list_updated") @Required val shameListUpdated: kotlin.Boolean
 
 ) {
 

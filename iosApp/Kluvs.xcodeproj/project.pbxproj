@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E57A1C0DE0000000000F002 /* Sentry.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5E57A1C0DE0000000000F001 /* Sentry.xcframework */; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = F2E1D0C9B8A7F6E5D4C3B2A1 /* DesignSystem */; };
 		BE0653EFE97CD16788A5128F /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 2B456756F536AAFE6A53A475 /* DesignSystem */; };
 		E07199C72EE3A87800F5E515 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E07199C62EE3A87800F5E515 /* Localizable.xcstrings */; };
-		E081F2D02F284C0A00AFD427 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E081F2CF2F284C0A00AFD427 /* Sentry */; settings = {ATTRIBUTES = (Required, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,6 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5E57A1C0DE0000000000F001 /* Sentry.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:97JCY7859U:GetSentry LLC"; lastKnownFileType = wrapper.xcframework; name = Sentry.xcframework; path = "../build/sentry-binary/Sentry.xcframework"; sourceTree = SOURCE_ROOT; };
 		B9DA97B12DC1472C00A4DA20 /* Kluvs.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kluvs.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E07199C62EE3A87800F5E515 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E081F1F22F2025CB00AFD427 /* iosAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -66,7 +67,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E081F2D02F284C0A00AFD427 /* Sentry in Frameworks */,
+				5E57A1C0DE0000000000F002 /* Sentry.xcframework in Frameworks */,
 				BE0653EFE97CD16788A5128F /* DesignSystem in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -87,6 +88,7 @@
 			children = (
 				E081F2C52F248FEA00AFD427 /* iosApp.xctestplan */,
 				E07199C62EE3A87800F5E515 /* Localizable.xcstrings */,
+				5E57A1C0DE0000000000F001 /* Sentry.xcframework */,
 				B9DA98002DC14AA900A4DA20 /* Configuration */,
 				B9DA97B32DC1472C00A4DA20 /* iosApp */,
 				E081F1F32F2025CB00AFD427 /* iosAppTests */,
@@ -125,7 +127,6 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
-				E081F2CF2F284C0A00AFD427 /* Sentry */,
 				2B456756F536AAFE6A53A475 /* DesignSystem */,
 			);
 			productName = iosApp;
@@ -185,7 +186,6 @@
 			mainGroup = B9DA97A82DC1472C00A4DA20;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E081F2CE2F284C0900AFD427 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				99D39893AA7BB5CEA8250D9C /* XCLocalSwiftPackageReference "DesignSystem" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -235,7 +235,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\n\n# Only override JAVA_HOME if we are in Xcode Cloud (CI)\nif [ -n \"$CI\" ]; then\n  echo \"🚀 Xcode Cloud detected. Setting up Homebrew Java...\"\n  export JAVA_HOME=$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home\n  export PATH=\"$JAVA_HOME/bin:$PATH\"\nelse\n  echo \"💻 Local build detected. Using existing system Java.\"\nfi\n\necho \"Using Java at: $JAVA_HOME\"\njava -version\n\n# Only Release (App Store / TestFlight production) points at production Supabase;\n# Debug and Staging both default to integration, matching the Android build's safe default.\nBUILDKONFIG_FLAVOR=integration\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  BUILDKONFIG_FLAVOR=production\nfi\necho \"Building shared framework with buildkonfig.flavor=$BUILDKONFIG_FLAVOR (CONFIGURATION=$CONFIGURATION)\"\n\ncd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode -Pbuildkonfig.flavor=$BUILDKONFIG_FLAVOR\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\n\n# Only override JAVA_HOME if we are in Xcode Cloud (CI)\nif [ -n \"$CI\" ]; then\n  echo \"🚀 Xcode Cloud detected. Setting up Homebrew Java...\"\n  export JAVA_HOME=$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home\n  export PATH=\"$JAVA_HOME/bin:$PATH\"\nelse\n  echo \"💻 Local build detected.\"\n  # Xcode doesn't inherit the shell's JAVA_HOME. Keep one if it's set; otherwise use Android Studio's bundled JDK.\n  if [ -z \"$JAVA_HOME\" ] && [ -x \"/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/java\" ]; then\n    export JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\n    export PATH=\"$JAVA_HOME/bin:$PATH\"\n  fi\nfi\n\necho \"Using Java at: $JAVA_HOME\"\njava -version\n\n# Only Release (App Store / TestFlight production) points at production Supabase;\n# Debug and Staging both default to integration, matching the Android build's safe default.\nBUILDKONFIG_FLAVOR=integration\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  BUILDKONFIG_FLAVOR=production\nfi\necho \"Building shared framework with buildkonfig.flavor=$BUILDKONFIG_FLAVOR (CONFIGURATION=$CONFIGURATION)\"\n\ncd \"$SRCROOT/..\"\n# Sentry.xcframework is linked from build/sentry-binary (no-op once it exists)\n./gradlew :shared:setupSentryForCi\n./gradlew :shared:embedAndSignAppleFrameworkForXcode -Pbuildkonfig.flavor=$BUILDKONFIG_FLAVOR\n";
 		};
 		E081F3312F29BA9E00AFD427 /* Upload Sentry Symbols */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -705,27 +705,11 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		E081F2CE2F284C0900AFD427 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
-			requirement = {
-				kind = exactVersion;
-				version = 8.57.3;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
 		2B456756F536AAFE6A53A475 /* DesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 99D39893AA7BB5CEA8250D9C /* XCLocalSwiftPackageReference "DesignSystem" */;
 			productName = DesignSystem;
-		};
-		E081F2CF2F284C0A00AFD427 /* Sentry */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E081F2CE2F284C0900AFD427 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
-			productName = Sentry;
 		};
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* DesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;

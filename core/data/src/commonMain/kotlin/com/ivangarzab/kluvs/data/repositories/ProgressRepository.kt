@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ProgressCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ProgressUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ProgressLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toCreateDto
@@ -87,9 +88,8 @@ interface ProgressRepository {
  * Implementation of [ProgressRepository] with TTL-based caching.
  *
  * Implements a cache-aside pattern:
- * - Reads check local cache first (1h TTL), using the freshness of the first
- *   cached entry as a proxy for the whole filtered result set (entries are
- *   always fetched and cached together)
+ * - Reads check local cache first (CacheTTL.PROGRESS), using when the filtered
+ *   query was last fetched, so an empty result is a cache hit too
  * - Cache misses fetch from remote and populate cache
  * - Mutations write-through to cache on success
  */
@@ -109,35 +109,49 @@ internal class ProgressRepositoryImpl(
                 ?: return Result.failure(IllegalArgumentException("Invalid book ID: $it"))
         }
 
-        val cachedEntries = progressLocalDataSource.getProgress(bookId, sessionId, status?.name)
-        if (cachedEntries.isNotEmpty()) {
-            val lastFetchedAt = progressLocalDataSource.getLastFetchedAt(cachedEntries.first().id)
-            if (!cachePolicy.isStale(lastFetchedAt, CacheTTL.PROGRESS)) {
-                Bark.d("Cache hit for progress entries")
-                return Result.success(cachedEntries)
+        val what = "progress entries (Session ID: $sessionId, Book ID: $bookId)"
+        val statusName = status?.name
+        val cachedEntries = progressLocalDataSource.getProgress(bookId, sessionId, statusName)
+        // The query's own timestamp also covers a fetch that matched nothing. Entries cached
+        // before queries were recorded fall back to the first entry's timestamp.
+        val queryFetchedAt = progressLocalDataSource.getQueryLastFetchedAt(bookId, sessionId, statusName)
+        val lastFetchedAt = queryFetchedAt
+            ?: cachedEntries.firstOrNull()?.let { progressLocalDataSource.getLastFetchedAt(it.id) }
+        if (cachePolicy.isFresh(lastFetchedAt, CacheTTL.PROGRESS)) {
+            Bark.d("Cache hit for $what")
+            return Result.success(cachedEntries)
+        }
+        Bark.d("Cache miss for $what")
+
+        // Anything this query returned before is servable, including "no progress yet".
+        val fallback = cachedEntries.takeIf { it.isNotEmpty() || queryFetchedAt != null }
+        if (fallback != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh = false)) {
+            Bark.d("Offline: serving cached $what without a network attempt")
+            return Result.success(fallback)
+        }
+
+        val result = cachePolicy.fetchRemote(what, hasFallback = fallback != null) {
+            timedRemote(what) {
+                progressRemoteDataSource.getProgress(
+                    bookId = bookIdInt,
+                    sessionId = sessionId,
+                    status = status?.toQueryValue()
+                )
             }
         }
-        Bark.d("Cache miss for progress entries")
-
-        val result = progressRemoteDataSource.getProgress(
-            bookId = bookIdInt,
-            sessionId = sessionId,
-            status = status?.toQueryValue()
-        )
 
         result.onSuccess { entries ->
             Bark.v("Persisting ${entries.size} progress entries to cache")
             try {
                 entries.forEach { progressLocalDataSource.insertProgress(it) }
+                progressLocalDataSource.markQueryFetched(bookId, sessionId, statusName)
                 Bark.d("Progress entries cached (${entries.size})")
             } catch (e: Exception) {
                 Bark.e("Progress cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch progress entries. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache(what) { fallback }
     }
 
     override suspend fun createProgress(

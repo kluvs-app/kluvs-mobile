@@ -32,11 +32,11 @@ import kotlinx.serialization.encoding.*
 
 data class SessionCreateResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null,
+    @SerialName(value = "message") @Required val message: kotlin.String,
 
-    @SerialName(value = "session") val session: SessionDto? = null
+    @SerialName(value = "session") @Required val session: SessionDto
 
 ) {
 

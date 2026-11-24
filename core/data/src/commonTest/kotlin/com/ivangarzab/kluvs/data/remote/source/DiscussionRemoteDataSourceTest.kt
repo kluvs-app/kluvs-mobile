@@ -21,6 +21,7 @@ class DiscussionRemoteDataSourceTest {
     private lateinit var dataSource: DiscussionRemoteDataSource
 
     private val discussionDto = DiscussionDto(
+        location = null,
         id = "disc-1",
         sessionId = "session-1",
         title = "Chapter 1 discussion",

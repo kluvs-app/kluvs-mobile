@@ -27,14 +27,14 @@ import kotlinx.serialization.encoding.*
  *
  * @param id Internal member ID
  * @param name 
- * @param handle Globally-unique, format-normalized handle. Auto-generated from `name` if not supplied on create.
- * @param platformMetadata 
  * @param booksRead 
+ * @param handle Globally-unique, format-normalized handle. Auto-generated from `name` if not supplied on create.
  * @param avatarPath 
  * @param userId Linked Supabase Auth User ID
  * @param discordId Discord user snowflake ID. Stored as TEXT to preserve JSON precision.
+ * @param platformMetadata 
  * @param createdAt 
- * @param clubs Clubs this member belongs to, with their per-club role.
+ * @param clubs Clubs this member belongs to, with their per-club role. Sorted by the soonest upcoming discussion of each club's active session, then alphabetically by club name (case-insensitive) for ties and clubs with nothing upcoming.
  * @param shameClubs List of clubs where this member is currently on the shame list.
  */
 @Serializable
@@ -46,28 +46,28 @@ data class MemberGetResponseDto (
 
     @SerialName(value = "name") @Required val name: kotlin.String,
 
+    @SerialName(value = "books_read") @Required val booksRead: kotlin.Int? = 0,
+
     /* Globally-unique, format-normalized handle. Auto-generated from `name` if not supplied on create. */
     @SerialName(value = "handle") @Required val handle: kotlin.String,
 
-    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlinx.serialization.json.JsonObject,
-
-    @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
-
-    @SerialName(value = "avatar_path") val avatarPath: kotlin.String? = null,
+    @SerialName(value = "avatar_path") @Required val avatarPath: kotlin.String?,
 
     /* Linked Supabase Auth User ID */
-    @SerialName(value = "user_id") val userId: kotlin.String? = null,
+    @SerialName(value = "user_id") @Required val userId: kotlin.String?,
 
     /* Discord user snowflake ID. Stored as TEXT to preserve JSON precision. */
-    @SerialName(value = "discord_id") val discordId: kotlin.String? = null,
+    @SerialName(value = "discord_id") @Required val discordId: kotlin.String?,
 
-    @SerialName(value = "created_at") val createdAt: kotlin.String? = null,
+    @SerialName(value = "platform_metadata") @Required val platformMetadata: kotlinx.serialization.json.JsonObject,
 
-    /* Clubs this member belongs to, with their per-club role. */
-    @SerialName(value = "clubs") val clubs: kotlin.collections.List<MemberClubEntryDto>? = null,
+    @SerialName(value = "created_at") @Required val createdAt: kotlin.String,
+
+    /* Clubs this member belongs to, with their per-club role. Sorted by the soonest upcoming discussion of each club's active session, then alphabetically by club name (case-insensitive) for ties and clubs with nothing upcoming. */
+    @SerialName(value = "clubs") @Required val clubs: kotlin.collections.List<MemberClubEntryDto>,
 
     /* List of clubs where this member is currently on the shame list. */
-    @SerialName(value = "shame_clubs") val shameClubs: kotlin.collections.List<ClubDto>? = null
+    @SerialName(value = "shame_clubs") @Required val shameClubs: kotlin.collections.List<ClubDto>
 
 ) {
 

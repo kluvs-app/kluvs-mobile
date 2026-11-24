@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
+import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.BookSummary
 import com.ivangarzab.kluvs.model.Club
@@ -20,6 +21,7 @@ import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -46,6 +48,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.delay
+import kotlin.test.assertNotNull
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDateTime
@@ -94,6 +99,7 @@ class MeViewModelTest {
         val memberDao = mock<MemberDao>()
         val sessionDao = mock<SessionDao>()
         val bookDao = mock<BookDao>()
+        val bookEnrichmentDao = mock<BookEnrichmentDao>()
         val discussionDao = mock<DiscussionDao>()
         val shelfDao = mock<ShelfDao>()
         val likeDao = mock<LikeDao>()
@@ -107,6 +113,7 @@ class MeViewModelTest {
         every { database.memberDao() } returns memberDao
         every { database.sessionDao() } returns sessionDao
         every { database.bookDao() } returns bookDao
+        every { database.bookEnrichmentDao() } returns bookEnrichmentDao
         every { database.discussionDao() } returns discussionDao
         every { database.shelfDao() } returns shelfDao
         every { database.likeDao() } returns likeDao
@@ -121,10 +128,12 @@ class MeViewModelTest {
         everySuspend { memberDao.deleteAllCrossRefs() } returns Unit
         everySuspend { sessionDao.deleteAll() } returns Unit
         everySuspend { bookDao.deleteAll() } returns Unit
+        everySuspend { bookEnrichmentDao.deleteAll() } returns Unit
         everySuspend { discussionDao.deleteAll() } returns Unit
         everySuspend { shelfDao.deleteAll() } returns Unit
         everySuspend { likeDao.deleteAll() } returns Unit
         everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { progressDao.deleteAllQueries() } returns Unit
         everySuspend { discussionNoteDao.deleteAll() } returns Unit
         everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
 
@@ -216,11 +225,12 @@ class MeViewModelTest {
         assertEquals(3, state.statistics?.clubsCount)
         assertEquals(12, state.statistics?.booksRead)
 
-        // Shelf — neither session has discussions, so rows fall back to alphabetical by title
+        // Shelf — keeps the order of member.clubs as returned by the backend (no client-side sorting)
         assertEquals(2, state.shelf.size)
-        assertEquals("Dune", state.shelf[0].bookTitle)
-        assertEquals("Sci-Fi Club", state.shelf[0].clubName)
-        assertEquals("The Hobbit", state.shelf[1].bookTitle)
+        assertEquals("The Hobbit", state.shelf[0].bookTitle)
+        assertEquals("Fantasy Readers", state.shelf[0].clubName)
+        assertEquals("Dune", state.shelf[1].bookTitle)
+        assertEquals("Sci-Fi Club", state.shelf[1].clubName)
     }
 
     @Test
@@ -459,15 +469,57 @@ class MeViewModelTest {
     @Test
     fun `clearSnackbarError clears the error state`() = runTest {
         // Given: a reading log failure sets snackbarError
-        val exception = Exception("Failed to load log")
+        val exception = AppError.Timeout
         everySuspend { sessionRepository.getReadingLog() } returns Result.failure(exception)
         viewModel.onReadingLogClicked()
-        assertEquals("Failed to load log", viewModel.state.value.snackbarError)
+        assertEquals("That took too long. Please try again.", viewModel.state.value.snackbarError)
 
         // When
         viewModel.clearSnackbarError()
 
         // Then
         assertNull(viewModel.state.value.snackbarError)
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-322: overlapping loads
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `overlapping loadUserData calls let the latest one win`() = runTest {
+        val stale = Member(id = "member-1", userId = "u1", name = "Stale Name", clubs = emptyList())
+        val fresh = Member(id = "member-1", userId = "u1", name = "Fresh Name", clubs = emptyList())
+        var calls = 0
+        everySuspend { memberRepository.getMemberByUserId("u1", any()) } calls {
+            if (calls++ == 0) { delay(1_000); Result.success(stale) } else Result.success(fresh)
+        }
+
+        viewModel.loadUserData("u1")               // slow, cached load from tab entry
+        viewModel.loadUserData("u1", forceRefresh = true) // pull-to-refresh right after
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("Fresh Name", viewModel.state.value.profile?.name)
+        assertEquals(false, viewModel.state.value.isLoading)
+    }
+
+    // -------------------------------------------------------------------------
+    // KT-323: a failed refresh never removes content from the screen
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `a failed refresh keeps the profile on screen and reports via snackbar`() = runTest {
+        val member = Member(id = "member-1", userId = "u1", name = "Alice", clubs = emptyList())
+        everySuspend { memberRepository.getMemberByUserId("u1", any()) } returns Result.success(member)
+        viewModel.loadUserData("u1")
+        assertEquals("Alice", viewModel.state.value.profile?.name)
+
+        everySuspend { memberRepository.getMemberByUserId("u1", any()) } returns Result.failure(Exception("offline"))
+        viewModel.refresh(forceRefresh = true)
+
+        val state = viewModel.state.value
+        assertEquals("Alice", state.profile?.name)
+        assertNull(state.error)
+        assertNotNull(state.snackbarError)
+        assertFalse(state.isLoading)
     }
 }

@@ -5,6 +5,7 @@ import com.ivangarzab.kluvs.api.models.SessionBookPatchInputDto
 import com.ivangarzab.kluvs.api.models.SessionMemberFlagInputDto
 import com.ivangarzab.kluvs.api.models.SessionUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.SessionLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toDto
@@ -143,19 +144,27 @@ internal class SessionRepositoryImpl(
 ) : SessionRepository {
 
     override suspend fun getSession(sessionId: String, forceRefresh: Boolean): Result<Session> {
+        val what = "session (ID: $sessionId)"
+        val cachedSession = sessionLocalDataSource.getSession(sessionId)
         if (!forceRefresh) {
-            val cachedSession = sessionLocalDataSource.getSession(sessionId)
             val lastFetchedAt = sessionLocalDataSource.getLastFetchedAt(sessionId)
 
             if (cachedSession != null && !cachePolicy.isStale(lastFetchedAt, CacheTTL.SESSION)) {
-                Bark.d("Cache hit for session (ID: $sessionId)")
+                Bark.d("Cache hit for $what")
                 return Result.success(cachedSession)
             }
-            Bark.d("Cache miss for session (ID: $sessionId)")
+            Bark.d("Cache miss for $what")
         }
 
-        Bark.d("Fetching session from remote (ID: $sessionId)")
-        val result = sessionRemoteDataSource.getSession(sessionId)
+        if (cachedSession != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached $what without a network attempt")
+            return Result.success(cachedSession)
+        }
+
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = cachedSession != null) {
+            timedRemote(what) { sessionRemoteDataSource.getSession(sessionId) }
+        }
 
         result.onSuccess { session ->
             Bark.v("Persisting session to cache (ID: ${session.id})")
@@ -165,11 +174,9 @@ internal class SessionRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Session cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch session. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache(what) { cachedSession }
     }
 
     override suspend fun createSession(

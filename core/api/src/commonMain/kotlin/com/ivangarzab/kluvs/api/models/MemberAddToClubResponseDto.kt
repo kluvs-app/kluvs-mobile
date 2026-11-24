@@ -31,11 +31,11 @@ import kotlinx.serialization.encoding.*
 
 data class MemberAddToClubResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "member_id") val memberId: kotlin.Int? = null,
+    @SerialName(value = "member_id") @Required val memberId: kotlin.Int,
 
-    @SerialName(value = "club_id") val clubId: kotlin.String? = null
+    @SerialName(value = "club_id") @Required val clubId: kotlin.String
 
 ) {
 

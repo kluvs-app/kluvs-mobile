@@ -1,63 +1,50 @@
 # :shared
 
-Application integration module and iOS framework.
+App integration module: Koin setup, app-level coordinators, and the iOS framework.
 
 ## Purpose
 
-This module serves two critical purposes:
-
-1. **iOS Framework**: Exports all necessary modules as a single iOS framework (`Shared.framework`) for the iOS app to consume
-2. **App Coordination**: Contains cross-platform components that coordinate app-level behavior
+1. **iOS framework**: builds `Shared.framework` (static), exporting the modules the SwiftUI app
+   needs.
+2. **App coordination**: cross-platform coordinators that sit above individual features
+   (auth-driven navigation, invite links, connectivity).
 
 ## Key Components
 
-### KoinHelper
+- **`initKoin()`** (`di/KoinHelper.kt`): starts Koin with the app module, the core modules
+  (network, data, presentation, auth) and every feature module. A new feature module must be added
+  here.
+- **`AppCoordinator`**: restores the session and maps auth state to `NavigationState`
+  (`Initializing`, `Unauthenticated`, `Authenticated(userId)`).
+- **`PendingJoinCoordinator`**: holds an invite token from a link and resumes the join after
+  sign-in (`AutoJoinResult`).
+- **`ConnectivityCoordinator`**: forwards offline state to the shell for the "Working offline" banner.
+- **`InviteLink`**: builds and parses invite URLs.
+- **`initializeSentry()`**, **`SentryTrainer`**: crash reporting and the barK → Sentry bridge.
+- **`*CoordinatorHelper`** (iosMain): iOS bridges for the coordinators, consumed by
+  `iosApp/iosApp/Helpers/*CoordinatorWrapper.swift`.
 
-Initializes Koin dependency injection with all modules:
-- Platform modules (Android/iOS specific)
-- Core modules (network, data, auth, presentation)
-- Feature modules (auth, clubs, member)
+## iOS framework exports
 
-### AppCoordinator
-
-Observes authentication state and determines which part of the app to show:
-- `Initializing` - App is starting, checking for existing session
-- `Login` - User needs to authenticate
-- `Main` - User is authenticated, show main app
-
-## iOS Framework Exports
-
-The following modules are exported for iOS:
-- `:core:model`
-- `:core:presentation`
-- `:core:auth`
-- `:feature:auth`
-- `:feature:clubs`
-- `:feature:member`
+`:core:model`, `:core:auth`, `:core:data`, `:core:presentation`, and all six features
+(`:feature:auth`, `:feature:clubs`, `:feature:member`, `:feature:settings`, `:feature:books`,
+`:feature:join`), plus barK.
 
 ## Dependencies
 
-This module depends on all core and feature modules to aggregate them:
-- All `:core:*` modules
-- All `:feature:*` modules
+- `:core:model`, `:core:auth`, `:core:data`, `:core:presentation` (api)
+- `:core:network`
+- `:feature:auth`, `:feature:clubs`, `:feature:member`, `:feature:settings`, `:feature:books`,
+  `:feature:join` (api)
 
 ## Usage
 
-### Android (in Application class)
-
 ```kotlin
-class KluvsApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        initKoin {
-            androidContext(this@KluvsApplication)
-        }
-    }
-}
+// Android: composeApp/.../App.kt
+initKoin { androidContext(this@App) }
 ```
 
-### iOS (in AppDelegate)
-
 ```swift
+// iOS: iosApp/iosApp/iOSApp.swift
 KoinHelperKt.doInitKoin()
 ```

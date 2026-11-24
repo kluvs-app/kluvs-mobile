@@ -73,7 +73,7 @@ class ClubRemoteDataSourceImpl(
             Bark.i("Fetched club (ID: $clubId)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch club (ID: $clubId). Serving cached data if available.", e)
+            Bark.e("Failed to fetch club (ID: $clubId).", e)
             Result.failure(e)
         }
     }
@@ -84,7 +84,7 @@ class ClubRemoteDataSourceImpl(
             Bark.i("Fetched club by channel (ID: $channel)")
             Result.success(dto.toDomain())
         } catch (e: Exception) {
-            Bark.e("Failed to fetch club by channel (ID: $channel). Serving cached data if available.", e)
+            Bark.e("Failed to fetch club by channel (ID: $channel).", e)
             Result.failure(e)
         }
     }
@@ -92,7 +92,7 @@ class ClubRemoteDataSourceImpl(
     override suspend fun createClub(request: ClubCreateRequestDto): Result<Club> {
         return try {
             val response = clubService.create(request)
-            val club = response.club ?: error("Club creation response missing club data")
+            val club = response.club
             Bark.i("Club created (name: ${request.name})")
             Result.success(club.toDomain())
         } catch (e: Exception) {
@@ -104,7 +104,7 @@ class ClubRemoteDataSourceImpl(
     override suspend fun updateClub(request: ClubUpdateRequestDto): Result<Club> {
         return try {
             val response = clubService.update(request)
-            val club = response.club ?: error("Club update response missing club data")
+            val club = response.club
             Bark.i("Club updated (ID: ${request.id})")
             Result.success(club.toDomain())
         } catch (e: Exception) {

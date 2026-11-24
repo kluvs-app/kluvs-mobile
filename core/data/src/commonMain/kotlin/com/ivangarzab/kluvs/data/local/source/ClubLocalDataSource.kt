@@ -3,8 +3,10 @@ package com.ivangarzab.kluvs.data.local.source
 import com.ivangarzab.kluvs.data.local.mappers.toDomain
 import com.ivangarzab.kluvs.data.local.mappers.toEntity
 import com.ivangarzab.kluvs.database.KluvsDatabase
+import com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.ClubMember
+import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.model.Role
 import com.ivangarzab.bark.Bark
 
@@ -18,6 +20,9 @@ interface ClubLocalDataSource {
     suspend fun insertClub(club: Club)
     suspend fun insertClubs(clubs: List<Club>)
     suspend fun deleteClub(clubId: String)
+
+    /** Keeps the cached club but forces the next non-forced read to refetch it. */
+    suspend fun markStale(clubId: String)
     suspend fun getLastFetchedAt(clubId: String): Long?
     suspend fun deleteAll()
 }
@@ -84,61 +89,56 @@ class ClubLocalDataSourceImpl(
         Bark.v("Inserting club (ID: ${club.id}) into database")
 
         try {
-            // Insert club entity
-            clubDao.insertClub(club.toEntity())
+            // One transaction: a club write touches up to six tables, and a half-applied
+            // replace would leave the cache worse off than the old add-only behaviour.
+            database.withTransaction {
+                clubDao.insertClub(club.toEntity())
 
-            // Cache members and relationships
-            // Note: Members from Club API response are basic objects without their own relationships.
-            // We cache them here so the club can show its member list, but MemberRepository
-            // is responsible for caching complete member data.
-            club.members?.let { clubMembers ->
-                Bark.v("Caching ${clubMembers.size} members for club (ID: ${club.id})")
-                memberDao.insertMembers(clubMembers.map { it.member.toEntity() })
-                clubMembers.forEach { clubMember ->
-                    memberDao.insertClubMemberCrossRef(
-                        com.ivangarzab.kluvs.database.entities.ClubMemberCrossRef(
-                            clubId = club.id,
-                            memberId = clubMember.member.id,
-                            role = clubMember.role.name
-                        )
+                // Replace the roster (a null list means "not loaded", so leave it alone).
+                club.members?.let { clubMembers ->
+                    Bark.v("Caching ${clubMembers.size} members for club (ID: ${club.id})")
+                    memberDao.deleteCrossRefsForClub(club.id)
+                    clubMembers.forEach { clubMember -> mergeRosterMember(clubMember.member) }
+                    memberDao.insertClubMemberCrossRefs(
+                        clubMembers.map { clubMember ->
+                            ClubMemberCrossRef(
+                                clubId = club.id,
+                                memberId = clubMember.member.id,
+                                role = clubMember.role.name
+                            )
+                        }
                     )
                 }
-            }
 
-            // Cache active session with book and discussions
-            club.activeSession?.let { session ->
-                Bark.v("Caching active session (ID: ${session.id}) for club (ID: ${club.id})")
+                // The response is the source of truth for the club's session: drop every
+                // cached session that isn't the current active one, along with its children.
+                val activeSession = club.activeSession
+                sessionDao.getSessionsForClub(club.id)
+                    .filter { it.id != activeSession?.id }
+                    .forEach { stale ->
+                        Bark.v("Removing stale session (ID: ${stale.id}) for club (ID: ${club.id})")
+                        discussionDao.deleteDiscussionsForSession(stale.id)
+                        sessionDao.deleteSessionMembers(stale.id)
+                        sessionDao.deleteSession(stale)
+                    }
 
-                // Cache the book
-                try {
+                activeSession?.let { session ->
+                    Bark.v("Caching active session (ID: ${session.id}) for club (ID: ${club.id})")
                     bookDao.insertBook(session.book.toEntity())
-                } catch (e: Exception) {
-                    Bark.e("Failed to cache book (ID: ${session.book.id}) for session (ID: ${session.id}). Retry on next sync.", e)
-                }
-
-                // Cache the session
-                try {
                     sessionDao.insertSession(session.toEntity())
-                } catch (e: Exception) {
-                    Bark.e("Failed to cache session (ID: ${session.id}). Retry on next sync.", e)
-                }
 
-                // Cache the participation list (replace so removed members drop out)
-                try {
+                    // Replace the participation list so removed members drop out
                     sessionDao.deleteSessionMembers(session.id)
                     if (session.members.isNotEmpty()) {
                         sessionDao.insertSessionMembers(session.members.map { it.toEntity(session.id) })
                     }
-                } catch (e: Exception) {
-                    Bark.e("Failed to cache session members (Session ID: ${session.id}). Retry on next sync.", e)
-                }
 
-                // Cache discussions
-                session.discussions?.forEach { discussion ->
-                    try {
-                        discussionDao.insertDiscussion(discussion.toEntity())
-                    } catch (e: Exception) {
-                        Bark.e("Failed to cache discussion (ID: ${discussion.id}). Retry on next sync.", e)
+                    // Replace discussions so deleted ones drop out
+                    discussionDao.deleteDiscussionsForSession(session.id)
+                    if (session.discussions.isNotEmpty()) {
+                        discussionDao.insertDiscussions(
+                            session.discussions.map { it.toEntity().copy(sessionId = session.id) }
+                        )
                     }
                 }
             }
@@ -146,6 +146,29 @@ class ClubLocalDataSourceImpl(
             Bark.e("Failed to insert club (ID: ${club.id}) into database. Retry on next sync.", e)
             throw e
         }
+    }
+
+    /**
+     * Writes a roster member without clobbering a fuller cached record.
+     *
+     * Club responses embed members without `userId` (see `ClubMemberMappers`), so a plain
+     * upsert would wipe the signed-in member's `userId` and break [MemberLocalDataSource.getMemberByUserId].
+     * Existing rows keep their `userId`, `createdAt` and `lastFetchedAt`; new roster-only rows get
+     * `lastFetchedAt = 0` so they're never mistaken for a fully fetched member.
+     */
+    private suspend fun mergeRosterMember(member: Member) {
+        val rosterEntity = member.toEntity()
+        val existing = memberDao.getMember(member.id)
+        val merged = if (existing != null) {
+            rosterEntity.copy(
+                userId = rosterEntity.userId ?: existing.userId,
+                createdAt = rosterEntity.createdAt ?: existing.createdAt,
+                lastFetchedAt = existing.lastFetchedAt
+            )
+        } else {
+            rosterEntity.copy(lastFetchedAt = 0)
+        }
+        memberDao.insertMember(merged)
     }
 
     override suspend fun insertClubs(clubs: List<Club>) {
@@ -160,17 +183,27 @@ class ClubLocalDataSourceImpl(
     }
 
     override suspend fun deleteClub(clubId: String) {
-        val entity = clubDao.getClub(clubId)
-        if (entity != null) {
-            Bark.v("Deleting club (ID: $clubId) from database")
-            try {
-                clubDao.deleteClub(entity)
-                Bark.d("Successfully deleted club (ID: $clubId) from database")
-            } catch (e: Exception) {
-                Bark.e("Failed to delete club (ID: $clubId) from database. Retry on next sync.", e)
-                throw e
+        Bark.v("Deleting club (ID: $clubId) and its relationships from database")
+        try {
+            database.withTransaction {
+                sessionDao.getSessionsForClub(clubId).forEach { session ->
+                    discussionDao.deleteDiscussionsForSession(session.id)
+                    sessionDao.deleteSessionMembers(session.id)
+                }
+                sessionDao.deleteSessionsForClub(clubId)
+                memberDao.deleteCrossRefsForClub(clubId)
+                clubDao.deleteClubById(clubId)
             }
+            Bark.d("Successfully deleted club (ID: $clubId) from database")
+        } catch (e: Exception) {
+            Bark.e("Failed to delete club (ID: $clubId) from database. Retry on next sync.", e)
+            throw e
         }
+    }
+
+    override suspend fun markStale(clubId: String) {
+        Bark.v("Marking club (ID: $clubId) stale")
+        clubDao.markStale(clubId)
     }
 
     override suspend fun getLastFetchedAt(clubId: String): Long? {

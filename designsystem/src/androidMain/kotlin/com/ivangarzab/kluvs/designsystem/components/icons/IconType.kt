@@ -24,6 +24,8 @@ enum class IconType {
     Settings,
     SignOut,
     User,
+    Visibility,
+    VisibilityOff,
 
     ArrowBack,
     Add,

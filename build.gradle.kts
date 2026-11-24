@@ -25,12 +25,16 @@ subprojects {
 dependencies {
     kover(project(":core:model"))
     kover(project(":core:network"))
+    kover(project(":core:database"))
     kover(project(":core:auth"))
     kover(project(":core:data"))
     kover(project(":core:presentation"))
     kover(project(":feature:auth"))
     kover(project(":feature:clubs"))
     kover(project(":feature:member"))
+    kover(project(":feature:books"))
+    kover(project(":feature:settings"))
+    kover(project(":feature:join"))
     kover(project(":shared"))
 }
 kover {

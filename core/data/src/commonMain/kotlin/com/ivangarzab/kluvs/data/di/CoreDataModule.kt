@@ -1,12 +1,18 @@
 package com.ivangarzab.kluvs.data.di
 
+import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
+import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.source.BookEnrichmentLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.BookEnrichmentLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.BookLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.BookLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.DiscussionAttendanceLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.DiscussionAttendanceLocalDataSourceImpl
+import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSource
 import com.ivangarzab.kluvs.data.local.source.DiscussionNoteLocalDataSourceImpl
 import com.ivangarzab.kluvs.data.local.source.LikeLocalDataSource
@@ -85,6 +91,8 @@ import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.BookRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.ConnectivityRepository
+import com.ivangarzab.kluvs.data.repositories.ConnectivityRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.DiscussionNoteRepository
@@ -106,6 +114,7 @@ import com.ivangarzab.kluvs.data.repositories.SessionRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ShelfRepository
 import com.ivangarzab.kluvs.data.repositories.ShelfRepositoryImpl
 import com.ivangarzab.kluvs.database.KluvsDatabase
+import com.ivangarzab.kluvs.network.status.OfflineStatus
 import io.github.jan.supabase.SupabaseClient
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -117,7 +126,10 @@ val coreDataModule = module {
     includes(databaseModule)
 
     // Cache Policy
-    single<CachePolicy> { CachePolicy() }
+    single<CachePolicy> {
+        val offlineStatus = get<OfflineStatus>()
+        CachePolicy(isOffline = { offlineStatus.isOffline.value })
+    }
 
     // Local Data Sources
     single<ClubLocalDataSource> { ClubLocalDataSourceImpl(get<KluvsDatabase>()) }
@@ -125,11 +137,13 @@ val coreDataModule = module {
     single<MemberLocalDataSource> { MemberLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<SessionLocalDataSource> { SessionLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<BookLocalDataSource> { BookLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<BookEnrichmentLocalDataSource> { BookEnrichmentLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<ShelfLocalDataSource> { ShelfLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<LikeLocalDataSource> { LikeLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<ProgressLocalDataSource> { ProgressLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<DiscussionNoteLocalDataSource> { DiscussionNoteLocalDataSourceImpl(get<KluvsDatabase>()) }
     single<DiscussionAttendanceLocalDataSource> { DiscussionAttendanceLocalDataSourceImpl(get<KluvsDatabase>()) }
+    single<DiscussionLocalDataSource> { DiscussionLocalDataSourceImpl(get<KluvsDatabase>()) }
 
     // Services
     single<BookService> { BookServiceImpl(get<SupabaseClient>()) }
@@ -164,6 +178,7 @@ val coreDataModule = module {
     single<JoinRemoteDataSource> { JoinRemoteDataSourceImpl(get<JoinService>()) }
 
     // Repositories
+    single<ConnectivityRepository> { ConnectivityRepositoryImpl(get<OfflineStatus>()) }
     single<AvatarRepository> { AvatarRepositoryImpl(get<AvatarRemoteDataSource>()) }
     single<BookRepository> {
         BookRepositoryImpl(
@@ -171,7 +186,12 @@ val coreDataModule = module {
             get<BookLocalDataSource>()
         )
     }
-    single<BookEnrichmentRepository> { BookEnrichmentRepositoryImpl(get<BookEnrichmentRemoteDataSource>()) }
+    single<BookEnrichmentRepository> { BookEnrichmentRepositoryImpl(
+            get<BookEnrichmentRemoteDataSource>(),
+            get<BookEnrichmentLocalDataSource>(),
+            get<CachePolicy>()
+        )
+    }
     single<ServerRepository> {
         ServerRepositoryImpl(
             get<ServerRemoteDataSource>(),
@@ -183,6 +203,7 @@ val coreDataModule = module {
         ClubRepositoryImpl(
             get<ClubRemoteDataSource>(),
             get<ClubLocalDataSource>(),
+            get<MemberLocalDataSource>(),
             get<CachePolicy>()
         )
     }
@@ -221,7 +242,12 @@ val coreDataModule = module {
             get<CachePolicy>()
         )
     }
-    single<DiscussionRepository> { DiscussionRepositoryImpl(get<DiscussionRemoteDataSource>()) }
+    single<DiscussionRepository> {
+        DiscussionRepositoryImpl(
+            get<DiscussionRemoteDataSource>(),
+            get<DiscussionLocalDataSource>()
+        )
+    }
     single<DiscussionNoteRepository> {
         DiscussionNoteRepositoryImpl(
             get<DiscussionNoteRemoteDataSource>(),
@@ -236,6 +262,10 @@ val coreDataModule = module {
         )
     }
     single<JoinRepository> { JoinRepositoryImpl(get<JoinRemoteDataSource>()) }
+
+    // Use Cases shared across features
+    factory<SearchBooksUseCase> { SearchBooksUseCase(get<BookRepository>()) }
+    factory<RegisterBookUseCase> { RegisterBookUseCase(get<BookRepository>()) }
 }
 
 expect val databaseModule: Module

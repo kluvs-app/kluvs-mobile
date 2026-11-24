@@ -1,15 +1,14 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.api.models.BookDto
-import com.ivangarzab.kluvs.api.models.GetShelf200ResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfEntryDto
+import com.ivangarzab.kluvs.api.models.ShelfListResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class ShelfMappersTest {
 
@@ -48,7 +47,6 @@ class ShelfMappersTest {
         val entry = dto.toDomain()
 
         // Then: All fields map over
-        assertNotNull(entry)
         assertEquals(ShelfStatus.CURRENTLY_READING, entry.shelf)
         assertEquals(ShelfSource.SESSION, entry.source)
         assertNotNull(entry.updatedAt)
@@ -57,42 +55,50 @@ class ShelfMappersTest {
     }
 
     @Test
-    fun `ShelfEntryDto toDomain defaults missing source to MANUAL`() {
-        val dto = ShelfEntryDto(shelf = ShelfStatusDto.read, book = bookDto)
+    fun `ShelfEntryDto toDomain maps manual source`() {
+        val dto = ShelfEntryDto(
+            updatedAt = "2026-01-01T00:00:00Z",
+            source = ShelfEntryDto.Source.manual,
+            shelf = ShelfStatusDto.read,
+            book = bookDto
+        )
 
         val entry = dto.toDomain()
 
-        assertNotNull(entry)
         assertEquals(ShelfSource.MANUAL, entry.source)
-        assertNull(entry.updatedAt)
+        assertEquals(ShelfStatus.READ, entry.shelf)
     }
 
     @Test
-    fun `ShelfEntryDto toDomain returns null when shelf or book is missing`() {
-        assertNull(ShelfEntryDto(shelf = null, book = bookDto).toDomain())
-        assertNull(ShelfEntryDto(shelf = ShelfStatusDto.read, book = null).toDomain())
-    }
-
-    @Test
-    fun `GetShelf200ResponseDto toDomain skips malformed entries`() {
-        // Given: A response with one valid and one bookless entry
-        val response = GetShelf200ResponseDto(
+    fun `ShelfListResponseDto toDomain maps every entry`() {
+        // Given: A response with two entries
+        val response = ShelfListResponseDto(
             success = true,
             shelves = listOf(
-                ShelfEntryDto(shelf = ShelfStatusDto.read, book = bookDto),
-                ShelfEntryDto(shelf = ShelfStatusDto.read, book = null)
+                ShelfEntryDto(
+                    updatedAt = "2026-01-01T00:00:00Z",
+                    source = ShelfEntryDto.Source.manual,
+                    shelf = ShelfStatusDto.read,
+                    book = bookDto
+                ),
+                ShelfEntryDto(
+                    updatedAt = "2026-01-01T00:00:00Z",
+                    source = ShelfEntryDto.Source.session,
+                    shelf = ShelfStatusDto.currently_reading,
+                    book = bookDto
+                )
             )
         )
 
         // When: Mapping to domain
         val entries = response.toDomain()
 
-        // Then: Only the valid entry survives
-        assertEquals(1, entries.size)
+        // Then: Both entries map
+        assertEquals(2, entries.size)
     }
 
     @Test
-    fun `GetShelf200ResponseDto toDomain handles null shelves list`() {
-        assertEquals(emptyList(), GetShelf200ResponseDto(success = true).toDomain())
+    fun `ShelfListResponseDto toDomain handles an empty shelf`() {
+        assertEquals(emptyList(), ShelfListResponseDto(success = true, shelves = emptyList()).toDomain())
     }
 }

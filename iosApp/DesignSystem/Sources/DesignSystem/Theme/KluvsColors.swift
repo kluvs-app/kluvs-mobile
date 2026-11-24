@@ -39,6 +39,8 @@ public enum KluvsTheme {
         public static let dangerSubtle = Color.statusDangerSubtle
         public static let success = Color.statusSuccess
         public static let successSubtle = Color.statusSuccessSubtle
+        public static let offline = Color.statusWine
+        public static let onOffline = Color.statusOnWine
 
         private static func adaptive(dark: Color, light: Color) -> Color {
             Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light) })

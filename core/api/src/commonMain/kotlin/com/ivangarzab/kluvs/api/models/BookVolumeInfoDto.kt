@@ -26,16 +26,16 @@ import kotlinx.serialization.encoding.*
  * 
  *
  * @param title 
- * @param authors 
- * @param industryIdentifiers 
- * @param pageCount 
- * @param categories 
- * @param imageLinks 
  * @param subtitle 
+ * @param authors 
  * @param publisher 
  * @param publishedDate 
  * @param description 
+ * @param industryIdentifiers 
+ * @param pageCount 
+ * @param categories 
  * @param language 
+ * @param imageLinks 
  */
 @Serializable
 
@@ -43,7 +43,15 @@ data class BookVolumeInfoDto (
 
     @SerialName(value = "title") @Required val title: kotlin.String,
 
+    @SerialName(value = "subtitle") @Required val subtitle: kotlin.String?,
+
     @SerialName(value = "authors") @Required val authors: kotlin.collections.List<kotlin.String>,
+
+    @SerialName(value = "publisher") @Required val publisher: kotlin.String?,
+
+    @SerialName(value = "publishedDate") @Required val publishedDate: kotlin.String?,
+
+    @SerialName(value = "description") @Required val description: kotlin.String?,
 
     @SerialName(value = "industryIdentifiers") @Required val industryIdentifiers: kotlin.collections.List<BookIndustryIdentifierDto>,
 
@@ -51,17 +59,9 @@ data class BookVolumeInfoDto (
 
     @SerialName(value = "categories") @Required val categories: kotlin.collections.List<kotlin.String>,
 
-    @SerialName(value = "imageLinks") @Required val imageLinks: BookVolumeInfoImageLinksDto,
+    @SerialName(value = "language") @Required val language: kotlin.String?,
 
-    @SerialName(value = "subtitle") val subtitle: kotlin.String? = null,
-
-    @SerialName(value = "publisher") val publisher: kotlin.String? = null,
-
-    @SerialName(value = "publishedDate") val publishedDate: kotlin.String? = null,
-
-    @SerialName(value = "description") val description: kotlin.String? = null,
-
-    @SerialName(value = "language") val language: kotlin.String? = null
+    @SerialName(value = "imageLinks") @Required val imageLinks: BookVolumeInfoImageLinksDto
 
 ) {
 

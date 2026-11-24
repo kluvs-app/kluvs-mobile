@@ -1,53 +1,40 @@
 # :feature:auth
 
-Authentication UI feature module.
+Sign-in, sign-up, password reset, and OAuth UI logic.
 
 ## Purpose
 
-This module contains the presentation layer for authentication flows: sign in, sign up, and OAuth handling. It provides the `AuthViewModel` that manages auth UI state and user interactions.
+Shared presentation layer for the login flows: form state and validation, email sign-in/up,
+Discord/Google OAuth, native Apple sign-in, and forgot-password.
 
 ## Key Components
 
-### AuthViewModel
+- **`AuthViewModel`**: exposes `state: StateFlow<AuthState>`, `uiState: StateFlow<AuthUiState>`
+  (form fields and field errors), and `forgotPasswordState: StateFlow<ForgotPasswordUiState>`.
+- **`AuthState`**: `Unauthenticated`, `Loading`, `Authenticated(user)`, `Error(AuthError)`,
+  `OAuthPending(url)`, `EmailConfirmationPending(email)`.
+- **`LoginNavigation`**: `SignIn`, `SignUp`, `ForgetPassword`.
+- **`AuthViewModelHelper`** (iosMain): iOS bridge, consumed by
+  `iosApp/iosApp/Helpers/AuthViewModelWrapper.swift`.
+- `authFeatureModule`: Koin wiring.
 
-Manages:
-- Form field state (email, password, confirm password)
-- Field validation with error messages
-- Sign in / sign up flows
-- OAuth flows (Discord, Google)
-- Auth state (`Unauthenticated`, `Loading`, `Authenticated`, `Error`)
-
-### AuthUiState
-
-```kotlin
-data class AuthUiState(
-    val emailField: String,
-    val passwordField: String,
-    val confirmPasswordField: String,
-    val emailError: String?,
-    val passwordError: String?,
-    val confirmPasswordError: String?
-)
-```
+This module has no `domain/` UseCases yet: `AuthViewModel` calls `AuthRepository` directly, an
+exception to the ViewModel → UseCase rule. New auth logic should go into UseCases.
 
 ## Dependencies
 
-- `:core:model` - User model
-- `:core:auth` - AuthRepository
-- `:core:presentation` - Base presentation utilities
+- `:core:model`
+- `:core:presentation`
+- `:core:auth`
 
 ## Usage
 
 ```kotlin
 @Composable
-fun AuthScreen(viewModel: AuthViewModel = koinViewModel()) {
+fun LoginScreen(viewModel: AuthViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-
-    when (state) {
-        is AuthState.Authenticated -> navigateToMain()
-        is AuthState.Error -> showError((state as AuthState.Error).error)
-        else -> ShowLoginForm(uiState, viewModel)
-    }
+    // render form from uiState; react to state (OAuthPending → open URL, Authenticated → done)
+    PrimaryButton(text = "Sign in", onClick = viewModel::validateAndSignIn)
 }
 ```

@@ -63,8 +63,6 @@ class AuthViewModelHelper : KoinComponent {
 
     fun validateAndSignUp() = viewModel.validateAndSignUp()
 
-    fun signOut() = viewModel.signOut()
-
     fun signInWithDiscord() = viewModel.signInWithDiscord()
 
     fun signInWithGoogle() = viewModel.signInWithGoogle()

@@ -3,19 +3,27 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.kluvs.api.models.ClubUpdateRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
 import com.ivangarzab.kluvs.data.local.source.ClubLocalDataSource
+import com.ivangarzab.kluvs.data.local.source.MemberLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.model.JoinPolicy
 import dev.mokkery.answering.returns
+import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -23,6 +31,7 @@ class ClubRepositoryTest {
 
     private lateinit var remoteDataSource: ClubRemoteDataSource
     private lateinit var localDataSource: ClubLocalDataSource
+    private lateinit var memberLocalDataSource: MemberLocalDataSource
     private lateinit var cachePolicy: CachePolicy
     private lateinit var repository: ClubRepository
 
@@ -30,14 +39,17 @@ class ClubRepositoryTest {
     fun setup() {
         remoteDataSource = mock<ClubRemoteDataSource>()
         localDataSource = mock<ClubLocalDataSource>()
+        memberLocalDataSource = mock<MemberLocalDataSource>()
         cachePolicy = CachePolicy()
-        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, cachePolicy)
+        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, memberLocalDataSource, cachePolicy)
 
         // Default behavior: cache miss (return null)
         everySuspend { localDataSource.getClub(any()) } returns null
         everySuspend { localDataSource.getLastFetchedAt(any()) } returns null
         everySuspend { localDataSource.insertClub(any()) } returns Unit
         everySuspend { localDataSource.deleteClub(any()) } returns Unit
+        everySuspend { localDataSource.markStale(any()) } returns Unit
+        everySuspend { memberLocalDataSource.markStale(any()) } returns Unit
     }
 
     // ========================================
@@ -109,7 +121,7 @@ class ClubRepositoryTest {
         )
         everySuspend { remoteDataSource.createClub(any()) } returns Result.success(expectedClub)
 
-        val result = repository.createClub(clubName, "1", "Creator", "creator-handle", 0, serverId, discordChannel)
+        val result = repository.createClub(clubName, "1", serverId, discordChannel)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedClub, result.getOrNull())
@@ -130,7 +142,7 @@ class ClubRepositoryTest {
         )
         everySuspend { remoteDataSource.createClub(any()) } returns Result.success(expectedClub)
 
-        val result = repository.createClub(clubName, "1", "Creator", "creator-handle", 0, serverId, null)
+        val result = repository.createClub(clubName, "1", serverId, null)
 
         assertTrue(result.isSuccess)
         assertEquals(expectedClub, result.getOrNull())
@@ -144,7 +156,7 @@ class ClubRepositoryTest {
         val exception = Exception("Failed to create club")
         everySuspend { remoteDataSource.createClub(any()) } returns Result.failure(exception)
 
-        val result = repository.createClub("New Club", "1", "Creator", "creator-handle", 0, "server-456", null)
+        val result = repository.createClub("New Club", "1", "server-456", null)
 
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())
@@ -153,7 +165,7 @@ class ClubRepositoryTest {
 
     @Test
     fun `createClub with non-numeric creatorMemberId returns Result failure without calling remote`() = runTest {
-        val result = repository.createClub("New Club", "not-a-number", "Creator", "creator-handle", 0, "server-456", null)
+        val result = repository.createClub("New Club", "not-a-number", "server-456", null)
 
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is IllegalArgumentException)
@@ -328,5 +340,159 @@ class ClubRepositoryTest {
 
         assertTrue(result.isFailure)
         verifySuspend { remoteDataSource.deleteClub(clubId, serverId) }
+    }
+
+    // ========================================
+    // CACHE INVALIDATION ON MUTATIONS
+    // ========================================
+
+    @Test
+    fun `deleteClub success removes the club from the local cache`() = runTest {
+        everySuspend { remoteDataSource.deleteClub("club-123", null) } returns Result.success("deleted")
+
+        repository.deleteClub("club-123")
+
+        verifySuspend { localDataSource.deleteClub("club-123") }
+    }
+
+    @Test
+    fun `deleteClub failure leaves the local cache alone`() = runTest {
+        everySuspend { remoteDataSource.deleteClub("club-123", null) } returns Result.failure(Exception("boom"))
+
+        repository.deleteClub("club-123")
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.deleteClub(any()) }
+    }
+
+    @Test
+    fun `deleteClub still succeeds when the cache cleanup throws`() = runTest {
+        everySuspend { remoteDataSource.deleteClub("club-123", null) } returns Result.success("deleted")
+        everySuspend { localDataSource.deleteClub("club-123") } throws IllegalStateException("db closed")
+
+        val result = repository.deleteClub("club-123")
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `createClub success marks the creator member stale`() = runTest {
+        everySuspend { remoteDataSource.createClub(any()) } returns Result.success(Club(id = "club-new", name = "New"))
+
+        repository.createClub("New", "42")
+
+        verifySuspend { memberLocalDataSource.markStale("42") }
+    }
+
+    @Test
+    fun `updateClub success marks the club stale instead of caching the partial response`() = runTest {
+        everySuspend { remoteDataSource.updateClub(any()) } returns Result.success(Club(id = "club-123", name = "Renamed"))
+
+        repository.updateClub("club-123", name = "Renamed")
+
+        verifySuspend { localDataSource.markStale("club-123") }
+        verifySuspend(mode = VerifyMode.not) { localDataSource.insertClub(any()) }
+    }
+
+    @Test
+    fun `updateClub failure does not touch the cache`() = runTest {
+        everySuspend { remoteDataSource.updateClub(any()) } returns Result.failure(Exception("boom"))
+
+        repository.updateClub("club-123", name = "Renamed")
+
+        verifySuspend(mode = VerifyMode.not) { localDataSource.markStale(any()) }
+    }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `getClub serves a complete cached club when the remote fetch fails`() = runTest {
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { remoteDataSource.getClub("club-123", null) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+
+        val result = repository.getClub("club-123", forceRefresh = true)
+
+        assertEquals(cached, result.getOrNull())
+    }
+
+    @Test
+    fun `getClub does not serve an incomplete cached club when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getClub("club-123", null) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getClub("club-123") } returns Club(id = "club-123", name = "Partial", members = null)
+
+        val result = repository.getClub("club-123")
+
+        assertTrue(result.isFailure)
+    }
+
+    // ========================================
+    // KT-338: SINGLE-FLIGHT READS
+    // ========================================
+
+    @Test
+    fun `concurrent getClub calls for the same club share one remote request`() = runTest {
+        val club = Club(id = "club-123", name = "Sci-Fi Club", members = emptyList())
+        everySuspend { remoteDataSource.getClub("club-123", null) } calls { delay(100); Result.success(club) }
+
+        val results = List(3) { async { repository.getClub("club-123", forceRefresh = true) } }.awaitAll()
+
+        results.forEach { assertEquals(club, it.getOrNull()) }
+        verifySuspend(VerifyMode.exactly(1)) { remoteDataSource.getClub("club-123", null) }
+    }
+
+    // ========================================
+    // KT-344: OFFLINE-AWARE READS
+    // ========================================
+
+    @Test
+    fun `getClub offline serves a complete cached club without a network attempt`() = runTest {
+        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, memberLocalDataSource, CachePolicy(isOffline = { true }))
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+
+        val result = repository.getClub("club-123")
+
+        assertEquals(cached, result.getOrNull())
+        verifySuspend(VerifyMode.not) { remoteDataSource.getClub(any(), any()) }
+    }
+
+    @Test
+    fun `getClub offline forced refresh still tries the network`() = runTest {
+        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, memberLocalDataSource, CachePolicy(isOffline = { true }))
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+        everySuspend { remoteDataSource.getClub("club-123", null) } returns Result.failure(Exception("offline"))
+
+        val result = repository.getClub("club-123", forceRefresh = true)
+
+        assertEquals(cached, result.getOrNull())
+        verifySuspend { remoteDataSource.getClub("club-123", null) }
+    }
+
+    @Test
+    fun `getClub serves the cached club when a fetch hangs past the fallback timeout`() = runTest {
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+        everySuspend { remoteDataSource.getClub("club-123", null) } calls {
+            delay(10.seconds)
+            Result.success(Club(id = "club-123", name = "Fresh", members = emptyList()))
+        }
+
+        val result = repository.getClub("club-123", forceRefresh = true)
+
+        assertEquals(cached, result.getOrNull())
+        assertEquals(CachePolicy.FALLBACK_TIMEOUT.inWholeMilliseconds, testScheduler.currentTime)
+    }
+
+    @Test
+    fun `getClub without a cached club waits for a slow fetch`() = runTest {
+        val fresh = Club(id = "club-123", name = "Fresh", members = emptyList())
+        everySuspend { remoteDataSource.getClub("club-123", null) } calls { delay(10.seconds); Result.success(fresh) }
+
+        val result = repository.getClub("club-123")
+
+        assertEquals(fresh, result.getOrNull())
     }
 }

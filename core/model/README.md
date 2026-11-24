@@ -1,31 +1,35 @@
 # :core:model
 
-Domain models shared across the entire application.
+Domain models shared across the whole app.
 
 ## Purpose
 
-This module contains the core domain entities that represent the business objects in Kluvs. These models are pure Kotlin data classes with no dependencies on frameworks or platform-specific code.
+Plain Kotlin data classes and enums for the business objects in Kluvs. No framework, platform or
+serialization code: wire DTOs live in `:core:api` and are mapped to these in `:core:data`. Dates
+use `kotlinx-datetime`.
 
-## Contents
+## Key Components
 
 | Model | Description |
 |-------|-------------|
-| `User` | Authenticated user with provider info |
-| `Member` | Book club member with points and reading stats |
-| `Club` | Book club with members, sessions, and metadata |
-| `Book` | Book information (title, author, ISBN, etc.) |
-| `Session` | Reading session with book and discussions |
-| `Discussion` | Scheduled discussion event |
-| `Server` | Discord server information |
+| `User` | Authenticated user (`AuthProvider`) |
+| `Member` | Member profile (name, handle, avatar, books read, clubs) |
+| `Club`, `ClubMember`, `Role` | Club with members, active/past sessions, `JoinPolicy`, invite token |
+| `Session`, `Discussion` | Reading session with book and scheduled discussions |
+| `Book`, `BookSearchResult`, `BookEnrichment` | Book data and search/enrichment results |
+| `ShelfEntry`, `ShelfStatus` | The member's personal book shelf |
+| `ReadingProgress`, `ReadingLog` | Reading progress and history |
+| `DiscussionNote`, `AttendanceRoster`, `AttendanceStatus` | Discussion notes and attendance |
+| `ClubPreview` | Invite-link preview of a club |
+| `Server` | Discord server |
+| `AppError`, `UserFacingException` | Error vocabulary shown to the UI |
 
 ## Dependencies
 
-- `kotlinx-serialization` - For JSON serialization
-- `kotlinx-datetime` - For date/time handling
+- No `project(...)` dependencies (leaf module).
+- `kotlinx-datetime`
 
 ## Usage
-
-This module is a dependency of nearly all other modules. Import models directly:
 
 ```kotlin
 import com.ivangarzab.kluvs.model.Club

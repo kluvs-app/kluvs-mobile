@@ -7,6 +7,7 @@ import com.ivangarzab.kluvs.data.repositories.AvatarRepository
 import com.ivangarzab.kluvs.data.repositories.MemberRepository
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -94,6 +95,7 @@ class SettingsViewModelTest {
         val memberDao = mock<MemberDao>()
         val sessionDao = mock<SessionDao>()
         val bookDao = mock<BookDao>()
+        val bookEnrichmentDao = mock<BookEnrichmentDao>()
         val discussionDao = mock<DiscussionDao>()
         val shelfDao = mock<ShelfDao>()
         val likeDao = mock<LikeDao>()
@@ -107,6 +109,7 @@ class SettingsViewModelTest {
         every { database.memberDao() } returns memberDao
         every { database.sessionDao() } returns sessionDao
         every { database.bookDao() } returns bookDao
+        every { database.bookEnrichmentDao() } returns bookEnrichmentDao
         every { database.discussionDao() } returns discussionDao
         every { database.shelfDao() } returns shelfDao
         every { database.likeDao() } returns likeDao
@@ -120,10 +123,12 @@ class SettingsViewModelTest {
         everySuspend { memberDao.deleteAllCrossRefs() } returns Unit
         everySuspend { sessionDao.deleteAll() } returns Unit
         everySuspend { bookDao.deleteAll() } returns Unit
+        everySuspend { bookEnrichmentDao.deleteAll() } returns Unit
         everySuspend { discussionDao.deleteAll() } returns Unit
         everySuspend { shelfDao.deleteAll() } returns Unit
         everySuspend { likeDao.deleteAll() } returns Unit
         everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { progressDao.deleteAllQueries() } returns Unit
         everySuspend { discussionNoteDao.deleteAll() } returns Unit
         everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
 
@@ -174,7 +179,7 @@ class SettingsViewModelTest {
     @Test
     fun `loadProfile failure sets error state`() = runTest {
         // Given
-        val exception = Exception("Member not found")
+        val exception = AppError.ServerError
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.failure(exception)
 
         // When
@@ -183,7 +188,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isLoading)
-        assertEquals("Member not found", state.error)
+        assertEquals("Something went wrong on our end. Please try again.", state.error)
         assertNull(state.profile)
     }
 
@@ -465,7 +470,7 @@ class SettingsViewModelTest {
     fun `uploadAvatar handles upload failure`() = runTest {
         // Given: profile loaded
         val imageData = ByteArray(100)
-        val exception = Exception("Upload failed")
+        val exception = AppError.NoConnection
 
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
@@ -479,7 +484,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isUploadingAvatar)
-        assertEquals("Upload failed", state.avatarError)
+        assertEquals("Check your connection and try again.", state.avatarError)
     }
 
     @Test

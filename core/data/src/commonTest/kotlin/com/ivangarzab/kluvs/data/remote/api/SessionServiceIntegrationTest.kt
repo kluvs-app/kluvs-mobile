@@ -150,8 +150,7 @@ class SessionServiceIntegrationTest {
             val response = sessionService.update(updateRequest)
 
             // Then: should return success (the general-update branch)
-            assertTrue(response.success == true, "Session update should succeed")
-            assertTrue(response.updates?.book == true, "Book should be marked as updated")
+            assertTrue(response.success, "Session update should succeed")
 
             // Verify changes persisted
             val retrieved = sessionService.get(sessionId)

@@ -87,7 +87,7 @@ of this diff, skip the section entirely without mentioning it.
 
 - [ ] `expect`/`actual` used correctly for platform-specific implementations
 - [ ] No `@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")` without justification
-- [ ] Coroutines in `commonMain` use `Dispatchers.Default`, not `Dispatchers.Main`
+- [ ] Coroutines in `commonMain`: ViewModels launch in `viewModelScope` (main-safe by default); standalone/background scopes use `Dispatchers.Default` or `Dispatchers.IO`, never a hardcoded `Dispatchers.Main`
 
 ### 3.5 General Code Quality
 **Trigger:** always — apply to everything in the diff.

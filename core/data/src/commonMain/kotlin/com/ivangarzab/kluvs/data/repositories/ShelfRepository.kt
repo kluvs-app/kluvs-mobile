@@ -3,6 +3,7 @@ package com.ivangarzab.kluvs.data.repositories
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ShelfAssignRequestDto
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
+import com.ivangarzab.kluvs.data.local.cache.recoverWithCache
 import com.ivangarzab.kluvs.data.local.cache.CacheTTL
 import com.ivangarzab.kluvs.data.local.source.ShelfLocalDataSource
 import com.ivangarzab.kluvs.data.remote.mappers.toDto
@@ -90,11 +91,9 @@ internal class ShelfRepositoryImpl(
             } catch (e: Exception) {
                 Bark.e("Shelf cache failed. Will use remote data on next fetch.", e)
             }
-        }.onFailure { error ->
-            Bark.e("Failed to fetch shelf. Cached data may be unavailable.", error)
         }
 
-        return result
+        return result.recoverWithCache("shelf") { shelfLocalDataSource.getShelf().takeIf { it.isNotEmpty() } }
     }
 
     override suspend fun getShelfStatus(bookId: String): Result<ShelfStatus?> {
@@ -112,11 +111,8 @@ internal class ShelfRepositoryImpl(
 
         val result = shelfRemoteDataSource.getShelfStatus(bookIdInt)
 
-        result.onFailure { error ->
-            Bark.e("Failed to fetch shelf status. Cached data may be unavailable.", error)
-        }
-
-        return result
+        // `cachedEntry` was already read above for the TTL check
+        return result.recoverWithCache("shelf status (book ID: $bookId)") { cachedEntry?.shelf }
     }
 
     override suspend fun assignShelf(bookId: String, shelf: ShelfStatus): Result<ShelfStatus> {

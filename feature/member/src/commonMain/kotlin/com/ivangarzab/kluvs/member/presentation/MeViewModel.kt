@@ -4,20 +4,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
-import com.ivangarzab.kluvs.data.error.toAppError
-import com.ivangarzab.kluvs.presentation.error.toUserMessage
+import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
 import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
 import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.TimeSource
 
 /**
  * The purpose of this [ViewModel] class is to serve the Me screen.
@@ -35,12 +36,17 @@ class MeViewModel(
     val state: StateFlow<MeState> = _state.asStateFlow()
 
     private var currentUserId: String? = null
+    private var loadUserDataJob: Job? = null
 
     fun loadUserData(userId: String, forceRefresh: Boolean = false) {
         currentUserId = userId
 
-        viewModelScope.launch {
+        // Cancel any in-flight load so overlapping calls (tab re-entry + pull-to-refresh)
+        // can't finish out of order and let an older, staler result land last.
+        loadUserDataJob?.cancel()
+        loadUserDataJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
+            val loadStart = TimeSource.Monotonic.markNow()
 
             // Launch all 3 UseCase calls in parallel
             val deferredProfile = async { getCurrentUserProfile(userId, forceRefresh) }
@@ -54,29 +60,35 @@ class MeViewModel(
 
             // Aggregate errors
             val errors = listOfNotNull(
-                profileResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                statsResult.exceptionOrNull()?.toAppError()?.toUserMessage(),
-                shelfResult.exceptionOrNull()?.toAppError()?.toUserMessage()
+                profileResult.exceptionOrNull()?.toDisplayMessage(),
+                statsResult.exceptionOrNull()?.toDisplayMessage(),
+                shelfResult.exceptionOrNull()?.toDisplayMessage()
             )
             val error = when {
                 errors.isEmpty() -> null
                 errors.distinct().size == 1 -> errors.first() // All errors are identical
                 else -> "Multiple things went wrong. Please try again."
             }
+            // A profile that's already on screen is never replaced by an error page: a failed
+            // (re)load keeps the existing content and reports the failure through the snackbar.
+            val hadContent = _state.value.profile != null
             error?.let { e ->
-                Bark.e("Failed to fetch member details (ID: $userId). Serving cached data if available.", Exception(e))
+                Bark.e("Failed to fetch member details (ID: $userId). ${if (hadContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded member details (ID: $userId)")
+            Bark.d("Me load took ${loadStart.elapsedNow().inWholeMilliseconds} ms (ID: $userId, forceRefresh=$forceRefresh)")
 
-            // Update state with all results
+            // Update state with all results. When keeping content, each piece only changes if
+            // its fetch succeeded.
             val onYourShelf = shelfResult.getOrNull()
             _state.update {
                 it.copy(
                     isLoading = false,
-                    error = error,
-                    profile = profileResult.getOrNull(),
-                    statistics = statsResult.getOrNull(),
-                    shelf = onYourShelf?.shelf ?: emptyList(),
-                    upNext = onYourShelf?.upNext
+                    error = if (hadContent) null else error,
+                    snackbarError = if (hadContent && error != null) error else it.snackbarError,
+                    profile = profileResult.getOrNull() ?: if (hadContent) it.profile else null,
+                    statistics = statsResult.getOrNull() ?: if (hadContent) it.statistics else null,
+                    shelf = onYourShelf?.shelf ?: if (hadContent) it.shelf else emptyList(),
+                    upNext = if (onYourShelf != null) onYourShelf.upNext else if (hadContent) it.upNext else null
                 )
             }
         }
@@ -120,7 +132,7 @@ class MeViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update (Session ID: $sessionId). ${error.message}", error)
-                    _state.update { it.copy(snackbarError = error.message) }
+                    _state.update { it.copy(snackbarError = error.toDisplayMessage()) }
                 }
         }
     }
@@ -135,7 +147,7 @@ class MeViewModel(
                 .onSuccess { log -> _state.update { it.copy(readingLog = log, isReadingLogLoading = false) } }
                 .onFailure { error ->
                     Bark.e("Failed to load reading log. ${error.message}", error)
-                    _state.update { it.copy(isReadingLogLoading = false, snackbarError = error.message) }
+                    _state.update { it.copy(isReadingLogLoading = false, snackbarError = error.toDisplayMessage()) }
                 }
         }
     }

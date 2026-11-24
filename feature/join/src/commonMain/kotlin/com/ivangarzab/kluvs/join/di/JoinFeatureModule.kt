@@ -1,6 +1,7 @@
 package com.ivangarzab.kluvs.join.di
 
 import com.ivangarzab.kluvs.join.domain.JoinClubUseCase
+import com.ivangarzab.kluvs.join.domain.ObserveIsAuthenticatedUseCase
 import com.ivangarzab.kluvs.join.domain.PreviewInviteUseCase
 import com.ivangarzab.kluvs.join.presentation.JoinViewModel
 import org.koin.core.module.dsl.factoryOf
@@ -10,6 +11,7 @@ val joinFeatureModule = module {
     // Use Cases
     factoryOf(::PreviewInviteUseCase)
     factoryOf(::JoinClubUseCase)
+    factoryOf(::ObserveIsAuthenticatedUseCase)
 
     // ViewModels
     factoryOf(::JoinViewModel)

@@ -17,6 +17,7 @@ package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.SessionClubDto
 import com.ivangarzab.kluvs.api.models.SessionDto
 import com.ivangarzab.kluvs.api.models.SessionParticipantSummaryDto
 import com.ivangarzab.kluvs.api.models.SessionReadingLogGroupsDto
@@ -29,39 +30,47 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
- * @param id 
- * @param clubId 
- * @param status Lifecycle status of the session.
  * @param success 
  * @param readingLog 
- * @param bookId 
+ * @param id 
+ * @param clubId 
  * @param book 
  * @param dueDate 
+ * @param status Lifecycle status of the session.
+ * @param startedAt When the session started. Server-set on insert; null for sessions created before this field existed.
+ * @param endedAt When the session was finished. Null while the session is active.
  * @param discussions 
+ * @param club 
  * @param members Participation roster, as embedded within a club response's active_session.
  */
 @Serializable
 
 data class GetSessions200ResponseDto (
 
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
+
+    @SerialName(value = "reading_log") @Required val readingLog: SessionReadingLogGroupsDto,
+
     @SerialName(value = "id") @Required val id: kotlin.String,
 
     @SerialName(value = "club_id") @Required val clubId: kotlin.String,
 
+    @SerialName(value = "book") @Required val book: BookDto,
+
+    @SerialName(value = "due_date") @Required val dueDate: kotlin.String?,
+
     /* Lifecycle status of the session. */
     @SerialName(value = "status") @Required val status: GetSessions200ResponseDto.Status,
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    /* When the session started. Server-set on insert; null for sessions created before this field existed. */
+    @SerialName(value = "started_at") @Required val startedAt: kotlin.String?,
 
-    @SerialName(value = "reading_log") val readingLog: SessionReadingLogGroupsDto? = null,
+    /* When the session was finished. Null while the session is active. */
+    @SerialName(value = "ended_at") @Required val endedAt: kotlin.String?,
 
-    @SerialName(value = "book_id") val bookId: kotlin.Int? = null,
+    @SerialName(value = "discussions") @Required val discussions: kotlin.collections.List<DiscussionDto>,
 
-    @SerialName(value = "book") val book: BookDto? = null,
-
-    @SerialName(value = "due_date") val dueDate: kotlin.String? = null,
-
-    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null,
+    @SerialName(value = "club") val club: SessionClubDto? = null,
 
     /* Participation roster, as embedded within a club response's active_session. */
     @SerialName(value = "members") val members: kotlin.collections.List<SessionParticipantSummaryDto>? = null

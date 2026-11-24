@@ -1,10 +1,11 @@
 package com.ivangarzab.kluvs.data.remote.source
 
 import com.ivangarzab.kluvs.api.models.BookDto
-import com.ivangarzab.kluvs.api.models.GetShelf200ResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfAssignRequestDto
 import com.ivangarzab.kluvs.api.models.ShelfAssignResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfEntryDto
+import com.ivangarzab.kluvs.api.models.ShelfListResponseDto
+import com.ivangarzab.kluvs.api.models.ShelfSingleResponseDto
 import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import com.ivangarzab.kluvs.data.remote.api.ShelfService
 import com.ivangarzab.kluvs.model.ShelfStatus
@@ -33,10 +34,12 @@ class ShelfRemoteDataSourceTest {
     @Test
     fun `getShelf maps entries to domain`() = runTest {
         // Given: Service returns one complete entry
-        everySuspend { shelfService.getAll() } returns GetShelf200ResponseDto(
+        everySuspend { shelfService.getAll() } returns ShelfListResponseDto(
             success = true,
             shelves = listOf(
                 ShelfEntryDto(
+                    updatedAt = "2026-01-01T00:00:00Z",
+                    source = ShelfEntryDto.Source.manual,
                     shelf = ShelfStatusDto.read,
                     book = BookDto(id = 5, title = "The Hobbit", author = "J.R.R. Tolkien")
                 )
@@ -62,7 +65,7 @@ class ShelfRemoteDataSourceTest {
 
     @Test
     fun `getShelfStatus returns null for unshelved book`() = runTest {
-        everySuspend { shelfService.getForBook(5) } returns GetShelf200ResponseDto(
+        everySuspend { shelfService.getForBook(5) } returns ShelfSingleResponseDto(
             success = true,
             shelf = null
         )
@@ -87,18 +90,8 @@ class ShelfRemoteDataSourceTest {
     }
 
     @Test
-    fun `assignShelf fails when response carries no shelf`() = runTest {
-        val request = ShelfAssignRequestDto(bookId = 5, shelf = ShelfStatusDto.read)
-        everySuspend { shelfService.assign(request) } returns ShelfAssignResponseDto(success = true)
-
-        val result = dataSource.assignShelf(request)
-
-        assertTrue(result.isFailure)
-    }
-
-    @Test
     fun `removeShelf succeeds on successful response`() = runTest {
-        everySuspend { shelfService.remove(5) } returns ShelfAssignResponseDto(success = true)
+        everySuspend { shelfService.remove(5) } returns ShelfSingleResponseDto(success = true, shelf = null)
 
         val result = dataSource.removeShelf(5)
 

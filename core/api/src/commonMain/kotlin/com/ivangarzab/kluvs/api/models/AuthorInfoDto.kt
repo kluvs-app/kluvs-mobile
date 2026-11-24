@@ -23,22 +23,26 @@ import kotlinx.serialization.encoding.*
 /**
  * 
  *
- * @param name From Google Knowledge Graph
- * @param imageUrl Knowledge Graph portrait, falling back to Wikipedia thumbnail
- * @param extract Wikipedia summary extract
+ * @param name Knowledge Graph name, falling back to the matched Wikipedia page title (trailing parenthetical removed), then the author query. Always set when authorInfo is non-null
+ * @param description Knowledge Graph short description, e.g. \"American novelist\"
+ * @param imageUrl Wikipedia thumbnail, falling back to Knowledge Graph portrait
+ * @param extract Wikipedia summary extract, falling back to Knowledge Graph detailed description
  */
 @Serializable
 
 data class AuthorInfoDto (
 
-    /* From Google Knowledge Graph */
-    @SerialName(value = "name") val name: kotlin.String? = null,
+    /* Knowledge Graph name, falling back to the matched Wikipedia page title (trailing parenthetical removed), then the author query. Always set when authorInfo is non-null */
+    @SerialName(value = "name") @Required val name: kotlin.String,
 
-    /* Knowledge Graph portrait, falling back to Wikipedia thumbnail */
-    @SerialName(value = "imageUrl") val imageUrl: kotlin.String? = null,
+    /* Knowledge Graph short description, e.g. \"American novelist\" */
+    @SerialName(value = "description") @Required val description: kotlin.String?,
 
-    /* Wikipedia summary extract */
-    @SerialName(value = "extract") val extract: kotlin.String? = null
+    /* Wikipedia thumbnail, falling back to Knowledge Graph portrait */
+    @SerialName(value = "imageUrl") @Required val imageUrl: kotlin.String?,
+
+    /* Wikipedia summary extract, falling back to Knowledge Graph detailed description */
+    @SerialName(value = "extract") @Required val extract: kotlin.String?
 
 ) {
 

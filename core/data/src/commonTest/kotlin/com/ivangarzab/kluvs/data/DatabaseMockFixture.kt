@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.data
 
 import com.ivangarzab.kluvs.database.KluvsDatabase
 import com.ivangarzab.kluvs.database.dao.BookDao
+import com.ivangarzab.kluvs.database.dao.BookEnrichmentDao
 import com.ivangarzab.kluvs.database.dao.ClubDao
 import com.ivangarzab.kluvs.database.dao.DiscussionAttendanceDao
 import com.ivangarzab.kluvs.database.dao.DiscussionDao
@@ -19,6 +20,7 @@ import com.ivangarzab.kluvs.database.entities.DiscussionEntity
 import com.ivangarzab.kluvs.database.entities.MemberEntity
 import com.ivangarzab.kluvs.database.entities.ServerEntity
 import com.ivangarzab.kluvs.database.entities.SessionEntity
+import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
@@ -43,6 +45,7 @@ class DatabaseMockFixture {
     val memberDao: MemberDao = mock<MemberDao>()
     val sessionDao: SessionDao = mock<SessionDao>()
     val bookDao: BookDao = mock<BookDao>()
+    val bookEnrichmentDao: BookEnrichmentDao = mock<BookEnrichmentDao>()
     val discussionDao: DiscussionDao = mock<DiscussionDao>()
     val serverDao: ServerDao = mock<ServerDao>()
     val shelfDao: ShelfDao = mock<ShelfDao>()
@@ -56,6 +59,7 @@ class DatabaseMockFixture {
         every { db.memberDao() } returns memberDao
         every { db.sessionDao() } returns sessionDao
         every { db.bookDao() } returns bookDao
+        every { db.bookEnrichmentDao() } returns bookEnrichmentDao
         every { db.discussionDao() } returns discussionDao
         every { db.serverDao() } returns serverDao
         every { db.shelfDao() } returns shelfDao
@@ -64,11 +68,16 @@ class DatabaseMockFixture {
         every { db.discussionNoteDao() } returns discussionNoteDao
         every { db.discussionAttendanceDao() } returns discussionAttendanceDao
 
+        // Transactions just run their block: the DAOs are mocks, so there's nothing to roll back
+        everySuspend { db.withTransaction<Any?>(any()) } calls { (block: suspend () -> Any?) -> block() }
+
         // Mock all insert/update operations to accept any argument and return Unit
         everySuspend { clubDao.insertClub(any()) } returns Unit
         everySuspend { clubDao.insertClubs(any()) } returns Unit
         everySuspend { clubDao.deleteClub(any()) } returns Unit
         everySuspend { clubDao.deleteAll() } returns Unit
+        everySuspend { clubDao.deleteClubById(any()) } returns Unit
+        everySuspend { clubDao.markStale(any()) } returns Unit
 
         everySuspend { memberDao.insertMember(any()) } returns Unit
         everySuspend { memberDao.insertMembers(any()) } returns Unit
@@ -77,6 +86,10 @@ class DatabaseMockFixture {
         everySuspend { memberDao.deleteClubMemberCrossRef(any(), any()) } returns Unit
         everySuspend { memberDao.deleteAll() } returns Unit
         everySuspend { memberDao.deleteAllCrossRefs() } returns Unit
+        everySuspend { memberDao.insertClubMemberCrossRefs(any()) } returns Unit
+        everySuspend { memberDao.deleteCrossRefsForClub(any()) } returns Unit
+        everySuspend { memberDao.deleteCrossRefsForMember(any()) } returns Unit
+        everySuspend { memberDao.markStale(any()) } returns Unit
 
         everySuspend { sessionDao.insertSession(any()) } returns Unit
         everySuspend { sessionDao.insertSessions(any()) } returns Unit
@@ -85,6 +98,7 @@ class DatabaseMockFixture {
         everySuspend { sessionDao.insertSessionMembers(any()) } returns Unit
         everySuspend { sessionDao.deleteSessionMembers(any()) } returns Unit
         everySuspend { sessionDao.deleteAllSessionMembers() } returns Unit
+        everySuspend { sessionDao.deleteSessionsForClub(any()) } returns Unit
 
         everySuspend { bookDao.insertBook(any()) } returns Unit
         everySuspend { bookDao.insertBooks(any()) } returns Unit
@@ -93,6 +107,9 @@ class DatabaseMockFixture {
 
         everySuspend { discussionDao.insertDiscussion(any()) } returns Unit
         everySuspend { discussionDao.deleteAll() } returns Unit
+        everySuspend { discussionDao.insertDiscussions(any()) } returns Unit
+        everySuspend { discussionDao.deleteDiscussionsForSession(any()) } returns Unit
+        everySuspend { discussionDao.deleteDiscussionById(any()) } returns Unit
 
         everySuspend { serverDao.insertServer(any()) } returns Unit
         everySuspend { serverDao.deleteServer(any()) } returns Unit
@@ -111,6 +128,8 @@ class DatabaseMockFixture {
         everySuspend { progressDao.insertProgressEntries(any()) } returns Unit
         everySuspend { progressDao.deleteProgress(any()) } returns Unit
         everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { progressDao.insertQuery(any()) } returns Unit
+        everySuspend { progressDao.deleteAllQueries() } returns Unit
 
         everySuspend { discussionNoteDao.insertNote(any()) } returns Unit
         everySuspend { discussionNoteDao.deleteNote(any()) } returns Unit
@@ -135,6 +154,8 @@ class DatabaseMockFixture {
         everySuspend { serverDao.getServer(any()) } returns null
         everySuspend { serverDao.getAllServers() } returns emptyList()
         everySuspend { discussionDao.getDiscussionsForSession(any()) } returns emptyList()
+        everySuspend { discussionDao.getDiscussion(any()) } returns null
+        everySuspend { memberDao.getClubMemberCrossRefsForMember(any()) } returns emptyList()
 
         everySuspend { shelfDao.getShelfEntry(any()) } returns null
         everySuspend { shelfDao.getShelf() } returns emptyList()

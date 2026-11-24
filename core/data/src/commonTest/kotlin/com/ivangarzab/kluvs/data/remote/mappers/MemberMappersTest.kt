@@ -2,6 +2,7 @@ package com.ivangarzab.kluvs.data.remote.mappers
 
 import com.ivangarzab.kluvs.api.models.MemberDto
 import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
+import com.ivangarzab.kluvs.api.models.MemberCreateResponseMemberDto
 import com.ivangarzab.kluvs.api.models.MemberGetResponseDto
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
@@ -15,6 +16,9 @@ class MemberMappersTest {
     fun `MemberDto toDomain maps basic fields only`() {
         // Given: A MemberDto with basic info
         val dto = MemberDto(
+            avatarPath = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Jane Doe",
             handle = "member-handle",
@@ -39,6 +43,8 @@ class MemberMappersTest {
     fun `MemberGetResponseDto toDomain maps all nested clubs`() {
         // Given: A MemberGetResponseDto with nested clubs
         val clubInner1 = MemberClubEntryDto(
+            joinedAt = "2026-01-01T00:00:00Z",
+            role = MemberClubEntryDto.Role.owner,
             id = "club-1",
             name = "Fiction Club",
             discordChannel = "123456789",
@@ -46,6 +52,8 @@ class MemberMappersTest {
         )
 
         val clubInner2 = MemberClubEntryDto(
+            joinedAt = "2026-01-01T00:00:00Z",
+            role = MemberClubEntryDto.Role.member,
             id = "club-2",
             name = "Science Club",
             discordChannel = "111222333",
@@ -60,6 +68,9 @@ class MemberMappersTest {
         )
 
         val dto = MemberGetResponseDto(
+            avatarPath = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 2,
             name = "John Smith",
             handle = "member-handle",
@@ -92,6 +103,10 @@ class MemberMappersTest {
     fun `MemberGetResponseDto toDomain handles empty club lists`() {
         // Given: A MemberGetResponseDto with no clubs
         val dto = MemberGetResponseDto(
+            avatarPath = null,
+            userId = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 3,
             name = "New Member",
             handle = "member-handle",
@@ -116,6 +131,9 @@ class MemberMappersTest {
     fun `MemberDto toDomain handles nullable fields`() {
         // Given: A MemberDto with null optional fields
         val dto = MemberDto(
+            avatarPath = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 4,
             name = "Anonymous",
             handle = "member-handle",
@@ -137,6 +155,8 @@ class MemberMappersTest {
     fun `MemberDto with avatarPath maps correctly`() {
         // Given: A MemberDto with avatarPath
         val dto = MemberDto(
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Test Member",
             platformMetadata = JsonObject(emptyMap()),
@@ -157,6 +177,8 @@ class MemberMappersTest {
     fun `MemberDto with null avatarPath maps correctly`() {
         // Given: A MemberDto without avatarPath
         val dto = MemberDto(
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Test Member",
             platformMetadata = JsonObject(emptyMap()),
@@ -177,6 +199,7 @@ class MemberMappersTest {
     fun `MemberGetResponseDto with avatarPath maps correctly`() {
         // Given: A MemberGetResponseDto with avatarPath
         val dto = MemberGetResponseDto(
+            discordId = null,
             id = 2,
             name = "John Smith",
             platformMetadata = JsonObject(emptyMap()),
@@ -200,6 +223,9 @@ class MemberMappersTest {
     fun `MemberDto with createdAt timestamp maps to LocalDateTime`() {
         // Given: A MemberDto with createdAt timestamp
         val dto = MemberDto(
+            avatarPath = null,
+            userId = null,
+            discordId = null,
             id = 1,
             name = "Test Member",
             handle = "member-handle",
@@ -221,28 +247,13 @@ class MemberMappersTest {
     }
 
     @Test
-    fun `MemberDto with null createdAt maps correctly`() {
-        // Given: A MemberDto without createdAt
-        val dto = MemberDto(
-            id = 1,
-            name = "Test Member",
-            handle = "member-handle",
-            platformMetadata = JsonObject(emptyMap()),
-            booksRead = 0,
-            createdAt = null
-        )
-
-        // When: Mapping to domain
-        val domain = dto.toDomain()
-
-        // Then: createdAt is null
-        assertNull(domain.createdAt)
-    }
-
-    @Test
     fun `MemberDto with handle maps correctly`() {
         // Given: A MemberDto with handle
         val dto = MemberDto(
+            avatarPath = null,
+            userId = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Test Member",
             platformMetadata = JsonObject(emptyMap()),
@@ -263,6 +274,10 @@ class MemberMappersTest {
         // or a client that saves it that way) — display code everywhere prepends its own "@",
         // so the domain model must always expose the bare handle.
         val dto = MemberDto(
+            avatarPath = null,
+            userId = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Test Member",
             platformMetadata = JsonObject(emptyMap()),
@@ -281,6 +296,10 @@ class MemberMappersTest {
     fun `MemberDto with doubly at-sign-prefixed handle strips both`() {
         // Given: A handle saved twice by the pre-fix bug ("@@testuser")
         val dto = MemberDto(
+            avatarPath = null,
+            userId = null,
+            discordId = null,
+            createdAt = "2026-01-01T00:00:00Z",
             id = 1,
             name = "Test Member",
             platformMetadata = JsonObject(emptyMap()),
@@ -299,6 +318,8 @@ class MemberMappersTest {
     fun `MemberGetResponseDto with createdAt and handle maps correctly`() {
         // Given: A MemberGetResponseDto with createdAt and handle
         val dto = MemberGetResponseDto(
+            avatarPath = null,
+            discordId = null,
             id = 2,
             name = "John Smith",
             platformMetadata = JsonObject(emptyMap()),
@@ -322,5 +343,35 @@ class MemberMappersTest {
         assertEquals(14, domain.createdAt?.hour)
         assertEquals(22, domain.createdAt?.minute)
         assertEquals(33, domain.createdAt?.second)
+    }
+
+    @Test
+    fun `MemberCreateResponseMemberDto toDomain maps basic fields and leaves relations null`() {
+        // Given: The member echoed by POST /member with club IDs only
+        val dto = MemberCreateResponseMemberDto(
+            id = 7,
+            name = "New Member",
+            booksRead = null,
+            handle = "@new-member",
+            avatarPath = null,
+            userId = "user-789",
+            discordId = null,
+            platformMetadata = JsonObject(emptyMap()),
+            createdAt = "2026-01-01T00:00:00Z",
+            clubs = listOf("club-1", "club-2")
+        )
+
+        // When: Mapping to domain
+        val domain = dto.toDomain()
+
+        // Then: Basic fields are mapped and the club ID echo is not turned into clubs
+        assertEquals("7", domain.id)
+        assertEquals("New Member", domain.name)
+        assertEquals("new-member", domain.handle)
+        assertEquals(0, domain.booksRead)
+        assertEquals("user-789", domain.userId)
+        assertNotNull(domain.createdAt)
+        assertNull(domain.clubs)
+        assertNull(domain.shameClubs)
     }
 }

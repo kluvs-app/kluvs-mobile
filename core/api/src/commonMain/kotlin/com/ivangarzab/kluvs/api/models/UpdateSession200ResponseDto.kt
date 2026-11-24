@@ -36,14 +36,14 @@ import kotlinx.serialization.encoding.*
 
 data class UpdateSession200ResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null,
+    @SerialName(value = "message") @Required val message: kotlin.String,
 
     /* Number of is_reading session_members whose books_read count was incremented */
-    @SerialName(value = "members_credited") val membersCredited: kotlin.Int? = null,
+    @SerialName(value = "members_credited") @Required val membersCredited: kotlin.Int,
 
-    @SerialName(value = "updates") val updates: SessionUpdateFlagsDto? = null
+    @SerialName(value = "updates") @Required val updates: SessionUpdateFlagsDto
 
 ) {
 

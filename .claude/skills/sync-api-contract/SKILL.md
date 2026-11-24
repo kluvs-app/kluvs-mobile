@@ -15,10 +15,10 @@ renamed properties — this skill walks through every layer that needs to
 change, in the right order, **without ever hand-writing or hand-editing a
 generated DTO**.
 
-**Read `CLAUDE.md`'s two hard rules at the top of this file before doing
-anything here** — "NEVER hand-edit generated codegen output" and "Before
-confirming a backend spec-change PR is correct, generate the actual DTOs".
-This skill exists to operationalize those rules, not to work around them.
+**Two hard rules apply here:** never hand-edit generated codegen output (see
+`CLAUDE.md` and `.claude/rules/codegen-and-data.md`), and generate the actual
+DTOs before confirming a backend spec PR is correct (section A below). This
+skill exists to operationalize those rules, not to work around them.
 
 ---
 
@@ -45,24 +45,38 @@ This skill exists to operationalize those rules, not to work around them.
 
 ### A. A backend spec change hasn't shipped yet (you're reviewing a candidate PR / branch)
 
-Follow `CLAUDE.md`'s documented verification steps exactly — pull the
-candidate `docs/openapi.json` from `kluvs-backend` via `git show` (never
-check out or switch branches in backend's working tree), copy it to
-`core/api/openapi.json`, run `./gradlew :core:api:openApiGenerate --quiet --console=plain`,
-read only the specific generated `.kt` file(s) for the changed types, then
-revert `core/api/openapi.json` and delete `core/api/build/generated/openapi`.
+**Before telling the user a backend spec PR is correct, generate the actual
+DTOs. Don't just read the JSON.** `deno task docs:validate` only proves the
+document is structurally valid. It says nothing about the Kotlin the generator
+emits. Known gotcha: sibling keywords next to `$ref` (e.g. `nullable: true`)
+are silently dropped under OpenAPI 3.0: the spec is valid, the generated code
+is wrong, and no validator catches it. This check is mobile's job, not
+backend's.
 
-**Also revert any files under `core/api/src/commonMain/kotlin/.../api/models/`
-that the generate step modified** (`git status` will show them) — this
-repo's `openApiGenerate` task writes generated output directly into that
-committed source directory, not just `build/generated/openapi`, so the
-documented cleanup in `CLAUDE.md` is incomplete on its own; check `git status
-core/api` after generating and `git checkout --` anything it touched before
-moving on.
+```bash
+git -C kluvs-backend fetch origin <pr-branch>
+git -C kluvs-backend show origin/<pr-branch>:docs/openapi.json > /tmp/candidate-openapi.json
+cp /tmp/candidate-openapi.json kluvs-mobile/core/api/openapi.json
+cd kluvs-mobile && ./gradlew :core:api:openApiGenerate --quiet --console=plain
+# Read ONLY the generated .kt file(s) for the changed types and check every
+# field against the ticket's written contract, not "does it look reasonable"
+git -C kluvs-mobile checkout -- core/api/openapi.json
+rm -rf kluvs-mobile/core/api/build/generated/openapi
+git -C kluvs-mobile checkout -- core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models/
+git -C kluvs-mobile status --short core/api   # must be clean before doing anything else
+```
+
+- The spec comes from git history only. Never check out or switch branches in
+  `kluvs-backend`'s working tree, and never read the spec JSON into context;
+  it's a Gradle input.
+- `openApiGenerate` writes straight into the **committed**
+  `core/api/src/commonMain/.../api/models/` directory, not just
+  `build/generated/openapi`. The `checkout --` and `status` lines are not
+  optional. A dirty `core/api` gets carried silently into the next commit.
 
 Use this when double-checking a backend PR is correct before telling the
 user so, or when doing parallel-track mobile work against a not-yet-shipped
-contract (see `CLAUDE.md`'s "temporary interim types" exception for that
+contract (see the "temporary interim types" exception in `.claude/rules/codegen-and-data.md` for that
 specific case).
 
 ### B. A backend spec change has already shipped and regenerated a real PR here
@@ -71,7 +85,7 @@ The sync from `kluvs-backend` → `kluvs-api` → `kluvs-mobile` is a live,
 three-hop GitHub Actions chain today (see `../CLAUDE.md`'s "API Contract
 (`kluvs-api`)" section for the full trigger/dispatch details). Once a backend
 change is released (merged to backend's `main`, not just `develop`), a bot
-PR titled `chore: regenerate api models from spec <sha>` (branch
+PR titled `chore(api): regenerate models from kluvs-api@<short-sha>` (branch
 `chore/regenerate-api-models`) appears against **this repo's `develop`**,
 containing exactly the regenerated `core/api/openapi.json` +
 `core/api/src/commonMain/.../api/models/**` diff — nothing else.
@@ -79,7 +93,7 @@ containing exactly the regenerated `core/api/openapi.json` +
 For that PR: **read the diff directly** (no need to run the generator
 yourself, it already ran in CI) and check every field the ticket's contract
 promised actually shows up with the right nullability/type — the same
-sibling-keyword-dropping gotcha `CLAUDE.md` warns about (`nullable: true`
+sibling-keyword-dropping gotcha from section A (`nullable: true`
 next to a `$ref`) applies here too, so a structurally-valid spec can still
 produce a DTO that's missing something a hand-read of the JSON would have
 implied was there.
@@ -166,8 +180,7 @@ data class Member(
 )
 ```
 
-**Never** hand-write or hand-edit anything in `core/api/.../models/` — see the
-hard rule at the top of `CLAUDE.md`.
+**Never** hand-write or hand-edit anything in `core/api/.../models/` — see `.claude/rules/codegen-and-data.md`.
 **Never** add serialization annotations (`@Serializable`, `@SerialName`) to domain models.
 **Never** add business logic to DTOs.
 **Never** skip the mapper — domain models must not reference DTO types.

@@ -30,9 +30,9 @@ import kotlinx.serialization.encoding.*
 
 data class LikeStatusResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "liked") val liked: kotlin.Boolean? = null
+    @SerialName(value = "liked") @Required val liked: kotlin.Boolean
 
 ) {
 

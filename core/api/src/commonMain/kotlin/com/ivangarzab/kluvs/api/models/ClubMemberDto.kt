@@ -37,26 +37,26 @@ import kotlinx.serialization.encoding.*
 
 data class ClubMemberDto (
 
-    @SerialName(value = "id") val id: kotlin.Int? = null,
+    @SerialName(value = "id") @Required val id: kotlin.Int,
 
-    @SerialName(value = "name") val name: kotlin.String? = null,
+    @SerialName(value = "name") @Required val name: kotlin.String,
 
     /* Member's role in this club */
-    @SerialName(value = "role") val role: ClubMemberDto.Role? = null,
+    @SerialName(value = "role") @Required val role: ClubMemberDto.Role,
 
     /* When the member joined this club (server-set, read-only) */
-    @SerialName(value = "joined_at") val joinedAt: kotlin.String? = null,
+    @SerialName(value = "joined_at") @Required val joinedAt: kotlin.String,
 
-    @SerialName(value = "books_read") val booksRead: kotlin.Int? = 0,
+    @SerialName(value = "books_read") @Required val booksRead: kotlin.Int? = 0,
 
-    @SerialName(value = "handle") val handle: kotlin.String? = null,
+    @SerialName(value = "handle") @Required val handle: kotlin.String,
 
-    @SerialName(value = "avatar_path") val avatarPath: kotlin.String? = null,
+    @SerialName(value = "avatar_path") @Required val avatarPath: kotlin.String?,
 
-    @SerialName(value = "created_at") val createdAt: kotlin.String? = null,
+    @SerialName(value = "created_at") @Required val createdAt: kotlin.String,
 
     /* IDs of all clubs this member belongs to */
-    @SerialName(value = "clubs") val clubs: kotlin.collections.List<kotlin.String>? = null
+    @SerialName(value = "clubs") @Required val clubs: kotlin.collections.List<kotlin.String>
 
 ) {
 

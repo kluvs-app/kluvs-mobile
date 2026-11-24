@@ -89,4 +89,16 @@ class LikeRepositoryTest {
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is IllegalArgumentException)
     }
+
+    // ========================================
+    // KT-323: OFFLINE FALLBACK
+    // ========================================
+
+    @Test
+    fun `isBookLiked serves the cached status when the remote fetch fails`() = runTest {
+        everySuspend { remoteDataSource.getLikeStatus(42) } returns Result.failure(Exception("offline"))
+        everySuspend { localDataSource.getLikeStatus("42") } returns true
+
+        assertEquals(true, repository.isBookLiked("42").getOrNull())
+    }
 }

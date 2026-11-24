@@ -5,6 +5,8 @@ struct MainView: View {
     let userId: String
     var initialClubId: String? = nil
     var onNavigateToJoin: () -> Void = {}
+    // Tells the user when the app is offline and showing saved data (see OfflineBanner).
+    @StateObject private var connectivity = ConnectivityCoordinatorWrapper()
     // Tab order is Me(0) - Clubs(1) - Books(2), but landing on an auto-joined club (deep link /
     // post-signup join) still needs to open straight into the Clubs tab, not the default Me tab.
     @State private var selectedTab: Int
@@ -31,6 +33,14 @@ struct MainView: View {
                 // masthead, BooksTopBar, MeTopBar), so the shared Material-style TopAppBar
                 // is unused for all tabs now.
 
+                OfflineBanner(
+                    visible: connectivity.isOffline,
+                    text: "You're offline. Showing saved data.",
+                    // Wine fill carries up under the status bar (as on Android); the icons are
+                    // forced light below so they stay readable on it in both themes.
+                    extendsUnderStatusBar: true
+                )
+
                 // Content area
                 Group {
                     if selectedTab == 0 {
@@ -53,6 +63,7 @@ struct MainView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .all)
+        .lightStatusBar(connectivity.isOffline)
     }
 }
 
