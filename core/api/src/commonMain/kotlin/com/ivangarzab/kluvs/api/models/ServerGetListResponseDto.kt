@@ -30,7 +30,7 @@ import kotlinx.serialization.encoding.*
 
 data class ServerGetListResponseDto (
 
-    @SerialName(value = "servers") val servers: kotlin.collections.List<ServerDto>? = null
+    @SerialName(value = "servers") @Required val servers: kotlin.collections.List<ServerDto>
 
 ) {
 

@@ -31,9 +31,9 @@ import kotlinx.serialization.encoding.*
 
 data class BookLookupResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "book") val book: BookDto? = null
+    @SerialName(value = "book") @Required val book: BookDto
 
 ) {
 

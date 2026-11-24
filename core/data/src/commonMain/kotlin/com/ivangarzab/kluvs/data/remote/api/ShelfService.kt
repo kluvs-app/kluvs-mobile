@@ -34,7 +34,7 @@ internal class ShelfServiceImpl(private val supabase: SupabaseClient) : ShelfSer
             val response = supabase.functions.invoke("shelf") {
                 method = HttpMethod.Get
             }.body<ShelfListResponseDto>()
-            Bark.v("Shelf entries fetched successfully (${response.shelves?.size ?: 0} entries)")
+            Bark.v("Shelf entries fetched successfully (${response.shelves.size} entries)")
             response
         } catch (error: Exception) {
             Bark.e("Failed to fetch shelf entries. Check network/API status and retry.", error)

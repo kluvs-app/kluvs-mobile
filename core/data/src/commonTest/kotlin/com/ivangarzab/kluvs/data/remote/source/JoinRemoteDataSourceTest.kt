@@ -42,7 +42,7 @@ class JoinRemoteDataSourceTest {
     @Test
     fun `previewInvite fails for invalid token response`() = runTest {
         everySuspend { joinService.preview("bad-token") } returns
-            JoinPreviewResponseDto(valid = false)
+            JoinPreviewResponseDto(valid = false, club = ClubPreviewDto(id = "club-1", name = "Freaks & Geeks"))
 
         val result = dataSource.previewInvite("bad-token")
 
@@ -69,15 +69,5 @@ class JoinRemoteDataSourceTest {
         val result = dataSource.joinClub(request)
 
         assertEquals("club-1", result.getOrNull())
-    }
-
-    @Test
-    fun `joinClub fails when response carries no club ID`() = runTest {
-        val request = JoinRequestDto(token = "token-123")
-        everySuspend { joinService.join(request) } returns JoinResponseDto(success = true)
-
-        val result = dataSource.joinClub(request)
-
-        assertTrue(result.isFailure)
     }
 }

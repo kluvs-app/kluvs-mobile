@@ -19,7 +19,12 @@ paths:
 - Verifying a candidate backend spec PR: follow section A of the `sync-api-contract` skill (generate the real DTOs; don't just read the JSON).
 
 ## Regen PR branch
-- Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release. Do follow-up work on your own branch off `develop`.
+- Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release.
+- When the regen PR needs app-code fixes, **stack** a fix PR on it:
+  - Cut the fix branch from `origin/chore/regenerate-api-models` and open it with `--base chore/regenerate-api-models`, so its diff shows only the fixes.
+  - Merge order: squash-merge the regen PR, retarget the fix PR to `develop`, then squash-merge it. The spec update and its fixes land as two consecutive commits.
+  - Don't cut the fix branch from `develop` and merge the regen branch into it. That hides the regen PR inside the fix PR.
+- Follow-up work that doesn't depend on the regen PR goes on your own branch off `develop`.
 - The bot PR is opened with `GITHUB_TOKEN`, so `pull_request` workflows don't run on it. To get unit tests, trigger them manually or close and reopen the PR.
 - Keep `ref: develop` on the workflow's checkout step. `repository_dispatch` runs from the default branch (`main`). Without the pin, the generator runs against `main`'s stale Gradle config and regresses the output.
 

@@ -34,9 +34,9 @@ import kotlinx.serialization.encoding.*
 
 data class MemberUpdateResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null,
+    @SerialName(value = "message") @Required val message: kotlin.String,
 
     @SerialName(value = "member") val member: MemberDto? = null,
 

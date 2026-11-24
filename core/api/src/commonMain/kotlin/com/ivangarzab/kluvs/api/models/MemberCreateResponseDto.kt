@@ -15,7 +15,7 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.MemberDto
+import com.ivangarzab.kluvs.api.models.MemberCreateResponseMemberDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -32,11 +32,11 @@ import kotlinx.serialization.encoding.*
 
 data class MemberCreateResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null,
+    @SerialName(value = "message") @Required val message: kotlin.String,
 
-    @SerialName(value = "member") val member: MemberDto? = null
+    @SerialName(value = "member") @Required val member: MemberCreateResponseMemberDto
 
 ) {
 

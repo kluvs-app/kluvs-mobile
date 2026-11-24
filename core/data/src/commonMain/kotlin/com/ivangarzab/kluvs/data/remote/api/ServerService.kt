@@ -32,7 +32,7 @@ internal class ServerServiceImpl(private val supabase: SupabaseClient) : ServerS
             val response = supabase.functions.invoke("server") {
                 method = HttpMethod.Get
             }.body<ServerGetListResponseDto>()
-            Bark.v("All servers fetched successfully (count: ${response.servers?.size ?: 0})")
+            Bark.v("All servers fetched successfully (count: ${response.servers.size})")
             response
         } catch (error: Exception) {
             Bark.e("Failed to fetch all servers. Check network/API status and retry.", error)

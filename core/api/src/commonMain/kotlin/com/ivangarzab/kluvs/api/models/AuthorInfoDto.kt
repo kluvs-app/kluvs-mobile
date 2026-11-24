@@ -33,16 +33,16 @@ import kotlinx.serialization.encoding.*
 data class AuthorInfoDto (
 
     /* Knowledge Graph name, falling back to the matched Wikipedia page title (trailing parenthetical removed), then the author query. Always set when authorInfo is non-null */
-    @SerialName(value = "name") val name: kotlin.String? = null,
+    @SerialName(value = "name") @Required val name: kotlin.String,
 
     /* Knowledge Graph short description, e.g. \"American novelist\" */
-    @SerialName(value = "description") val description: kotlin.String? = null,
+    @SerialName(value = "description") @Required val description: kotlin.String?,
 
     /* Wikipedia thumbnail, falling back to Knowledge Graph portrait */
-    @SerialName(value = "imageUrl") val imageUrl: kotlin.String? = null,
+    @SerialName(value = "imageUrl") @Required val imageUrl: kotlin.String?,
 
     /* Wikipedia summary extract, falling back to Knowledge Graph detailed description */
-    @SerialName(value = "extract") val extract: kotlin.String? = null
+    @SerialName(value = "extract") @Required val extract: kotlin.String?
 
 ) {
 

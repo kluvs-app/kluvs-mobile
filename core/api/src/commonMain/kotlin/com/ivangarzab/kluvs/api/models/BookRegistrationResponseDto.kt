@@ -33,14 +33,14 @@ import kotlinx.serialization.encoding.*
 
 data class BookRegistrationResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "book") val book: BookDto? = null,
+    @SerialName(value = "book") @Required val book: BookDto,
 
     /* False if an existing book (matched by external_google_id) was returned instead of created. */
-    @SerialName(value = "created") val created: kotlin.Boolean? = null,
+    @SerialName(value = "created") @Required val created: kotlin.Boolean,
 
-    @SerialName(value = "message") val message: kotlin.String? = null
+    @SerialName(value = "message") @Required val message: kotlin.String
 
 ) {
 

@@ -32,13 +32,13 @@ import kotlinx.serialization.encoding.*
 
 data class BookSummaryDto (
 
-    @SerialName(value = "id") val id: kotlin.Int? = null,
+    @SerialName(value = "id") @Required val id: kotlin.Int,
 
-    @SerialName(value = "title") val title: kotlin.String? = null,
+    @SerialName(value = "title") @Required val title: kotlin.String,
 
-    @SerialName(value = "page_count") val pageCount: kotlin.Int? = null,
+    @SerialName(value = "page_count") @Required val pageCount: kotlin.Int?,
 
-    @SerialName(value = "image_url") val imageUrl: kotlin.String? = null
+    @SerialName(value = "image_url") @Required val imageUrl: kotlin.String?
 
 ) {
 

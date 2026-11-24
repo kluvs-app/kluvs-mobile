@@ -34,13 +34,13 @@ import kotlinx.serialization.encoding.*
 
 data class ShelfEntryDto (
 
-    @SerialName(value = "shelf") val shelf: ShelfStatusDto? = null,
+    @SerialName(value = "shelf") @Required val shelf: ShelfStatusDto,
 
-    @SerialName(value = "updated_at") val updatedAt: kotlin.String? = null,
+    @SerialName(value = "updated_at") @Required val updatedAt: kotlin.String,
 
-    @SerialName(value = "source") val source: ShelfEntryDto.Source? = null,
+    @SerialName(value = "source") @Required val source: ShelfEntryDto.Source,
 
-    @SerialName(value = "book") val book: BookDto? = null
+    @SerialName(value = "book") @Required val book: BookDto
 
 ) {
 

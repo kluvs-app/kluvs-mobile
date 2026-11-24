@@ -17,6 +17,7 @@ package com.ivangarzab.kluvs.api.models
 
 import com.ivangarzab.kluvs.api.models.BookDto
 import com.ivangarzab.kluvs.api.models.DiscussionDto
+import com.ivangarzab.kluvs.api.models.SessionClubDto
 import com.ivangarzab.kluvs.api.models.SessionParticipantSummaryDto
 
 import kotlinx.serialization.*
@@ -28,13 +29,13 @@ import kotlinx.serialization.encoding.*
  *
  * @param id 
  * @param clubId 
- * @param status Lifecycle status of the session.
- * @param bookId 
  * @param book 
  * @param dueDate 
+ * @param status Lifecycle status of the session.
  * @param startedAt When the session started. Server-set on insert; null for sessions created before this field existed.
  * @param endedAt When the session was finished. Null while the session is active.
  * @param discussions 
+ * @param club 
  * @param members Participation roster, as embedded within a club response's active_session.
  */
 @Serializable
@@ -45,22 +46,22 @@ data class SessionDto (
 
     @SerialName(value = "club_id") @Required val clubId: kotlin.String,
 
+    @SerialName(value = "book") @Required val book: BookDto,
+
+    @SerialName(value = "due_date") @Required val dueDate: kotlin.String?,
+
     /* Lifecycle status of the session. */
     @SerialName(value = "status") @Required val status: SessionDto.Status,
 
-    @SerialName(value = "book_id") val bookId: kotlin.Int? = null,
-
-    @SerialName(value = "book") val book: BookDto? = null,
-
-    @SerialName(value = "due_date") val dueDate: kotlin.String? = null,
-
     /* When the session started. Server-set on insert; null for sessions created before this field existed. */
-    @SerialName(value = "started_at") val startedAt: kotlin.String? = null,
+    @SerialName(value = "started_at") @Required val startedAt: kotlin.String?,
 
     /* When the session was finished. Null while the session is active. */
-    @SerialName(value = "ended_at") val endedAt: kotlin.String? = null,
+    @SerialName(value = "ended_at") @Required val endedAt: kotlin.String?,
 
-    @SerialName(value = "discussions") val discussions: kotlin.collections.List<DiscussionDto>? = null,
+    @SerialName(value = "discussions") @Required val discussions: kotlin.collections.List<DiscussionDto>,
+
+    @SerialName(value = "club") val club: SessionClubDto? = null,
 
     /* Participation roster, as embedded within a club response's active_session. */
     @SerialName(value = "members") val members: kotlin.collections.List<SessionParticipantSummaryDto>? = null

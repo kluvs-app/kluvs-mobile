@@ -15,9 +15,6 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.ClubMemberDto
-import com.ivangarzab.kluvs.api.models.PastSessionDto
-import com.ivangarzab.kluvs.api.models.SessionDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -33,9 +30,6 @@ import kotlinx.serialization.encoding.*
  * @param serverId Parent server ID
  * @param foundedDate 
  * @param inviteToken Active invite token UUID (present when join_policy is INVITE_LINK, null otherwise).
- * @param members Club members with their per-club role.
- * @param activeSession 
- * @param pastSessions 
  * @param shameList Array of member IDs on shame list
  */
 @Serializable
@@ -59,13 +53,6 @@ data class ClubDto (
 
     /* Active invite token UUID (present when join_policy is INVITE_LINK, null otherwise). */
     @SerialName(value = "invite_token") val inviteToken: kotlin.String? = null,
-
-    /* Club members with their per-club role. */
-    @SerialName(value = "members") val members: kotlin.collections.List<ClubMemberDto>? = null,
-
-    @SerialName(value = "active_session") val activeSession: SessionDto? = null,
-
-    @SerialName(value = "past_sessions") val pastSessions: kotlin.collections.List<PastSessionDto>? = null,
 
     /* Array of member IDs on shame list */
     @SerialName(value = "shame_list") val shameList: kotlin.collections.List<kotlin.Int>? = null

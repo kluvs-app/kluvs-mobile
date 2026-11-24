@@ -30,10 +30,10 @@ import kotlinx.serialization.encoding.*
 
 data class LikeToggleResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
     /* New state after toggle (true = just liked, false = just unliked) */
-    @SerialName(value = "liked") val liked: kotlin.Boolean? = null
+    @SerialName(value = "liked") @Required val liked: kotlin.Boolean
 
 ) {
 

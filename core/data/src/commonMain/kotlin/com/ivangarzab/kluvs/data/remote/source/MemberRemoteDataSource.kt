@@ -92,7 +92,7 @@ class MemberRemoteDataSourceImpl(
     override suspend fun createMember(request: MemberCreateRequestDto): Result<Member> {
         return try {
             val response = memberService.create(request)
-            val member = response.member ?: error("Member creation response missing member data")
+            val member = response.member
             Bark.i("Member created (ID: ${member.id})")
             Result.success(member.toDomain())
         } catch (e: Exception) {
@@ -104,9 +104,12 @@ class MemberRemoteDataSourceImpl(
     override suspend fun updateMember(request: MemberUpdateRequestDto): Result<Member> {
         return try {
             val response = memberService.update(request)
-            val member = response.member ?: error("Member update response missing member data")
+            // A no-op update ("No changes to apply") succeeds without echoing the member,
+            // so fetch the current one to keep returning it.
+            val member = response.member?.toDomain()
+                ?: memberService.get(request.id.toString()).toDomain()
             Bark.i("Member updated (ID: ${request.id})")
-            Result.success(member.toDomain())
+            Result.success(member)
         } catch (e: Exception) {
             Bark.e("Failed to update member (ID: ${request.id}). Please retry.", e)
             Result.failure(e)

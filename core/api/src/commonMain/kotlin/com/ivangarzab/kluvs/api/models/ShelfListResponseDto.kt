@@ -31,9 +31,9 @@ import kotlinx.serialization.encoding.*
 
 data class ShelfListResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "shelves") val shelves: kotlin.collections.List<ShelfEntryDto>? = null
+    @SerialName(value = "shelves") @Required val shelves: kotlin.collections.List<ShelfEntryDto>
 
 ) {
 

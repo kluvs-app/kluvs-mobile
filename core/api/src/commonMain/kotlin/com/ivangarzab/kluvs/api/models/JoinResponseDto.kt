@@ -30,9 +30,9 @@ import kotlinx.serialization.encoding.*
 
 data class JoinResponseDto (
 
-    @SerialName(value = "success") val success: kotlin.Boolean? = null,
+    @SerialName(value = "success") @Required val success: kotlin.Boolean,
 
-    @SerialName(value = "club_id") val clubId: kotlin.String? = null
+    @SerialName(value = "club_id") @Required val clubId: kotlin.String
 
 ) {
 

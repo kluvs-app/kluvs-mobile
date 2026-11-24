@@ -15,9 +15,6 @@
 
 package com.ivangarzab.kluvs.api.models
 
-import com.ivangarzab.kluvs.api.models.ClubMemberDto
-import com.ivangarzab.kluvs.api.models.PastSessionDto
-import com.ivangarzab.kluvs.api.models.SessionDto
 
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
@@ -29,15 +26,13 @@ import kotlinx.serialization.encoding.*
  * @param id 
  * @param name 
  * @param joinPolicy Controls how new members can join. PRIVATE = by admin only; INVITE_LINK = anyone with the link.
+ * @param role Member's role in this specific club
+ * @param joinedAt When the member joined this club (server-set, read-only)
  * @param discordChannel Discord channel ID
  * @param serverId Parent server ID
  * @param foundedDate 
  * @param inviteToken Active invite token UUID (present when join_policy is INVITE_LINK, null otherwise).
- * @param members Club members with their per-club role.
- * @param activeSession 
- * @param pastSessions 
  * @param shameList Array of member IDs on shame list
- * @param role Member's role in this specific club
  */
 @Serializable
 
@@ -50,6 +45,12 @@ data class MemberClubEntryDto (
     /* Controls how new members can join. PRIVATE = by admin only; INVITE_LINK = anyone with the link. */
     @SerialName(value = "join_policy") @Required val joinPolicy: MemberClubEntryDto.JoinPolicy = JoinPolicy.PRIVATE,
 
+    /* Member's role in this specific club */
+    @SerialName(value = "role") @Required val role: MemberClubEntryDto.Role,
+
+    /* When the member joined this club (server-set, read-only) */
+    @SerialName(value = "joined_at") @Required val joinedAt: kotlin.String,
+
     /* Discord channel ID */
     @SerialName(value = "discord_channel") val discordChannel: kotlin.String? = null,
 
@@ -61,18 +62,8 @@ data class MemberClubEntryDto (
     /* Active invite token UUID (present when join_policy is INVITE_LINK, null otherwise). */
     @SerialName(value = "invite_token") val inviteToken: kotlin.String? = null,
 
-    /* Club members with their per-club role. */
-    @SerialName(value = "members") val members: kotlin.collections.List<ClubMemberDto>? = null,
-
-    @SerialName(value = "active_session") val activeSession: SessionDto? = null,
-
-    @SerialName(value = "past_sessions") val pastSessions: kotlin.collections.List<PastSessionDto>? = null,
-
     /* Array of member IDs on shame list */
-    @SerialName(value = "shame_list") val shameList: kotlin.collections.List<kotlin.Int>? = null,
-
-    /* Member's role in this specific club */
-    @SerialName(value = "role") val role: MemberClubEntryDto.Role? = null
+    @SerialName(value = "shame_list") val shameList: kotlin.collections.List<kotlin.Int>? = null
 
 ) {
 

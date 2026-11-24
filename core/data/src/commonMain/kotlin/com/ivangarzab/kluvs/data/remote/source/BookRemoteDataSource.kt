@@ -42,8 +42,8 @@ class BookRemoteDataSourceImpl(
     override suspend fun searchBooks(query: String, offset: Int): Result<BookSearchResult> {
         return try {
             val response = bookService.search(query, offset = offset)
-            val books = response.books ?: emptyList()
-            val total = response.total ?: 0
+            val books = response.books
+            val total = response.total
             Bark.i("Book search returned ${books.size} results (query: \"$query\", offset: $offset, total: $total)")
             Result.success(BookSearchResult(books = books.map { it.toDomain() }, total = total))
         } catch (e: Exception) {
@@ -65,7 +65,7 @@ class BookRemoteDataSourceImpl(
                     externalGoogleId = book.externalGoogleId
                 )
             )
-            val registeredBook = response.book ?: error("Book registration response missing book data")
+            val registeredBook = response.book
             Bark.i("Book registered (created=${response.created}): ${book.title}")
             Result.success(registeredBook.toDomain())
         } catch (e: Exception) {

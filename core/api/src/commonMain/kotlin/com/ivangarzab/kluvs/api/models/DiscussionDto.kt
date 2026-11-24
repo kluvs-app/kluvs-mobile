@@ -43,7 +43,7 @@ data class DiscussionDto (
     @SerialName(value = "scheduled_at") @Required val scheduledAt: kotlin.String,
 
     /* Discussion location or platform */
-    @SerialName(value = "location") val location: kotlin.String? = null
+    @SerialName(value = "location") @Required val location: kotlin.String?
 
 ) {
 

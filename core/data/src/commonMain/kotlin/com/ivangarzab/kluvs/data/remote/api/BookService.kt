@@ -42,7 +42,7 @@ internal class BookServiceImpl(private val supabase: SupabaseClient) : BookServi
                     if (offset != null) parameters.append("offset", offset.toString())
                 }
             }.body<BookSearchResponseDto>()
-            Bark.v("Book search returned ${response.books?.size ?: 0} results")
+            Bark.v("Book search returned ${response.books.size} results")
             response
         } catch (error: Exception) {
             Bark.e("Failed to search books (query: \"$query\"). Check network/API status.", error)

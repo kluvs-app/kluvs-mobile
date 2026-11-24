@@ -32,11 +32,11 @@ import kotlinx.serialization.encoding.*
 
 data class ServerGetSingleResponseDto (
 
-    @SerialName(value = "id") val id: kotlin.String? = null,
+    @SerialName(value = "id") @Required val id: kotlin.String,
 
-    @SerialName(value = "name") val name: kotlin.String? = null,
+    @SerialName(value = "name") @Required val name: kotlin.String,
 
-    @SerialName(value = "clubs") val clubs: kotlin.collections.List<ServerClubSummaryDto>? = null
+    @SerialName(value = "clubs") @Required val clubs: kotlin.collections.List<ServerClubSummaryDto>
 
 ) {
 

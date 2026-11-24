@@ -38,15 +38,6 @@ class LikeRemoteDataSourceTest {
     }
 
     @Test
-    fun `getLikeStatus fails when liked flag is missing`() = runTest {
-        everySuspend { likeService.getStatus(5) } returns LikeStatusResponseDto(success = true)
-
-        val result = dataSource.getLikeStatus(5)
-
-        assertTrue(result.isFailure)
-    }
-
-    @Test
     fun `toggleLike returns new liked state`() = runTest {
         val request = LikeToggleRequestDto(bookId = 5)
         everySuspend { likeService.toggle(request) } returns LikeToggleResponseDto(
