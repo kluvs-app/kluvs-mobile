@@ -163,7 +163,7 @@ internal class MemberRepositoryImpl(
         }
 
         Bark.d("Fetching member from remote (User ID: $userId)")
-        val result = memberRemoteDataSource.getMemberByUserId(userId)
+        val result = timedRemote("member (User ID: $userId)") { memberRemoteDataSource.getMemberByUserId(userId) }
 
         result.onSuccess { member ->
             Bark.v("Persisting member to cache (ID: ${member.id})")

@@ -120,11 +120,13 @@ internal class ProgressRepositoryImpl(
         }
         Bark.d("Cache miss for progress entries")
 
-        val result = progressRemoteDataSource.getProgress(
-            bookId = bookIdInt,
-            sessionId = sessionId,
-            status = status?.toQueryValue()
-        )
+        val result = timedRemote("progress entries (Session ID: $sessionId, Book ID: $bookId)") {
+            progressRemoteDataSource.getProgress(
+                bookId = bookIdInt,
+                sessionId = sessionId,
+                status = status?.toQueryValue()
+            )
+        }
 
         result.onSuccess { entries ->
             Bark.v("Persisting ${entries.size} progress entries to cache")

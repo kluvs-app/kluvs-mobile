@@ -123,7 +123,7 @@ internal class ClubRepositoryImpl(
 
         // 2. Fetch from remote
         Bark.d("Fetching club (ID: $clubId) from remote")
-        val result = clubRemoteDataSource.getClub(clubId, serverId)
+        val result = timedRemote("club (ID: $clubId)") { clubRemoteDataSource.getClub(clubId, serverId) }
 
         // 3. Cache on success
         result.onSuccess { club ->
