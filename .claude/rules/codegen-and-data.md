@@ -25,7 +25,7 @@ paths:
   - Merge order: squash-merge the regen PR, retarget the fix PR to `develop`, then squash-merge it. The spec update and its fixes land as two consecutive commits.
   - Don't cut the fix branch from `develop` and merge the regen branch into it. That hides the regen PR inside the fix PR.
 - Follow-up work that doesn't depend on the regen PR goes on your own branch off `develop`.
-- The bot PR is opened with `GITHUB_TOKEN`, so `pull_request` workflows don't run on it. To get unit tests, trigger them manually or close and reopen the PR.
+- The bot PR is opened by the `kluvs-spec-bot` GitHub App, so `pull_request` workflows (unit tests) run on it automatically.
 - Keep `ref: develop` on the workflow's checkout step. `repository_dispatch` runs from the default branch (`main`). Without the pin, the generator runs against `main`'s stale Gradle config and regresses the output.
 
 ## Mapping

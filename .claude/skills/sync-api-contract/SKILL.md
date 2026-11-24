@@ -85,7 +85,7 @@ The sync from `kluvs-backend` → `kluvs-api` → `kluvs-mobile` is a live,
 three-hop GitHub Actions chain today (see `../CLAUDE.md`'s "API Contract
 (`kluvs-api`)" section for the full trigger/dispatch details). Once a backend
 change is released (merged to backend's `main`, not just `develop`), a bot
-PR titled `chore: regenerate api models from spec <sha>` (branch
+PR titled `chore(api): regenerate models from kluvs-api@<short-sha>` (branch
 `chore/regenerate-api-models`) appears against **this repo's `develop`**,
 containing exactly the regenerated `core/api/openapi.json` +
 `core/api/src/commonMain/.../api/models/**` diff — nothing else.
