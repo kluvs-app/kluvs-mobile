@@ -14,6 +14,10 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -420,5 +424,20 @@ class ClubRepositoryTest {
         val result = repository.getClub("club-123")
 
         assertTrue(result.isFailure)
+    }
+
+    // ========================================
+    // KT-338: SINGLE-FLIGHT READS
+    // ========================================
+
+    @Test
+    fun `concurrent getClub calls for the same club share one remote request`() = runTest {
+        val club = Club(id = "club-123", name = "Sci-Fi Club", members = emptyList())
+        everySuspend { remoteDataSource.getClub("club-123", null) } calls { delay(100); Result.success(club) }
+
+        val results = List(3) { async { repository.getClub("club-123", forceRefresh = true) } }.awaitAll()
+
+        results.forEach { assertEquals(club, it.getOrNull()) }
+        verifySuspend(VerifyMode.exactly(1)) { remoteDataSource.getClub("club-123", null) }
     }
 }

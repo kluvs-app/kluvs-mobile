@@ -116,6 +116,8 @@ internal class MemberRepositoryImpl(
     private val cachePolicy: CachePolicy
 ) : MemberRepository {
 
+    private val memberByUserIdFetches = SingleFlight<String, Result<Member>>()
+
     override suspend fun getMember(memberId: String, forceRefresh: Boolean): Result<Member> {
         if (!forceRefresh) {
             val cachedMember = memberLocalDataSource.getMember(memberId)
@@ -162,6 +164,12 @@ internal class MemberRepositoryImpl(
             Bark.d("Cache miss for user (ID: $userId)")
         }
 
+        // The Me screen reads the signed-in member from several UseCases at once, so concurrent
+        // fetches for one user share a single request.
+        return memberByUserIdFetches.run(userId) { fetchMemberByUserId(userId) }
+    }
+
+    private suspend fun fetchMemberByUserId(userId: String): Result<Member> {
         Bark.d("Fetching member from remote (User ID: $userId)")
         val result = timedRemote("member (User ID: $userId)") { memberRemoteDataSource.getMemberByUserId(userId) }
 

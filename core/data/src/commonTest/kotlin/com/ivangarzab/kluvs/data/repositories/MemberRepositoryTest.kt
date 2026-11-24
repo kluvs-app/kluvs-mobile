@@ -13,6 +13,10 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
+import dev.mokkery.answering.calls
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -518,5 +522,20 @@ class MemberRepositoryTest {
         val result = repository.removeMemberFromClub("123", "club-1")
 
         assertTrue(result.isSuccess)
+    }
+
+    // ========================================
+    // KT-338: SINGLE-FLIGHT READS
+    // ========================================
+
+    @Test
+    fun `concurrent getMemberByUserId calls for the same user share one remote request`() = runTest {
+        val member = Member(id = "member-123", name = "John", booksRead = 3, userId = "user-789")
+        everySuspend { remoteDataSource.getMemberByUserId("user-789") } calls { delay(100); Result.success(member) }
+
+        val results = List(3) { async { repository.getMemberByUserId("user-789", forceRefresh = true) } }.awaitAll()
+
+        results.forEach { assertEquals(member, it.getOrNull()) }
+        verifySuspend(VerifyMode.exactly(1)) { remoteDataSource.getMemberByUserId("user-789") }
     }
 }

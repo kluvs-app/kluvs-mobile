@@ -99,6 +99,8 @@ internal class ClubRepositoryImpl(
     private val cachePolicy: CachePolicy
 ) : ClubRepository {
 
+    private val clubFetches = SingleFlight<Pair<String, String?>, Result<Club>>()
+
     override suspend fun getClub(clubId: String, serverId: String?, forceRefresh: Boolean): Result<Club> {
         // 1. Check local cache (unless force refresh)
         if (!forceRefresh) {
@@ -121,7 +123,12 @@ internal class ClubRepositoryImpl(
             Bark.d("Cache miss for club (ID: $clubId)")
         }
 
-        // 2. Fetch from remote
+        // 2. Fetch from remote. The club screen reads the same club from several UseCases at
+        // once, so concurrent fetches for one club share a single request.
+        return clubFetches.run(clubId to serverId) { fetchClub(clubId, serverId) }
+    }
+
+    private suspend fun fetchClub(clubId: String, serverId: String?): Result<Club> {
         Bark.d("Fetching club (ID: $clubId) from remote")
         val result = timedRemote("club (ID: $clubId)") { clubRemoteDataSource.getClub(clubId, serverId) }
 
