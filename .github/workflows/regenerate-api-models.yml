@@ -5,20 +5,26 @@
 # Triggered by:
 #   - repository_dispatch[api-spec-updated] — sent by kluvs-api's
 #     notify-consumers.yml whenever openapi.json changes on its main branch.
-#   - workflow_dispatch — for manual testing without waiting on a real spec change.
+#   - workflow_dispatch — for manual runs (any kluvs-api ref; defaults to main).
 #
 # No spec blob arrives in the dispatch payload (source_sha + source_repo only) —
 # this workflow fetches openapi.json directly from kluvs-api at that SHA, the
 # same fetch-don't-forward pattern kluvs-api itself uses when pulling from
 # kluvs-backend.
 #
+# The PR is opened with a GitHub App installation token (kluvs-spec-bot), not GITHUB_TOKEN,
+# so pull_request workflows (unit tests) run on it with no "Approve and run" step. Tokens
+# are minted per run, expire within the hour, and are scoped to the one repo and permission
+# each step needs.
+#
 # Human review/merge of the opened PR is the only manual step in the pipeline.
+# chore/regenerate-api-models is a CI force-push target. Never commit manual work there.
 #
 # Secrets required:
-#   API_SPEC_FETCH_PAT — fine-grained PAT with Contents: Read on kluvs-api only.
-#     Pushing the branch and opening the PR here in kluvs-mobile uses the
-#     workflow's own GITHUB_TOKEN (see permissions: below) — no PAT scope
-#     needed on this repo.
+#   SPEC_BOT_CLIENT_ID, SPEC_BOT_PRIVATE_KEY — org secrets for the kluvs-spec-bot GitHub
+#     App (Contents read/write, Pull requests read/write; installed on kluvs-api and
+#     kluvs-mobile).
+#   SUPABASE_INTEGRATION_URL/KEY, SENTRY_DNS — only for Gradle configuration (see below).
 #
 
 name: Regenerate API Models
@@ -28,15 +34,14 @@ on:
     types: [api-spec-updated]
   workflow_dispatch:
     inputs:
-      source_sha:
+      source_ref:
         description: "kluvs-api ref to fetch openapi.json from (commit SHA or branch name, e.g. main)"
         required: false
         default: "main"
         type: string
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   regenerate:
@@ -58,23 +63,34 @@ jobs:
         with:
           ref: develop
 
-      - name: Resolve source ref
+      - name: Mint read-only kluvs-api token
+        id: api-token
+        # actions/create-github-app-token v3.4.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc
+        with:
+          client-id: ${{ secrets.SPEC_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SPEC_BOT_PRIVATE_KEY }}
+          owner: kluvs-app
+          repositories: kluvs-api
+          permission-contents: read
+
+      - name: Resolve kluvs-api commit
         id: source
         env:
-          DISPATCH_SHA: ${{ github.event.client_payload.source_sha }}
-          MANUAL_REF: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ steps.api-token.outputs.token }}
+          REF: ${{ github.event.client_payload.source_sha || inputs.source_ref || 'main' }}
         run: |
-          echo "ref=${DISPATCH_SHA:-$MANUAL_REF}" >> "$GITHUB_OUTPUT"
+          SHA=$(gh api "repos/kluvs-app/kluvs-api/commits/${REF}" --jq .sha)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch openapi.json from kluvs-api
         env:
-          SOURCE_REF: ${{ steps.source.outputs.ref }}
+          GH_TOKEN: ${{ steps.api-token.outputs.token }}
+          SHA: ${{ steps.source.outputs.sha }}
         run: |
-          curl -fSs \
-            -H "Authorization: token ${{ secrets.API_SPEC_FETCH_PAT }}" \
-            -H "Accept: application/vnd.github.raw+json" \
-            "https://api.github.com/repos/kluvs-app/kluvs-api/contents/openapi.json?ref=${SOURCE_REF}" \
-            -o core/api/openapi.json
+          gh api "repos/kluvs-app/kluvs-api/contents/openapi.json?ref=${SHA}" \
+            -H "Accept: application/vnd.github.raw+json" > core/api/openapi.json
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -93,16 +109,31 @@ jobs:
       - name: Regenerate models
         run: ./gradlew :core:api:openApiGenerate -Pbuildkonfig.flavor=integration
 
+      - name: Mint kluvs-mobile PR token
+        id: pr-token
+        # actions/create-github-app-token v3.4.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc
+        with:
+          client-id: ${{ secrets.SPEC_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SPEC_BOT_PRIVATE_KEY }}
+          owner: kluvs-app
+          repositories: kluvs-mobile
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Open PR with regenerated models
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ steps.pr-token.outputs.token }}
           base: develop
           branch: chore/regenerate-api-models
           delete-branch: true
-          commit-message: "chore: regenerate api models from spec ${{ steps.source.outputs.ref }}"
-          title: "chore: regenerate api models from spec ${{ steps.source.outputs.ref }}"
+          commit-message: "chore(api): regenerate models from kluvs-api@${{ steps.source.outputs.short }}"
+          title: "chore(api): regenerate models from kluvs-api@${{ steps.source.outputs.short }}"
           body: |
-            Regenerated `:core:api` DTOs from [`kluvs-api@${{ steps.source.outputs.ref }}`](https://github.com/kluvs-app/kluvs-api/commit/${{ steps.source.outputs.ref }}).
+            Regenerated `:core:api` DTOs from [`kluvs-api@${{ steps.source.outputs.short }}`](https://github.com/kluvs-app/kluvs-api/commit/${{ steps.source.outputs.sha }}).
+
+            Unit tests run on this PR. If the app needs code changes, stack a fix PR on this branch (`--base chore/regenerate-api-models`); never commit to it directly.
 
             Opened automatically by `regenerate-api-models.yml` — review the diff and merge.
           add-paths: |
