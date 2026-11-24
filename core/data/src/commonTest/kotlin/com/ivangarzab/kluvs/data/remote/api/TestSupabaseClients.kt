@@ -11,7 +11,6 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.setMain
 
 /**
@@ -34,8 +33,9 @@ const val TEST_USER_MEMBER_ID = 1
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun createUserAuthedSupabaseClient(): SupabaseClient {
     // The Auth plugin dispatches session events on Dispatchers.Main, which has no
-    // platform implementation on the test JVM — substitute a test dispatcher.
-    Dispatchers.setMain(UnconfinedTestDispatcher())
+    // platform implementation on the test JVM — substitute one. It must not be a test
+    // dispatcher: this is never reset, and later runTest calls would share its virtual clock.
+    Dispatchers.setMain(Dispatchers.Unconfined)
 
     val client = createSupabaseClient(
         supabaseUrl = BuildKonfig.TEST_SUPABASE_URL,

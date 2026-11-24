@@ -35,5 +35,5 @@ paths:
 
 ## Integration tests
 - Member-scoped endpoints (shelf, like, progress, discussion-note, attendance, join, reading log) return 403 to bot callers. Test them with `createUserAuthedSupabaseClient()` from `core/data/src/commonTest/.../remote/api/TestSupabaseClients.kt`, which signs in as a seeded user. Use `createBotSupabaseClient()` only for bot-allowed endpoints.
-- A user-authed client built by hand on the unit-test JVM needs what the helper sets: `MemorySessionManager`, `MemoryCodeVerifierCache`, `enableLifecycleCallbacks = false`, `Dispatchers.setMain(UnconfinedTestDispatcher())`.
+- A user-authed client built by hand on the unit-test JVM needs what the helper sets: `MemorySessionManager`, `MemoryCodeVerifierCache`, `enableLifecycleCallbacks = false`, `Dispatchers.setMain(Dispatchers.Unconfined)` (never a test dispatcher, which would leak its virtual clock into later tests).
 - When integration tests fail after a backend change, suspect stale seed references or unapplied migrations first. Only then suspect the DTOs. The user runs `npx supabase db reset` in `kluvs-backend`; never run it yourself.
