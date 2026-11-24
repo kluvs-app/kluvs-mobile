@@ -25,6 +25,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param title 
  * @param author 
+ * @param edition 
  * @param year 
  * @param isbn 
  * @param pageCount 
@@ -36,6 +37,8 @@ data class SessionInlineBookInputDto (
     @SerialName(value = "title") @Required val title: kotlin.String,
 
     @SerialName(value = "author") @Required val author: kotlin.String,
+
+    @SerialName(value = "edition") val edition: kotlin.String? = null,
 
     @SerialName(value = "year") val year: kotlin.Int? = null,
 

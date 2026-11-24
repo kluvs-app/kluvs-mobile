@@ -26,6 +26,7 @@ import kotlinx.serialization.encoding.*
  * 
  *
  * @param clubId The ID of the club hosting this session.
+ * @param id Optional session ID. Generated (UUID) when omitted.
  * @param bookId Preferred. The local DB ID of a pre-registered book (from POST /book).
  * @param dueDate Target date for finishing the book.
  * @param book 
@@ -38,6 +39,9 @@ data class SessionCreateRequestDto (
 
     /* The ID of the club hosting this session. */
     @SerialName(value = "club_id") @Required val clubId: kotlin.String,
+
+    /* Optional session ID. Generated (UUID) when omitted. */
+    @SerialName(value = "id") val id: kotlin.String? = null,
 
     /* Preferred. The local DB ID of a pre-registered book (from POST /book). */
     @SerialName(value = "book_id") val bookId: kotlin.Int? = null,
