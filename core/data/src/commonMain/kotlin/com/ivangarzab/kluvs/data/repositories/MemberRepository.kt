@@ -119,19 +119,27 @@ internal class MemberRepositoryImpl(
     private val memberByUserIdFetches = SingleFlight<String, Result<Member>>()
 
     override suspend fun getMember(memberId: String, forceRefresh: Boolean): Result<Member> {
+        val what = "member (ID: $memberId)"
+        val cachedMember = memberLocalDataSource.getMember(memberId)
         if (!forceRefresh) {
-            val cachedMember = memberLocalDataSource.getMember(memberId)
             val lastFetchedAt = memberLocalDataSource.getLastFetchedAt(memberId)
 
             if (cachedMember != null && !cachePolicy.isStale(lastFetchedAt, CacheTTL.MEMBER)) {
-                Bark.d("Cache hit for member (ID: $memberId)")
+                Bark.d("Cache hit for $what")
                 return Result.success(cachedMember)
             }
-            Bark.d("Cache miss for member (ID: $memberId)")
+            Bark.d("Cache miss for $what")
         }
 
-        Bark.d("Fetching member from remote (ID: $memberId)")
-        val result = memberRemoteDataSource.getMember(memberId)
+        if (cachedMember != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached $what without a network attempt")
+            return Result.success(cachedMember)
+        }
+
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = cachedMember != null) {
+            timedRemote(what) { memberRemoteDataSource.getMember(memberId) }
+        }
 
         result.onSuccess { member ->
             Bark.v("Persisting member to cache (ID: ${member.id})")
@@ -143,16 +151,14 @@ internal class MemberRepositoryImpl(
             }
         }
 
-        return result.recoverWithCache("member (ID: $memberId)") { memberLocalDataSource.getMember(memberId) }
+        return result.recoverWithCache(what) { cachedMember }
     }
 
     override suspend fun getMemberByUserId(userId: String, forceRefresh: Boolean): Result<Member> {
+        val cachedMember = memberLocalDataSource.getMemberByUserId(userId)
         if (forceRefresh) {
             Bark.d("Forced cache refresh for user (ID: $userId)")
-        }
-
-        if (!forceRefresh) {
-            val cachedMember = memberLocalDataSource.getMemberByUserId(userId)
+        } else {
             val lastFetchedAt = cachedMember?.let {
                 memberLocalDataSource.getLastFetchedAt(it.id)
             }
@@ -164,14 +170,22 @@ internal class MemberRepositoryImpl(
             Bark.d("Cache miss for user (ID: $userId)")
         }
 
+        if (cachedMember != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached member (User ID: $userId) without a network attempt")
+            return Result.success(cachedMember)
+        }
+
         // The Me screen reads the signed-in member from several UseCases at once, so concurrent
         // fetches for one user share a single request.
-        return memberByUserIdFetches.run(userId) { fetchMemberByUserId(userId) }
+        return memberByUserIdFetches.run(userId) { fetchMemberByUserId(userId, cachedMember) }
     }
 
-    private suspend fun fetchMemberByUserId(userId: String): Result<Member> {
-        Bark.d("Fetching member from remote (User ID: $userId)")
-        val result = timedRemote("member (User ID: $userId)") { memberRemoteDataSource.getMemberByUserId(userId) }
+    private suspend fun fetchMemberByUserId(userId: String, fallback: Member?): Result<Member> {
+        val what = "member (User ID: $userId)"
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = fallback != null) {
+            timedRemote(what) { memberRemoteDataSource.getMemberByUserId(userId) }
+        }
 
         result.onSuccess { member ->
             Bark.v("Persisting member to cache (ID: ${member.id})")
@@ -183,7 +197,7 @@ internal class MemberRepositoryImpl(
             }
         }
 
-        return result.recoverWithCache("member (User ID: $userId)") { memberLocalDataSource.getMemberByUserId(userId) }
+        return result.recoverWithCache(what) { fallback }
     }
 
     override suspend fun createMember(

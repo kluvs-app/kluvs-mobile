@@ -77,6 +77,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -1667,5 +1668,61 @@ class ClubDetailsViewModelTest {
 
         assertEquals(false, viewModel.state.value.isOperationInProgress)
         assertEquals("New Name", viewModel.state.value.currentClubDetails?.clubName)
+    }
+
+    // ========================================
+    // KT-344: CACHE-BACKED RELOAD AFTER DISCUSSION CHANGES
+    // ========================================
+
+    private fun clubWithActiveSession(clubId: String) = Club(
+        id = clubId, name = "Some Club", serverId = null, discordChannel = null,
+        members = emptyList(),
+        activeSession = Session(
+            id = "session-1",
+            clubId = clubId,
+            book = Book(id = "b1", title = "Dune", author = "Frank Herbert", edition = null, year = 1965, isbn = null),
+            dueDate = null,
+            discussions = emptyList()
+        ),
+        pastSessions = emptyList(), shameList = emptyList(), role = Role.OWNER
+    )
+
+    @Test
+    fun `onCreateDiscussion reloads the club from cache instead of forcing a refetch`() = runTest {
+        val clubId = "club-1"
+        val club = clubWithActiveSession(clubId)
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { discussionRepository.createDiscussion(any(), any(), any(), any()) } returns Result.success(
+            Discussion(id = "d1", sessionId = "session-1", title = "Ch. 1", date = LocalDateTime(2026, 12, 1, 19, 0))
+        )
+        viewModel.loadUserClubs("u1")
+
+        viewModel.onCreateDiscussion("Ch. 1", "Discord", LocalDateTime(2026, 12, 1, 19, 0))
+
+        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(false, viewModel.state.value.isOperationInProgress)
+        verifySuspend(VerifyMode.not) { clubRepository.getClub(clubId, forceRefresh = true) }
+    }
+
+    @Test
+    fun `cache-backed reload keeps the club on screen while it runs`() = runTest {
+        val clubId = "club-1"
+        val club = clubWithActiveSession(clubId)
+        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
+        everySuspend { clubRepository.getClub(clubId) } returns Result.success(club)
+        everySuspend { discussionRepository.deleteDiscussion(any()) } returns Result.success(Unit)
+        viewModel.loadUserClubs("u1")
+        val shownBefore = viewModel.state.value.currentClubDetails
+        val seen = mutableListOf<Boolean>()
+        val collector = backgroundScope.launch { viewModel.state.collect { seen += it.currentClubDetails != null } }
+
+        viewModel.onDeleteDiscussion("d1")
+
+        assertTrue(shownBefore != null)
+        assertEquals(false, seen.contains(false), "Club details should never be cleared during the reload")
+        collector.cancel()
     }
 }

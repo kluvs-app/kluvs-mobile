@@ -31,6 +31,7 @@ class SignOutUseCaseTest {
     private lateinit var database: KluvsDatabase
     private lateinit var clubDao: ClubDao
     private lateinit var bookEnrichmentDao: BookEnrichmentDao
+    private lateinit var progressDao: ProgressDao
     private lateinit var useCase: SignOutUseCase
 
     @BeforeTest
@@ -47,7 +48,7 @@ class SignOutUseCaseTest {
         val discussionDao = mock<DiscussionDao>()
         val shelfDao = mock<ShelfDao>()
         val likeDao = mock<LikeDao>()
-        val progressDao = mock<ProgressDao>()
+        progressDao = mock<ProgressDao>()
         val discussionNoteDao = mock<DiscussionNoteDao>()
         val discussionAttendanceDao = mock<DiscussionAttendanceDao>()
 
@@ -77,6 +78,7 @@ class SignOutUseCaseTest {
         everySuspend { shelfDao.deleteAll() } returns Unit
         everySuspend { likeDao.deleteAll() } returns Unit
         everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { progressDao.deleteAllQueries() } returns Unit
         everySuspend { discussionNoteDao.deleteAll() } returns Unit
         everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
 
@@ -148,5 +150,18 @@ class SignOutUseCaseTest {
 
         // Then
         verifySuspend { bookEnrichmentDao.deleteAll() }
+    }
+
+    @Test
+    fun `clears cached progress query timestamps on sign out`() = runTest {
+        // Given
+        everySuspend { authRepository.signOut() } returns Result.success(Unit)
+
+        // When
+        useCase()
+
+        // Then: otherwise the next account would get the previous one's "fetched, nothing
+        // there" progress results as cache hits
+        verifySuspend { progressDao.deleteAllQueries() }
     }
 }

@@ -128,6 +128,8 @@ class DatabaseMockFixture {
         everySuspend { progressDao.insertProgressEntries(any()) } returns Unit
         everySuspend { progressDao.deleteProgress(any()) } returns Unit
         everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { progressDao.insertQuery(any()) } returns Unit
+        everySuspend { progressDao.deleteAllQueries() } returns Unit
 
         everySuspend { discussionNoteDao.insertNote(any()) } returns Unit
         everySuspend { discussionNoteDao.deleteNote(any()) } returns Unit

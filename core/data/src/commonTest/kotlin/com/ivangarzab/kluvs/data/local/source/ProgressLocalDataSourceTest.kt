@@ -11,6 +11,8 @@ import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.ReadingProgress
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
+import dev.mokkery.matcher.matching
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -97,9 +99,33 @@ class ProgressLocalDataSourceTest {
     }
 
     @Test
-    fun `deleteAll clears all progress entries`() = runTest {
+    fun `deleteAll clears all progress entries and query timestamps`() = runTest {
         setup()
 
         dataSource.deleteAll()
+
+        verifySuspend { fixture.progressDao.deleteAll() }
+        verifySuspend { fixture.progressDao.deleteAllQueries() }
+    }
+
+    @Test
+    fun `query timestamps are keyed by every filter`() = runTest {
+        setup()
+        everySuspend { fixture.progressDao.getQueryLastFetchedAt("book=*|session=session-1|status=*") } returns 42L
+        everySuspend { fixture.progressDao.getQueryLastFetchedAt("book=*|session=session-1|status=READING") } returns null
+
+        assertEquals(42L, dataSource.getQueryLastFetchedAt(null, "session-1", null))
+        assertEquals(null, dataSource.getQueryLastFetchedAt(null, "session-1", "READING"))
+    }
+
+    @Test
+    fun `markQueryFetched stores the query timestamp`() = runTest {
+        setup()
+
+        dataSource.markQueryFetched(null, "session-1", null)
+
+        verifySuspend {
+            fixture.progressDao.insertQuery(matching { it.queryKey == "book=*|session=session-1|status=*" && it.lastFetchedAt > 0 })
+        }
     }
 }

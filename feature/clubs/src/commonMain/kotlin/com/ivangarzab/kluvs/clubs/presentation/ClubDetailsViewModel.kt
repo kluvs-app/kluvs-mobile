@@ -163,7 +163,14 @@ class ClubDetailsViewModel(
         loadClubData(clubId)
     }
 
-    fun loadClubData(clubId: String, forceRefresh: Boolean = false) {
+    fun loadClubData(clubId: String, forceRefresh: Boolean = false) =
+        loadClub(clubId, forceRefresh, isReload = forceRefresh)
+
+    /**
+     * @param isReload true when reloading the club already on screen (a refresh), which keeps
+     *        its content up instead of starting from a clean slate
+     */
+    private fun loadClub(clubId: String, forceRefresh: Boolean, isReload: Boolean) {
         currentClubId = clubId
 
         // Cancel any still-in-flight load for a previously-selected club — without this, a
@@ -173,11 +180,12 @@ class ClubDetailsViewModel(
         // narrow window where cancellation races with completion.
         loadClubDataJob?.cancel()
         loadClubDataJob = viewModelScope.launch {
-            // A forced refresh of the club already on screen keeps its content up while the
-            // refresh indicator spins; if the refresh then fails (e.g. offline) the content stays
-            // and the failure is reported through a snackbar instead of an error page.
+            // A reload of the club already on screen (a forced refresh, or the cache-backed
+            // reload after a discussion change) keeps its content up while it runs; if it then
+            // fails (e.g. offline) the content stays and the failure is reported through a
+            // snackbar instead of an error page.
             // Any other load (first load, switching clubs) starts from a clean slate.
-            val keepContent = forceRefresh &&
+            val keepContent = isReload &&
                 _state.value.currentClubDetails != null &&
                 _state.value.selectedClubId == clubId
             _state.update {
@@ -271,7 +279,7 @@ class ClubDetailsViewModel(
 
     fun refresh(forceRefresh: Boolean = false) {
         Bark.d("Refreshing club data (forceRefresh=$forceRefresh)")
-        currentClubId?.let { loadClubData(it, forceRefresh) }
+        currentClubId?.let { loadClub(it, forceRefresh, isReload = true) }
     }
 
     /**
@@ -647,7 +655,7 @@ class ClubDetailsViewModel(
     fun onCreateDiscussion(title: String, location: String, date: LocalDateTime) {
         val role = _state.value.userRole ?: return
         val sessionId = _state.value.activeSession?.sessionId ?: return
-        launchMutation("Discussion created") {
+        launchMutation("Discussion created", refreshFromCache = true) {
             createDiscussionUseCase(CreateDiscussionUseCase.Params(sessionId, title, location, date), role)
         }
     }
@@ -655,7 +663,7 @@ class ClubDetailsViewModel(
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, date: LocalDateTime?) {
         val role = _state.value.userRole ?: return
         _state.value.activeSession ?: return
-        launchMutation("Discussion updated") {
+        launchMutation("Discussion updated", refreshFromCache = true) {
             updateDiscussionUseCase(UpdateDiscussionUseCase.Params(discussionId, title, location, date), role)
         }
     }
@@ -663,7 +671,7 @@ class ClubDetailsViewModel(
     fun onDeleteDiscussion(discussionId: String) {
         val role = _state.value.userRole ?: return
         _state.value.activeSession ?: return
-        launchMutation("Discussion deleted") {
+        launchMutation("Discussion deleted", refreshFromCache = true) {
             deleteDiscussionUseCase(DeleteDiscussionUseCase.Params(discussionId), role)
         }
     }
@@ -931,8 +939,16 @@ class ClubDetailsViewModel(
     /**
      * Shared mutation runner: sets loading flags, invokes [block], and handles
      * success/failure by updating [operationResult] and triggering a refresh.
+     *
+     * [refreshFromCache] is for mutations whose repository writes the result into the cache
+     * (discussions): the reload reads the cache instead of forcing a full refetch. Every other
+     * mutation forces one.
      */
-    private fun launchMutation(successMessage: String, block: suspend () -> Result<*>) {
+    private fun launchMutation(
+        successMessage: String,
+        refreshFromCache: Boolean = false,
+        block: suspend () -> Result<*>
+    ) {
         viewModelScope.launch {
             _state.update { it.copy(isOperationInProgress = true) }
             val result = block()
@@ -942,7 +958,7 @@ class ClubDetailsViewModel(
                     // on until the follow-up refetch lands; otherwise the screen sits unchanged
                     // (and looks like nothing happened) while the club reloads.
                     _state.update { it.copy(operationResult = OperationResult.Success(successMessage)) }
-                    refresh(forceRefresh = true)
+                    refresh(forceRefresh = !refreshFromCache)
                     loadClubDataJob?.join()
                     _state.update { it.copy(isOperationInProgress = false) }
                 }

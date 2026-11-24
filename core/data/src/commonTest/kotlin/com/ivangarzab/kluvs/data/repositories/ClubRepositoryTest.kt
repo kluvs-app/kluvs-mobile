@@ -23,6 +23,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -439,5 +440,59 @@ class ClubRepositoryTest {
 
         results.forEach { assertEquals(club, it.getOrNull()) }
         verifySuspend(VerifyMode.exactly(1)) { remoteDataSource.getClub("club-123", null) }
+    }
+
+    // ========================================
+    // KT-344: OFFLINE-AWARE READS
+    // ========================================
+
+    @Test
+    fun `getClub offline serves a complete cached club without a network attempt`() = runTest {
+        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, memberLocalDataSource, CachePolicy(isOffline = { true }))
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+
+        val result = repository.getClub("club-123")
+
+        assertEquals(cached, result.getOrNull())
+        verifySuspend(VerifyMode.not) { remoteDataSource.getClub(any(), any()) }
+    }
+
+    @Test
+    fun `getClub offline forced refresh still tries the network`() = runTest {
+        repository = ClubRepositoryImpl(remoteDataSource, localDataSource, memberLocalDataSource, CachePolicy(isOffline = { true }))
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+        everySuspend { remoteDataSource.getClub("club-123", null) } returns Result.failure(Exception("offline"))
+
+        val result = repository.getClub("club-123", forceRefresh = true)
+
+        assertEquals(cached, result.getOrNull())
+        verifySuspend { remoteDataSource.getClub("club-123", null) }
+    }
+
+    @Test
+    fun `getClub serves the cached club when a fetch hangs past the fallback timeout`() = runTest {
+        val cached = Club(id = "club-123", name = "Cached", members = emptyList())
+        everySuspend { localDataSource.getClub("club-123") } returns cached
+        everySuspend { remoteDataSource.getClub("club-123", null) } calls {
+            delay(10.seconds)
+            Result.success(Club(id = "club-123", name = "Fresh", members = emptyList()))
+        }
+
+        val result = repository.getClub("club-123", forceRefresh = true)
+
+        assertEquals(cached, result.getOrNull())
+        assertEquals(CachePolicy.FALLBACK_TIMEOUT.inWholeMilliseconds, testScheduler.currentTime)
+    }
+
+    @Test
+    fun `getClub without a cached club waits for a slow fetch`() = runTest {
+        val fresh = Club(id = "club-123", name = "Fresh", members = emptyList())
+        everySuspend { remoteDataSource.getClub("club-123", null) } calls { delay(10.seconds); Result.success(fresh) }
+
+        val result = repository.getClub("club-123")
+
+        assertEquals(fresh, result.getOrNull())
     }
 }

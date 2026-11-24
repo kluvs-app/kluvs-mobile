@@ -6,6 +6,7 @@ import com.ivangarzab.kluvs.data.local.source.DiscussionLocalDataSource
 import com.ivangarzab.kluvs.data.remote.source.DiscussionRemoteDataSource
 import com.ivangarzab.kluvs.model.Discussion
 import dev.mokkery.answering.returns
+import dev.mokkery.answering.throws
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
@@ -38,6 +39,7 @@ class DiscussionRepositoryTest {
         repository = DiscussionRepositoryImpl(remoteDataSource, localDataSource)
 
         everySuspend { localDataSource.deleteDiscussion(any()) } returns Unit
+        everySuspend { localDataSource.upsertDiscussion(any()) } returns true
         everySuspend { localDataSource.markClubStaleForSession(any()) } returns Unit
         everySuspend { localDataSource.markClubStaleForDiscussion(any()) } returns Unit
     }
@@ -105,21 +107,35 @@ class DiscussionRepositoryTest {
     }
 
     @Test
-    fun `createDiscussion success marks the owning club stale`() = runTest {
-        everySuspend { remoteDataSource.createDiscussion(any()) } returns Result.success(testDiscussion)
+    fun `createDiscussion success writes the discussion into the cached session`() = runTest {
+        everySuspend { remoteDataSource.createDiscussion(any()) } returns Result.success(testDiscussion.copy(sessionId = null))
 
         repository.createDiscussion("session-1", "Introduction", LocalDateTime.parse("2026-08-01T18:00:00"))
 
+        // A response without a session ID falls back to the session it was created in
+        verifySuspend { localDataSource.upsertDiscussion(testDiscussion.copy(sessionId = "session-1")) }
+        verifySuspend(VerifyMode.not) { localDataSource.markClubStaleForSession(any()) }
+    }
+
+    @Test
+    fun `createDiscussion marks the owning club stale when the cache write fails`() = runTest {
+        everySuspend { remoteDataSource.createDiscussion(any()) } returns Result.success(testDiscussion)
+        everySuspend { localDataSource.upsertDiscussion(any()) } throws IllegalStateException("disk full")
+
+        val result = repository.createDiscussion("session-1", "Introduction", LocalDateTime.parse("2026-08-01T18:00:00"))
+
+        assertTrue(result.isSuccess)
         verifySuspend { localDataSource.markClubStaleForSession("session-1") }
     }
 
     @Test
-    fun `updateDiscussion success marks the owning club stale`() = runTest {
+    fun `updateDiscussion success writes the discussion into the cached session`() = runTest {
         everySuspend { remoteDataSource.updateDiscussion(any()) } returns Result.success(testDiscussion)
 
         repository.updateDiscussion("discussion-1", title = "New Title")
 
-        verifySuspend { localDataSource.markClubStaleForDiscussion("discussion-1") }
+        verifySuspend { localDataSource.upsertDiscussion(testDiscussion) }
+        verifySuspend(VerifyMode.not) { localDataSource.markClubStaleForDiscussion(any()) }
     }
 
     @Test

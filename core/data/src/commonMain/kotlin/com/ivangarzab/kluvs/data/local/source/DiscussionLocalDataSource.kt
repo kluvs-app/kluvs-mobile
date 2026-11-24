@@ -1,7 +1,9 @@
 package com.ivangarzab.kluvs.data.local.source
 
 import com.ivangarzab.bark.Bark
+import com.ivangarzab.kluvs.data.local.mappers.toEntity
 import com.ivangarzab.kluvs.database.KluvsDatabase
+import com.ivangarzab.kluvs.model.Discussion
 
 /**
  * Local data source for Discussion cache maintenance.
@@ -10,6 +12,15 @@ import com.ivangarzab.kluvs.database.KluvsDatabase
  * back through it; this source only keeps that cache honest after discussion mutations.
  */
 interface DiscussionLocalDataSource {
+
+    /**
+     * Writes a created or updated discussion into its cached session, so the owning club's next
+     * cached read shows it without a refetch. Its session comes from [Discussion.sessionId], or
+     * else from the discussion's existing cached row.
+     *
+     * @return false when that session isn't cached, so there is nothing to update
+     */
+    suspend fun upsertDiscussion(discussion: Discussion): Boolean
 
     /** Removes a deleted discussion's cached row so it can't come back on a cached club read. */
     suspend fun deleteDiscussion(discussionId: String)
@@ -31,6 +42,17 @@ class DiscussionLocalDataSourceImpl(
     private val discussionDao = database.discussionDao()
     private val sessionDao = database.sessionDao()
     private val clubDao = database.clubDao()
+
+    override suspend fun upsertDiscussion(discussion: Discussion): Boolean {
+        val sessionId = discussion.sessionId ?: discussionDao.getDiscussion(discussion.id)?.sessionId
+        if (sessionId == null || sessionDao.getSession(sessionId) == null) {
+            Bark.v("No cached session for discussion (ID: ${discussion.id}); nothing to update")
+            return false
+        }
+        Bark.v("Writing discussion (ID: ${discussion.id}) into cached session (ID: $sessionId)")
+        discussionDao.insertDiscussion(discussion.toEntity().copy(sessionId = sessionId))
+        return true
+    }
 
     override suspend fun deleteDiscussion(discussionId: String) {
         Bark.v("Removing discussion (ID: $discussionId) from database")

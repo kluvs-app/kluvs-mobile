@@ -133,6 +133,7 @@ class MeViewModelTest {
         everySuspend { shelfDao.deleteAll() } returns Unit
         everySuspend { likeDao.deleteAll() } returns Unit
         everySuspend { progressDao.deleteAll() } returns Unit
+        everySuspend { progressDao.deleteAllQueries() } returns Unit
         everySuspend { discussionNoteDao.deleteAll() } returns Unit
         everySuspend { discussionAttendanceDao.deleteAll() } returns Unit
 

@@ -28,6 +28,7 @@ import com.ivangarzab.kluvs.database.entities.DiscussionNoteEntity
 import com.ivangarzab.kluvs.database.entities.LikeEntity
 import com.ivangarzab.kluvs.database.entities.MemberEntity
 import com.ivangarzab.kluvs.database.entities.ProgressEntity
+import com.ivangarzab.kluvs.database.entities.ProgressQueryEntity
 import com.ivangarzab.kluvs.database.entities.ServerEntity
 import com.ivangarzab.kluvs.database.entities.SessionEntity
 import com.ivangarzab.kluvs.database.entities.SessionMemberEntity
@@ -77,10 +78,11 @@ interface KluvsDatabase {
         ShelfEntity::class,
         LikeEntity::class,
         ProgressEntity::class,
+        ProgressQueryEntity::class,
         DiscussionNoteEntity::class,
         DiscussionAttendanceEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @ConstructedBy(KluvsDatabaseConstructor::class)
