@@ -26,11 +26,13 @@ import kotlinx.serialization.encoding.*
  * 
  *
  * @param name 
+ * @param id Optional club ID. Generated (UUID) when omitted.
  * @param serverId Optional Discord Server ID.
  * @param discordChannel 
  * @param foundedDate 
  * @param ownerMemberId Bot (service role) callers only: ID of an existing member to link as the club owner. User callers always own the club they create; sending any other member ID returns 403. The member row is never modified.
  * @param members Deprecated: use owner_member_id. Only the first entry's id is used (as owner); other entries and fields are ignored.
+ * @param joinPolicy Defaults to PRIVATE when omitted.
  * @param activeSession 
  * @param shameList List of Member IDs to immediately add to the shame list.
  */
@@ -39,6 +41,9 @@ import kotlinx.serialization.encoding.*
 data class ClubCreateRequestDto (
 
     @SerialName(value = "name") @Required val name: kotlin.String,
+
+    /* Optional club ID. Generated (UUID) when omitted. */
+    @SerialName(value = "id") val id: kotlin.String? = null,
 
     /* Optional Discord Server ID. */
     @SerialName(value = "server_id") val serverId: kotlin.String? = null,
@@ -54,6 +59,9 @@ data class ClubCreateRequestDto (
     @Deprecated(message = "This property is deprecated.")
     @SerialName(value = "members") val members: kotlin.collections.List<ClubCreateRequestMembersInnerDto>? = null,
 
+    /* Defaults to PRIVATE when omitted. */
+    @SerialName(value = "join_policy") val joinPolicy: ClubCreateRequestDto.JoinPolicy? = null,
+
     @SerialName(value = "active_session") val activeSession: ClubActiveSessionInputDto? = null,
 
     /* List of Member IDs to immediately add to the shame list. */
@@ -61,6 +69,16 @@ data class ClubCreateRequestDto (
 
 ) {
 
+    /**
+     * Defaults to PRIVATE when omitted.
+     *
+     * Values: PRIVATE,INVITE_LINK
+     */
+    @Serializable
+    enum class JoinPolicy(val value: kotlin.String) {
+        @SerialName(value = "PRIVATE") PRIVATE("PRIVATE"),
+        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK");
+    }
 
 }
 
