@@ -2,7 +2,9 @@ name: Unit Tests
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    # chore/regenerate-api-models: app-code fix PRs are stacked on the regen PR
+    # (see .claude/rules/codegen-and-data.md), so they target that branch, not develop.
+    branches: [ main, develop, chore/regenerate-api-models ]
   workflow_dispatch: # Allow manual trigger
 
 # Required permissions for test result publishing
