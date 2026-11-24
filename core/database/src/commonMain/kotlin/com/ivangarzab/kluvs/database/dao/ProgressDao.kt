@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.ivangarzab.kluvs.database.entities.ProgressEntity
+import com.ivangarzab.kluvs.database.entities.ProgressQueryEntity
 
 /**
  * Data Access Object for Progress entities.
@@ -43,4 +44,13 @@ interface ProgressDao {
 
     @Query("DELETE FROM progress")
     suspend fun deleteAll()
+
+    @Query("SELECT lastFetchedAt FROM progress_query WHERE queryKey = :queryKey")
+    suspend fun getQueryLastFetchedAt(queryKey: String): Long?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuery(query: ProgressQueryEntity)
+
+    @Query("DELETE FROM progress_query")
+    suspend fun deleteAllQueries()
 }

@@ -126,7 +126,10 @@ val coreDataModule = module {
     includes(databaseModule)
 
     // Cache Policy
-    single<CachePolicy> { CachePolicy() }
+    single<CachePolicy> {
+        val offlineStatus = get<OfflineStatus>()
+        CachePolicy(isOffline = { offlineStatus.isOffline.value })
+    }
 
     // Local Data Sources
     single<ClubLocalDataSource> { ClubLocalDataSourceImpl(get<KluvsDatabase>()) }

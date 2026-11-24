@@ -102,35 +102,38 @@ internal class ClubRepositoryImpl(
     private val clubFetches = SingleFlight<Pair<String, String?>, Result<Club>>()
 
     override suspend fun getClub(clubId: String, serverId: String?, forceRefresh: Boolean): Result<Club> {
+        // Only a complete club (roster loaded) is servable: an incidental row cached from a Member
+        // response has no members and would render as an empty club screen.
+        // A complete club was fetched by ClubRepository and includes members (possibly empty)
+        // and activeSession (null when there is none).
+        val cachedClub = clubLocalDataSource.getClub(clubId)?.takeIf { it.members != null }
+
         // 1. Check local cache (unless force refresh)
         if (!forceRefresh) {
-            val cachedClub = clubLocalDataSource.getClub(clubId)
             val lastFetchedAt = clubLocalDataSource.getLastFetchedAt(clubId)
-
-            // Check if cached club is complete (has relationships loaded)
-            // A complete club should have been fetched by ClubRepository and includes:
-            // - members (may be empty list but should not be null for a complete fetch)
-            // - activeSession (may be null if no active session)
-            val isComplete = cachedClub?.let {
-                // If members is null, this is an incomplete club (cached from Member response)
-                it.members != null
-            } ?: false
-
-            if (cachedClub != null && isComplete && cachePolicy.isFresh(lastFetchedAt, CacheTTL.CLUB)) {
+            if (cachedClub != null && cachePolicy.isFresh(lastFetchedAt, CacheTTL.CLUB)) {
                 Bark.d("Cache hit for club (ID: $clubId)")
                 return Result.success(cachedClub)
             }
             Bark.d("Cache miss for club (ID: $clubId)")
         }
 
+        if (cachedClub != null && cachePolicy.shouldServeCacheOnly(hasServableCache = true, forceRefresh)) {
+            Bark.d("Offline: serving cached club (ID: $clubId) without a network attempt")
+            return Result.success(cachedClub)
+        }
+
         // 2. Fetch from remote. The club screen reads the same club from several UseCases at
         // once, so concurrent fetches for one club share a single request.
-        return clubFetches.run(clubId to serverId) { fetchClub(clubId, serverId) }
+        return clubFetches.run(clubId to serverId) { fetchClub(clubId, serverId, cachedClub) }
     }
 
-    private suspend fun fetchClub(clubId: String, serverId: String?): Result<Club> {
-        Bark.d("Fetching club (ID: $clubId) from remote")
-        val result = timedRemote("club (ID: $clubId)") { clubRemoteDataSource.getClub(clubId, serverId) }
+    private suspend fun fetchClub(clubId: String, serverId: String?, fallback: Club?): Result<Club> {
+        val what = "club (ID: $clubId)"
+        Bark.d("Fetching $what from remote")
+        val result = cachePolicy.fetchRemote(what, hasFallback = fallback != null) {
+            timedRemote(what) { clubRemoteDataSource.getClub(clubId, serverId) }
+        }
 
         // 3. Cache on success
         result.onSuccess { club ->
@@ -143,11 +146,7 @@ internal class ClubRepositoryImpl(
             }
         }
 
-        // Only a complete club (roster loaded) is safe to serve offline; an incidental row
-        // cached from a Member response would render as an empty club screen.
-        return result.recoverWithCache("club (ID: $clubId)") {
-            clubLocalDataSource.getClub(clubId)?.takeIf { it.members != null }
-        }
+        return result.recoverWithCache(what) { fallback }
     }
 
     override suspend fun createClub(

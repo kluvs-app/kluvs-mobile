@@ -7,8 +7,9 @@ import com.ivangarzab.bark.Bark
  * value (even past its TTL) if there is one, otherwise keep the original failure.
  *
  * Callers decide what counts as servable via [cached] (e.g. only a *complete* club, or a
- * non-empty list), and should read the cache lazily inside it so a successful fetch never
- * pays for the lookup.
+ * non-empty list). Read the cache lazily inside it so a successful fetch never pays for the
+ * lookup, unless the caller already read it up front (as the club, member, session and progress
+ * reads do, to decide on [CachePolicy.fetchRemote]'s fallback timeout).
  */
 internal suspend inline fun <T> Result<T>.recoverWithCache(
     what: String,

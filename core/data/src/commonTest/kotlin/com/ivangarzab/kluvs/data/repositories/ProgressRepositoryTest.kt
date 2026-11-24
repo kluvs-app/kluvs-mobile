@@ -12,12 +12,14 @@ import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -49,6 +51,8 @@ class ProgressRepositoryTest {
         everySuspend { localDataSource.getLastFetchedAt(any()) } returns null
         everySuspend { localDataSource.insertProgress(any()) } returns Unit
         everySuspend { localDataSource.deleteProgress(any()) } returns Unit
+        everySuspend { localDataSource.getQueryLastFetchedAt(any(), any(), any()) } returns null
+        everySuspend { localDataSource.markQueryFetched(any(), any(), any()) } returns Unit
     }
 
     @Test
@@ -166,5 +170,51 @@ class ProgressRepositoryTest {
         everySuspend { localDataSource.getProgress("42", null, null) } returns listOf(testProgress)
 
         assertEquals(listOf(testProgress), repository.getProgress(bookId = "42").getOrNull())
+    }
+
+    // ========================================
+    // KT-344: QUERY FRESHNESS AND OFFLINE READS
+    // ========================================
+
+    @Test
+    fun `getProgress records the query so an empty result can be a cache hit`() = runTest {
+        everySuspend { remoteDataSource.getProgress(any(), any(), any()) } returns Result.success(emptyList())
+
+        repository.getProgress(sessionId = "session-1")
+
+        verifySuspend { localDataSource.markQueryFetched(null, "session-1", null) }
+    }
+
+    @Test
+    fun `getProgress serves a fresh empty query from cache without hitting remote`() = runTest {
+        everySuspend { localDataSource.getQueryLastFetchedAt(null, "session-1", null) } returns
+            Clock.System.now().toEpochMilliseconds()
+
+        val result = repository.getProgress(sessionId = "session-1")
+
+        assertEquals(emptyList(), result.getOrNull())
+        verifySuspend(VerifyMode.not) { remoteDataSource.getProgress(any(), any(), any()) }
+    }
+
+    @Test
+    fun `getProgress offline serves a previously fetched empty query without a network attempt`() = runTest {
+        repository = ProgressRepositoryImpl(remoteDataSource, localDataSource, CachePolicy(isOffline = { true }))
+        everySuspend { localDataSource.getQueryLastFetchedAt(null, "session-1", null) } returns 0L
+
+        val result = repository.getProgress(sessionId = "session-1")
+
+        assertEquals(emptyList(), result.getOrNull())
+        verifySuspend(VerifyMode.not) { remoteDataSource.getProgress(any(), any(), any()) }
+    }
+
+    @Test
+    fun `getProgress offline still tries the network for a query never fetched`() = runTest {
+        repository = ProgressRepositoryImpl(remoteDataSource, localDataSource, CachePolicy(isOffline = { true }))
+        everySuspend { remoteDataSource.getProgress(any(), any(), any()) } returns Result.failure(Exception("offline"))
+
+        val result = repository.getProgress(sessionId = "session-1")
+
+        assertTrue(result.isFailure)
+        verifySuspend { remoteDataSource.getProgress(any(), any(), any()) }
     }
 }
