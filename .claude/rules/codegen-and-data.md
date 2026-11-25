@@ -17,23 +17,13 @@ paths:
 - Verifying a candidate spec PR in `kluvs-api`: follow section A of the `sync-api-contract` skill (generate the real DTOs; don't just read the JSON).
 
 ## Try an unreleased spec
-To generate the DTOs from a kluvs-api commit or branch before it merges:
+To generate the DTOs from a kluvs-api branch or commit before it merges, or before its regen PR lands:
 
-```bash
-./gradlew :core:api:openApiGenerate -PapiSpecRef=<sha|branch> --quiet --console=plain
-```
+1. In `core/api/build.gradle.kts`, set `val apiSpecRef = "<branch|sha>"`. The ref must be pushed to GitHub.
+2. Run `:core:api:tryApiSpec` (Gradle tool window: `core:api` → `api`; sync once if the task isn't listed).
+3. To reset, set `apiSpecRef` back to `""` and run `tryApiSpec` again. This regenerates from the saved `openapi.json` and removes any models the other spec added.
 
-`-PapiSpec=<path|url>` takes any other copy of the spec (a local file, relative to the repo root) and wins over `-PapiSpecRef`. Every run that uses an override prints a warning naming the spec.
-
-**Never commit the generated result.** It is written straight into the committed models folder, so restore that folder when you're done and check it's clean (`clean -f` removes models the spec added):
-
-```bash
-git restore core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models
-git clean -f core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models
-git status --short core/api
-```
-
-The regen PR brings the real update. CI and the regen workflow never pass either property.
+**Never commit the result:** neither the changed models nor a non-empty `apiSpecRef`. The regen PR brings the real update. `openApiGenerate` and the regen workflow always use the saved spec and ignore `apiSpecRef`.
 
 ## Regen PR branch
 - Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release.
