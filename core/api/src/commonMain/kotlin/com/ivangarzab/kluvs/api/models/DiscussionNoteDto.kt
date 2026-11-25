@@ -19,6 +19,7 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -54,12 +55,27 @@ data class DiscussionNoteDto (
     /**
      * 
      *
-     * Values: `private`,`public`
+     * Values: `private`,`public`,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = VisibilitySerializer::class)
     enum class Visibility(val value: kotlin.String) {
         @SerialName(value = "private") `private`("private"),
-        @SerialName(value = "public") `public`("public");
+        @SerialName(value = "public") `public`("public"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object VisibilitySerializer : KSerializer<Visibility> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Visibility {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Visibility.values().firstOrNull { it.value == value }
+                ?: Visibility.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Visibility) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

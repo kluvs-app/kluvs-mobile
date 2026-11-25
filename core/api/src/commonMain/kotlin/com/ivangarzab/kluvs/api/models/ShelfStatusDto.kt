@@ -17,13 +17,16 @@ package com.ivangarzab.kluvs.api.models
 
 
 import kotlinx.serialization.*
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 /**
  * 
  *
- * Values: want_to_read,read,not_finished,currently_reading
+ * Values: want_to_read,read,not_finished,currently_reading,unknown_default_open_api
  */
-@Serializable
+@Serializable(with = ShelfStatusDtoSerializer::class)
 enum class ShelfStatusDto(val value: kotlin.String) {
 
     @SerialName(value = "want_to_read")
@@ -36,7 +39,10 @@ enum class ShelfStatusDto(val value: kotlin.String) {
     not_finished("not_finished"),
 
     @SerialName(value = "currently_reading")
-    currently_reading("currently_reading");
+    currently_reading("currently_reading"),
+
+    @SerialName(value = "unknown_default_open_api")
+    unknown_default_open_api("unknown_default_open_api");
 
     /**
      * Override [toString()] to avoid using the enum variable name as the value, and instead use
@@ -62,6 +68,19 @@ enum class ShelfStatusDto(val value: kotlin.String) {
             it == value || normalizedData == "$value".lowercase()
           }
         }
+    }
+}
+internal object ShelfStatusDtoSerializer : KSerializer<ShelfStatusDto> {
+    override val descriptor = kotlin.String.serializer().descriptor
+
+    override fun deserialize(decoder: Decoder): ShelfStatusDto {
+        val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+        return ShelfStatusDto.values().firstOrNull { it.value == value }
+            ?: ShelfStatusDto.unknown_default_open_api
+    }
+
+    override fun serialize(encoder: Encoder, value: ShelfStatusDto) {
+        encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
     }
 }
 

@@ -19,6 +19,7 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -50,22 +51,52 @@ data class ProgressUpdateRequestDto (
     /**
      * 
      *
-     * Values: page,percent
+     * Values: page,percent,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = ProgressTypeSerializer::class)
     enum class ProgressType(val value: kotlin.String) {
         @SerialName(value = "page") page("page"),
-        @SerialName(value = "percent") percent("percent");
+        @SerialName(value = "percent") percent("percent"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object ProgressTypeSerializer : KSerializer<ProgressType> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): ProgressType {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return ProgressType.values().firstOrNull { it.value == value }
+                ?: ProgressType.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: ProgressType) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
     /**
      * 
      *
-     * Values: in_progress,completed
+     * Values: in_progress,completed,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = StatusSerializer::class)
     enum class Status(val value: kotlin.String) {
         @SerialName(value = "in_progress") in_progress("in_progress"),
-        @SerialName(value = "completed") completed("completed");
+        @SerialName(value = "completed") completed("completed"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object StatusSerializer : KSerializer<Status> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Status {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Status.values().firstOrNull { it.value == value }
+                ?: Status.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Status) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

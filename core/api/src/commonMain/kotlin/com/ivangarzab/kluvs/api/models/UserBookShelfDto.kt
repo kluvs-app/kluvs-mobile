@@ -20,6 +20,7 @@ import com.ivangarzab.kluvs.api.models.BookDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -57,24 +58,54 @@ data class UserBookShelfDto (
     /**
      * 
      *
-     * Values: want_to_read,read,not_finished,currently_reading
+     * Values: want_to_read,read,not_finished,currently_reading,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = ShelfSerializer::class)
     enum class Shelf(val value: kotlin.String) {
         @SerialName(value = "want_to_read") want_to_read("want_to_read"),
         @SerialName(value = "read") read("read"),
         @SerialName(value = "not_finished") not_finished("not_finished"),
-        @SerialName(value = "currently_reading") currently_reading("currently_reading");
+        @SerialName(value = "currently_reading") currently_reading("currently_reading"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object ShelfSerializer : KSerializer<Shelf> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Shelf {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Shelf.values().firstOrNull { it.value == value }
+                ?: Shelf.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Shelf) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
     /**
      * How the shelf was set — 'manual' (via /shelf) or 'session' (auto-synced from session/discussion participation)
      *
-     * Values: manual,session
+     * Values: manual,session,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = SourceSerializer::class)
     enum class Source(val value: kotlin.String) {
         @SerialName(value = "manual") manual("manual"),
-        @SerialName(value = "session") session("session");
+        @SerialName(value = "session") session("session"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object SourceSerializer : KSerializer<Source> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Source {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Source.values().firstOrNull { it.value == value }
+                ?: Source.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Source) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

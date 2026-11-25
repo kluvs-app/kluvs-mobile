@@ -19,6 +19,7 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * A club embedded within a member's `clubs` list, including the member's per-club role.
@@ -70,23 +71,53 @@ data class MemberClubEntryDto (
     /**
      * Controls how new members can join. PRIVATE = by admin only; INVITE_LINK = anyone with the link.
      *
-     * Values: PRIVATE,INVITE_LINK
+     * Values: PRIVATE,INVITE_LINK,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = JoinPolicySerializer::class)
     enum class JoinPolicy(val value: kotlin.String) {
         @SerialName(value = "PRIVATE") PRIVATE("PRIVATE"),
-        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK");
+        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object JoinPolicySerializer : KSerializer<JoinPolicy> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): JoinPolicy {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return JoinPolicy.values().firstOrNull { it.value == value }
+                ?: JoinPolicy.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: JoinPolicy) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
     /**
      * Member's role in this specific club
      *
-     * Values: owner,admin,member
+     * Values: owner,admin,member,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = RoleSerializer::class)
     enum class Role(val value: kotlin.String) {
         @SerialName(value = "owner") owner("owner"),
         @SerialName(value = "admin") admin("admin"),
-        @SerialName(value = "member") member("member");
+        @SerialName(value = "member") member("member"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object RoleSerializer : KSerializer<Role> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Role {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Role.values().firstOrNull { it.value == value }
+                ?: Role.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Role) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

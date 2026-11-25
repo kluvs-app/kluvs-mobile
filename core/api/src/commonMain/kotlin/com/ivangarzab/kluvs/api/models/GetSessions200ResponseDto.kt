@@ -26,6 +26,7 @@ import com.ivangarzab.kluvs.api.models.SessionReadingLogResponseDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -80,12 +81,27 @@ data class GetSessions200ResponseDto (
     /**
      * Lifecycle status of the session.
      *
-     * Values: active,finished
+     * Values: active,finished,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = StatusSerializer::class)
     enum class Status(val value: kotlin.String) {
         @SerialName(value = "active") active("active"),
-        @SerialName(value = "finished") finished("finished");
+        @SerialName(value = "finished") finished("finished"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object StatusSerializer : KSerializer<Status> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Status {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Status.values().firstOrNull { it.value == value }
+                ?: Status.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Status) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

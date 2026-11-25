@@ -45,7 +45,7 @@ class ShelfMappersTest {
         )
 
         // When: Mapping to domain
-        val entry = dto.toDomain()
+        val entry = assertNotNull(dto.toDomain())
 
         // Then: All fields map over
         assertEquals(ShelfStatus.CURRENTLY_READING, entry.shelf)
@@ -65,7 +65,7 @@ class ShelfMappersTest {
             book = bookDto
         )
 
-        val entry = dto.toDomain()
+        val entry = assertNotNull(dto.toDomain())
 
         assertEquals(ShelfSource.MANUAL, entry.source)
         assertEquals(ShelfStatus.READ, entry.shelf)

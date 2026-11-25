@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.DiscussionAttendanceUpsertRequestDto
 import com.ivangarzab.kluvs.data.remote.api.DiscussionAttendanceService
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
+import com.ivangarzab.kluvs.data.remote.mappers.toDto
 import com.ivangarzab.kluvs.model.AttendanceRoster
 import com.ivangarzab.kluvs.model.AttendanceStatus
 
@@ -52,7 +53,9 @@ class DiscussionAttendanceRemoteDataSourceImpl(
         request: DiscussionAttendanceUpsertRequestDto
     ): Result<AttendanceStatus> {
         return try {
+            // An unknown status in the echo falls back to the status we just sent.
             val status = discussionAttendanceService.upsert(request).status.toDomain()
+                ?: AttendanceStatus.entries.first { it.toDto() == request.status }
             Bark.i("RSVP saved for discussion (ID: ${request.discussionId}, Status: $status)")
             Result.success(status)
         } catch (e: Exception) {

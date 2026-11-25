@@ -20,6 +20,7 @@ import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 

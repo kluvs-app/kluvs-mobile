@@ -21,6 +21,7 @@ import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -51,12 +52,27 @@ data class ShelfEntryDto (
     /**
      * 
      *
-     * Values: manual,session
+     * Values: manual,session,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = SourceSerializer::class)
     enum class Source(val value: kotlin.String) {
         @SerialName(value = "manual") manual("manual"),
-        @SerialName(value = "session") session("session");
+        @SerialName(value = "session") session("session"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object SourceSerializer : KSerializer<Source> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Source {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Source.values().firstOrNull { it.value == value }
+                ?: Source.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Source) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

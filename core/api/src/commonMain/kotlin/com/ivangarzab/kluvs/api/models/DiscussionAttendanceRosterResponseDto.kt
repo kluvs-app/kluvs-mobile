@@ -20,6 +20,7 @@ import com.ivangarzab.kluvs.api.models.DiscussionAttendanceRosterEntryDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -46,13 +47,28 @@ data class DiscussionAttendanceRosterResponseDto (
     /**
      * The calling member's own RSVP response (null if they have not responded).
      *
-     * Values: yes,no,maybe
+     * Values: yes,no,maybe,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = MyStatusSerializer::class)
     enum class MyStatus(val value: kotlin.String) {
         @SerialName(value = "yes") yes("yes"),
         @SerialName(value = "no") no("no"),
-        @SerialName(value = "maybe") maybe("maybe");
+        @SerialName(value = "maybe") maybe("maybe"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object MyStatusSerializer : KSerializer<MyStatus> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): MyStatus {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return MyStatus.values().firstOrNull { it.value == value }
+                ?: MyStatus.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: MyStatus) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

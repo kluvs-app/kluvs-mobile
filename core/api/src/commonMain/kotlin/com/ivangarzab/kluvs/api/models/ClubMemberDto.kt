@@ -19,6 +19,7 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * A member as embedded within a club response, including their per-club role.
@@ -63,13 +64,28 @@ data class ClubMemberDto (
     /**
      * Member's role in this club
      *
-     * Values: owner,admin,member
+     * Values: owner,admin,member,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = RoleSerializer::class)
     enum class Role(val value: kotlin.String) {
         @SerialName(value = "owner") owner("owner"),
         @SerialName(value = "admin") admin("admin"),
-        @SerialName(value = "member") member("member");
+        @SerialName(value = "member") member("member"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object RoleSerializer : KSerializer<Role> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): Role {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return Role.values().firstOrNull { it.value == value }
+                ?: Role.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Role) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

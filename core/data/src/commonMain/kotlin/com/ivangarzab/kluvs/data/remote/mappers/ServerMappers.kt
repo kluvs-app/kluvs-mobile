@@ -63,6 +63,7 @@ fun ServerClubSummaryDto.toDomain(): Club {
         joinPolicy = when (joinPolicy) {
             ServerClubSummaryDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
             ServerClubSummaryDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
+            ServerClubSummaryDto.JoinPolicy.unknown_default_open_api -> unknownJoinPolicy(id)
         },
         inviteToken = inviteToken
     )

@@ -19,6 +19,7 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
+import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -55,12 +56,27 @@ data class ClubUpdateRequestDto (
     /**
      * Controls how members can join the club. Setting to INVITE_LINK creates (or reuses) an active club invite token; setting to PRIVATE deactivates all active invites for the club. 
      *
-     * Values: PRIVATE,INVITE_LINK
+     * Values: PRIVATE,INVITE_LINK,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = JoinPolicySerializer::class)
     enum class JoinPolicy(val value: kotlin.String) {
         @SerialName(value = "PRIVATE") PRIVATE("PRIVATE"),
-        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK");
+        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object JoinPolicySerializer : KSerializer<JoinPolicy> {
+        override val descriptor = kotlin.String.serializer().descriptor
+
+        override fun deserialize(decoder: Decoder): JoinPolicy {
+            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            return JoinPolicy.values().firstOrNull { it.value == value }
+                ?: JoinPolicy.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: JoinPolicy) {
+            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+        }
     }
 
 }

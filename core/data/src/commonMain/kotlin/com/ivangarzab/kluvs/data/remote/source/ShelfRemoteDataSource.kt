@@ -4,6 +4,7 @@ import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ShelfAssignRequestDto
 import com.ivangarzab.kluvs.data.remote.api.ShelfService
 import com.ivangarzab.kluvs.data.remote.mappers.toDomain
+import com.ivangarzab.kluvs.data.remote.mappers.toDto
 import com.ivangarzab.kluvs.model.ShelfEntry
 import com.ivangarzab.kluvs.model.ShelfStatus
 
@@ -71,7 +72,8 @@ class ShelfRemoteDataSourceImpl(
             val response = shelfService.assign(request)
             val shelf = response.shelf
             Bark.i("Book shelved (ID: ${request.bookId}, Shelf: ${shelf.value})")
-            Result.success(shelf.toDomain())
+            // An unknown status in the echo falls back to the status we just sent.
+            Result.success(shelf.toDomain() ?: ShelfStatus.entries.first { it.toDto() == request.shelf })
         } catch (e: Exception) {
             Bark.e("Failed to shelve book (ID: ${request.bookId}). Please retry.", e)
             Result.failure(e)

@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
+import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.BookSummaryDto
 import com.ivangarzab.kluvs.api.models.ProgressCreateRequestDto
 import com.ivangarzab.kluvs.api.models.ProgressUpdateRequestDto
@@ -12,15 +13,22 @@ import com.ivangarzab.kluvs.model.ReadingProgress
 /**
  * Maps a [com.ivangarzab.kluvs.api.models.ReadingProgressDto] from the API to a
  * [ReadingProgress] domain model.
+ *
+ * Returns null when the progress type is unknown to this app version: reading a page
+ * number as a percentage (or the reverse) would show wrong progress, so the entry is dropped.
  */
-fun ReadingProgressDto.toDomain(): ReadingProgress {
+fun ReadingProgressDto.toDomain(): ReadingProgress? {
+    val type = progressType.toDomain() ?: run {
+        Bark.w("Unknown progress type from API; dropping progress entry (ID: $id)")
+        return null
+    }
     return ReadingProgress(
         id = id,
         memberId = memberId.toString(),
         bookId = bookId.toString(),
         sessionId = sessionId,
-        type = progressType.toDomain(),
-        status = status.toDomain(),
+        type = type,
+        status = status.toDomain(id),
         currentPage = currentPage,
         percentComplete = percentComplete,
         startedAt = startedAt.parseDateStringOrNull(),
@@ -39,14 +47,21 @@ fun BookSummaryDto.toDomain(): BookSummary = BookSummary(
     imageUrl = imageUrl
 )
 
-fun ReadingProgressDto.ProgressType.toDomain(): ProgressType = when (this) {
+/** Returns null for a progress type this app version doesn't know. */
+fun ReadingProgressDto.ProgressType.toDomain(): ProgressType? = when (this) {
     ReadingProgressDto.ProgressType.page -> ProgressType.PAGE
     ReadingProgressDto.ProgressType.percent -> ProgressType.PERCENT
+    ReadingProgressDto.ProgressType.unknown_default_open_api -> null
 }
 
-fun ReadingProgressDto.Status.toDomain(): ProgressStatus = when (this) {
+/** Unknown statuses fall back to [ProgressStatus.IN_PROGRESS], which claims no completion. */
+fun ReadingProgressDto.Status.toDomain(progressId: String): ProgressStatus = when (this) {
     ReadingProgressDto.Status.in_progress -> ProgressStatus.IN_PROGRESS
     ReadingProgressDto.Status.completed -> ProgressStatus.COMPLETED
+    ReadingProgressDto.Status.unknown_default_open_api -> {
+        Bark.w("Unknown progress status from API; falling back to IN_PROGRESS (ID: $progressId)")
+        ProgressStatus.IN_PROGRESS
+    }
 }
 
 fun ProgressType.toCreateDto(): ProgressCreateRequestDto.ProgressType = when (this) {
