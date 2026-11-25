@@ -11,12 +11,10 @@ paths:
 ## ⚠️ Never hand-edit generated output
 - `core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models/` and `core/api/openapi.json` are 100% generated from `kluvs-api`'s spec. Don't edit them, and don't add hand-written files to that directory: no missing fields, no nullability tweaks, however small or "obviously correct".
   Why: a past session hand-patched `BookDto.kt` and added a hand-written `SessionParticipantDto.kt`, flagging the risk only in a code comment. A regen two PRs later silently deleted both and broke shipped features. A one-off approved in one conversation is **never** a standing license.
-- If a generated DTO is wrong or missing a field, fix the **source spec in `kluvs-backend`** and track it with a ticket (`/task-create`). Which file depends on the fix:
-  - Endpoint-level (response field, status code): that handler's `@openapi` JSDoc block (e.g. `supabase/functions/member/handlers/update.ts`).
-  - Schema- or enum-level (e.g. `Member`, `MemberAssignableRole`): `tools/generate-docs.ts` → `components.schemas`. Those aren't JSDoc-driven.
+- If a generated DTO is wrong or missing a field, fix the **spec in `kluvs-api`** (`openapi.json`, written by hand there) with a spec PR, and track it with a ticket (`/task-create`).
 - If a hand-edit truly seems necessary (e.g. to unblock urgent work while a spec fix is in flight), **ask explicitly and get double-confirmed permission in this conversation**. Never infer it from a past session, and never write it up as a reusable pattern.
 - **The one accepted exception** is temporary interim types for parallel-track work against a frozen contract. They live entirely **outside** `core/api` (e.g. `core/data/.../remote/api/dto/`), are never committed, and get swapped for the generated types before any PR opens. Reference: `BookEnrichmentDto.kt` (KT-243/KT-248).
-- Verifying a candidate backend spec PR: follow section A of the `sync-api-contract` skill (generate the real DTOs; don't just read the JSON).
+- Verifying a candidate spec PR in `kluvs-api`: follow section A of the `sync-api-contract` skill (generate the real DTOs; don't just read the JSON).
 
 ## Regen PR branch
 - Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release.

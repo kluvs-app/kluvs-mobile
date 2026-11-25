@@ -3,8 +3,8 @@
 **Kluvs** is a Kotlin Multiplatform app for book clubs and reading sessions: Android UI in Compose, iOS UI in native SwiftUI, with business logic shared through `:shared`. The backend is Supabase (`kluvs-backend` Edge Functions). Clubs can optionally link to a Discord server via `kluvs-bot`; web-only clubs work standalone. There are six user-facing areas: **Auth**, **Clubs**, **Books**, **Member/Me**, **Settings**, and **Join** (invite links). Both apps are live in the Google Play Store and the App Store with real users.
 
 ## ⚠️ Absolute rules
-- **Never hand-edit generated codegen output** (`core/api/.../api/models/`, `core/api/openapi.json`). Fix the spec in `kluvs-backend` instead. Details and the one exception: `.claude/rules/codegen-and-data.md`.
-- **Before saying a backend spec PR is correct, generate the real DTOs.** Reading the JSON isn't enough. Recipe: the `sync-api-contract` skill, section A.
+- **Never hand-edit generated codegen output** (`core/api/.../api/models/`, `core/api/openapi.json`). Fix the spec in `kluvs-api` instead. Details and the one exception: `.claude/rules/codegen-and-data.md`.
+- **Before saying a spec PR (in `kluvs-api`) is correct, generate the real DTOs.** Reading the JSON isn't enough. Recipe: the `sync-api-contract` skill, section A.
 - **Don't run Gradle or `xcodebuild` unless asked.** The user is usually building in the IDE. See `.claude/rules/build-and-run.md`.
 - **Architecture is data → domain → UI**: repositories handle data access, UseCases hold business logic, ViewModels hold state. See `.claude/rules/architecture.md`.
 - **Log with barK only** (`Bark.*`), never `println`/`Log.*`. See the `bark-logging` skill.
@@ -71,7 +71,7 @@ Repo skills (`.claude/skills/`). Several load automatically based on context:
 | `bark-logging` | Any log statement or exception handling. |
 | `koin-watcher` | Adding injectable classes or wiring Koin modules. |
 | `migrate-room-db` | Room schema changes (`MigrationXToY.kt`). |
-| `sync-api-contract` | Backend spec changes, DTO regeneration, verifying a candidate spec PR. |
+| `sync-api-contract` | API spec changes, DTO regeneration, verifying a candidate spec PR. |
 
 ## CI/CD
 - GitHub Actions (`.github/workflows/`) run Android CI, releases, and API-model regeneration. `unit-tests.yml` runs on PRs. `full-tests.yml` runs on pushes to `main`/`develop` against a local Supabase and uploads coverage to Codecov.

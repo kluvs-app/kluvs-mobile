@@ -1,8 +1,8 @@
 ---
 name: sync-api-contract
 description: >
-  Guides the process of applying backend API contract changes to the mobile
-  codebase. Auto-loads when discussing API changes, new endpoints, modified
+  Guides the process of applying API contract changes (spec changes in
+  kluvs-api) to the mobile codebase. Auto-loads when discussing API changes, new endpoints, modified
   response fields, renamed fields, removed fields, DTO updates, openapi spec
   changes, or Supabase schema changes that affect the mobile data layer.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
@@ -10,14 +10,15 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 
 # Sync API Contract Skill
 
-When the backend changes its API — new fields, removed fields, new endpoints,
+When the API contract changes — new fields, removed fields, new endpoints,
 renamed properties — this skill walks through every layer that needs to
 change, in the right order, **without ever hand-writing or hand-editing a
-generated DTO**.
+generated DTO**. The contract is `openapi.json` in `kluvs-api`, written by
+hand there; every API change starts as a spec PR in that repo.
 
 **Two hard rules apply here:** never hand-edit generated codegen output (see
 `CLAUDE.md` and `.claude/rules/codegen-and-data.md`), and generate the actual
-DTOs before confirming a backend spec PR is correct (section A below). This
+DTOs before confirming a spec PR is correct (section A below). This
 skill exists to operationalize those rules, not to work around them.
 
 ---
@@ -43,19 +44,19 @@ skill exists to operationalize those rules, not to work around them.
 
 ## Two different situations — pick the right one
 
-### A. A backend spec change hasn't shipped yet (you're reviewing a candidate PR / branch)
+### A. A spec change hasn't merged yet (you're reviewing a candidate spec PR / branch in `kluvs-api`)
 
-**Before telling the user a backend spec PR is correct, generate the actual
-DTOs. Don't just read the JSON.** `deno task docs:validate` only proves the
-document is structurally valid. It says nothing about the Kotlin the generator
-emits. Known gotcha: sibling keywords next to `$ref` (e.g. `nullable: true`)
-are silently dropped under OpenAPI 3.0: the spec is valid, the generated code
-is wrong, and no validator catches it. This check is mobile's job, not
-backend's.
+**Before telling the user a spec PR is correct, generate the actual
+DTOs. Don't just read the JSON.** kluvs-api's CI lint (Redocly, `deno task
+validate`) only proves the document is valid. It says nothing about the
+Kotlin the generator emits. Known gotcha: sibling keywords next to `$ref`
+(e.g. `nullable: true`) are silently dropped under OpenAPI 3.0: the generated
+code is wrong even though the spec looks right. This check is mobile's job,
+not kluvs-api's.
 
 ```bash
-git -C kluvs-backend fetch origin <pr-branch>
-git -C kluvs-backend show origin/<pr-branch>:docs/openapi.json > /tmp/candidate-openapi.json
+git -C kluvs-api fetch origin <pr-branch>
+git -C kluvs-api show origin/<pr-branch>:openapi.json > /tmp/candidate-openapi.json
 cp /tmp/candidate-openapi.json kluvs-mobile/core/api/openapi.json
 cd kluvs-mobile && ./gradlew :core:api:openApiGenerate --quiet --console=plain
 # Read ONLY the generated .kt file(s) for the changed types and check every
@@ -67,25 +68,23 @@ git -C kluvs-mobile status --short core/api   # must be clean before doing anyth
 ```
 
 - The spec comes from git history only. Never check out or switch branches in
-  `kluvs-backend`'s working tree, and never read the spec JSON into context;
+  `kluvs-api`'s working tree, and never read the spec JSON into context;
   it's a Gradle input.
 - `openApiGenerate` writes straight into the **committed**
   `core/api/src/commonMain/.../api/models/` directory, not just
   `build/generated/openapi`. The `checkout --` and `status` lines are not
   optional. A dirty `core/api` gets carried silently into the next commit.
 
-Use this when double-checking a backend PR is correct before telling the
+Use this when double-checking a spec PR is correct before telling the
 user so, or when doing parallel-track mobile work against a not-yet-shipped
 contract (see the "temporary interim types" exception in `.claude/rules/codegen-and-data.md` for that
 specific case).
 
-### B. A backend spec change has already shipped and regenerated a real PR here
+### B. A spec change has merged and regenerated a real PR here
 
-The sync from `kluvs-backend` → `kluvs-api` → `kluvs-mobile` is a live,
-three-hop GitHub Actions chain today (see `../CLAUDE.md`'s "API Contract
-(`kluvs-api`)" section for the full trigger/dispatch details). Once a backend
-change is released (merged to backend's `main`, not just `develop`), a bot
-PR titled `chore(api): regenerate models from kluvs-api@<short-sha>` (branch
+When a spec PR merges to `kluvs-api`'s `main`, its `notify-consumers.yml`
+dispatches to this repo (see `../CLAUDE.md`'s "API Contract (`kluvs-api`)"
+section for the full trigger/dispatch details), and a bot PR titled `chore(api): regenerate models from kluvs-api@<short-sha>` (branch
 `chore/regenerate-api-models`) appears against **this repo's `develop`**,
 containing exactly the regenerated `core/api/openapi.json` +
 `core/api/src/commonMain/.../api/models/**` diff — nothing else.
@@ -97,6 +96,10 @@ sibling-keyword-dropping gotcha from section A (`nullable: true`
 next to a `$ref`) applies here too, so a structurally-valid spec can still
 produce a DTO that's missing something a hand-read of the JSON would have
 implied was there.
+
+The backend implements the change in parallel. Don't ship a mobile release
+that calls a new or changed operation until the backend release that
+implements it is in production.
 
 ---
 
