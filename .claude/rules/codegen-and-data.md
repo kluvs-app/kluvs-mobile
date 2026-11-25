@@ -14,6 +14,8 @@ paths:
 - If a generated DTO is wrong or missing a field, fix the **spec in `kluvs-api`** (`openapi.json`, written by hand there) with a spec PR, and track it with a ticket (`/task-create`).
 - If a hand-edit truly seems necessary (e.g. to unblock urgent work while a spec fix is in flight), **ask explicitly and get double-confirmed permission in this conversation**. Never infer it from a past session, and never write it up as a reusable pattern.
 - **The one accepted exception** is temporary interim types for parallel-track work against a frozen contract. They live entirely **outside** `core/api` (e.g. `core/data/.../remote/api/dto/`), are never committed, and get swapped for the generated types before any PR opens. Reference: `BookEnrichmentDto.kt` (KT-243/KT-248).
+- **Generator config changes are not hand-edits.** When you change the generator settings in `core/api/build.gradle.kts` (e.g. `configOptions`, `additionalProperties`) or the template overrides in `core/api/templates/` without changing the spec, run `:core:api:openApiGenerate` against the saved `openapi.json` and commit the regenerated models in the same PR as the config change and any app code it breaks. One PR to `develop`, no bot regen PR, no stacking. The regen workflow runs from `develop`'s config, so later bot PRs produce the same output. Keep `apiSpecRef` empty while doing this.
+- **Template overrides** in `core/api/templates/` are copies of openapi-generator's templates with our fixes (e.g. the unknown-enum fallback the `multiplatform` library leaves out). When upgrading `openapiGenerator`, diff each override against the new upstream template and carry our change forward. Otherwise the override silently pins old template behavior.
 - Before saying a spec change in `kluvs-api` is correct, generate the real DTOs with `tryApiSpec` (below). Reading the JSON isn't enough: a valid spec can still generate the wrong Kotlin type.
 
 ## Try an unreleased spec
@@ -31,6 +33,8 @@ For a candidate spec or a regen PR:
 - If a changed field is cached in a Room entity (`core/database/src/commonMain/.../entities/`), it needs a migration: use the `migrate-room-db` skill.
 
 ## Regen PR branch
+This section covers only the **bot's** regen PR: a spec change from `kluvs-api` arriving through the pipeline. A generator config change made in this repo is handled above, in one PR.
+
 - Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release.
 - When the regen PR needs app-code fixes, **stack** a fix PR on it:
   - Cut the fix branch from `origin/chore/regenerate-api-models` and open it with `--base chore/regenerate-api-models`, so its diff shows only the fixes.
