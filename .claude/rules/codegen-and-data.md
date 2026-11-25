@@ -14,7 +14,7 @@ paths:
 - If a generated DTO is wrong or missing a field, fix the **spec in `kluvs-api`** (`openapi.json`, written by hand there) with a spec PR, and track it with a ticket (`/task-create`).
 - If a hand-edit truly seems necessary (e.g. to unblock urgent work while a spec fix is in flight), **ask explicitly and get double-confirmed permission in this conversation**. Never infer it from a past session, and never write it up as a reusable pattern.
 - **The one accepted exception** is temporary interim types for parallel-track work against a frozen contract. They live entirely **outside** `core/api` (e.g. `core/data/.../remote/api/dto/`), are never committed, and get swapped for the generated types before any PR opens. Reference: `BookEnrichmentDto.kt` (KT-243/KT-248).
-- Verifying a candidate spec PR in `kluvs-api`: follow section A of the `sync-api-contract` skill (generate the real DTOs; don't just read the JSON).
+- Before saying a spec change in `kluvs-api` is correct, generate the real DTOs with `tryApiSpec` (below). Reading the JSON isn't enough: a valid spec can still generate the wrong Kotlin type.
 
 ## Try an unreleased spec
 To generate the DTOs from a kluvs-api branch or commit before it merges, or before its regen PR lands:
@@ -24,6 +24,11 @@ To generate the DTOs from a kluvs-api branch or commit before it merges, or befo
 3. To reset, set `apiSpecRef` back to `""` and run `tryApiSpec` again. This regenerates from the saved `openapi.json` and removes any models the other spec added.
 
 **Never commit the result:** neither the changed models nor a non-empty `apiSpecRef`. The regen PR brings the real update. `openApiGenerate` and the regen workflow always use the saved spec and ignore `apiSpecRef`.
+
+## Reviewing a spec change
+For a candidate spec or a regen PR:
+- Check the type and nullability of every changed field in the generated DTOs, including changes the spec author didn't intend. (kluvs-api#27 passed lint but turned `activeSession: SessionDto?` into `String?`.)
+- If a changed field is cached in a Room entity (`core/database/src/commonMain/.../entities/`), it needs a migration: use the `migrate-room-db` skill.
 
 ## Regen PR branch
 - Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release.

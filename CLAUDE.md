@@ -4,7 +4,7 @@
 
 ## ⚠️ Absolute rules
 - **Never hand-edit generated codegen output** (`core/api/.../api/models/`, `core/api/openapi.json`). Fix the spec in `kluvs-api` instead. Details and the one exception: `.claude/rules/codegen-and-data.md`.
-- **Before saying a spec PR (in `kluvs-api`) is correct, generate the real DTOs.** Reading the JSON isn't enough. Recipe: the `sync-api-contract` skill, section A.
+- **Before saying a spec PR (in `kluvs-api`) is correct, generate the real DTOs.** Reading the JSON isn't enough. Use the `tryApiSpec` task: `.claude/rules/codegen-and-data.md`.
 - **Don't run Gradle or `xcodebuild` unless asked.** The user is usually building in the IDE. See `.claude/rules/build-and-run.md`.
 - **Architecture is data → domain → UI**: repositories handle data access, UseCases hold business logic, ViewModels hold state. See `.claude/rules/architecture.md`.
 - **Log with barK only** (`Bark.*`), never `println`/`Log.*`. See the `bark-logging` skill.
@@ -71,7 +71,6 @@ Repo skills (`.claude/skills/`). Several load automatically based on context:
 | `bark-logging` | Any log statement or exception handling. |
 | `koin-watcher` | Adding injectable classes or wiring Koin modules. |
 | `migrate-room-db` | Room schema changes (`MigrationXToY.kt`). |
-| `sync-api-contract` | API spec changes, DTO regeneration, verifying a candidate spec PR. |
 
 ## CI/CD
 - GitHub Actions (`.github/workflows/`) run Android CI, releases, and API-model regeneration. `unit-tests.yml` runs on PRs. `full-tests.yml` runs on pushes to `main`/`develop` against a local Supabase and uploads coverage to Codecov.
