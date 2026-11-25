@@ -47,9 +47,8 @@ import kotlinx.serialization.encoding.Encoder
 {{/multiplatform}}
 {{#multiplatform}}
 import kotlinx.serialization.*
-{{! KLUVS: needed by the enum fallback serializer below }}
+{{! KLUVS: needed by the enum fallback serializer below (serializer<T>() comes from kotlinx.serialization.*) }}
 {{#enumUnknownDefaultCase}}
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 {{/enumUnknownDefaultCase}}
@@ -166,10 +165,10 @@ internal object {{classname}}Serializer : KSerializer<{{classname}}> {
 {{#multiplatform}}
 {{#enumUnknownDefaultCase}}
 internal object {{classname}}Serializer : KSerializer<{{classname}}> {
-    override val descriptor = {{dataType}}.serializer().descriptor
+    override val descriptor = serializer<{{dataType}}>().descriptor
 
     override fun deserialize(decoder: Decoder): {{classname}} {
-        val value = decoder.decodeSerializableValue({{{dataType}}}.serializer())
+        val value = decoder.decodeSerializableValue(serializer<{{{dataType}}}>())
         return {{classname}}.values().firstOrNull { it.value == value }
             {{#isString}}
             ?: {{classname}}.{{#allowableValues}}{{#enumVars}}{{#-last}}{{&name}}{{/-last}}{{/enumVars}}{{/allowableValues}}
@@ -180,7 +179,7 @@ internal object {{classname}}Serializer : KSerializer<{{classname}}> {
     }
 
     override fun serialize(encoder: Encoder, value: {{classname}}) {
-        encoder.encodeSerializableValue({{{dataType}}}.serializer(), value.value)
+        encoder.encodeSerializableValue(serializer<{{{dataType}}}>(), value.value)
     }
 }
 {{/enumUnknownDefaultCase}}

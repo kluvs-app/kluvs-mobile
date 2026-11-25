@@ -19,7 +19,6 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
-import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -63,16 +62,16 @@ data class ProgressCreateRequestDto (
     }
 
     internal object ProgressTypeSerializer : KSerializer<ProgressType> {
-        override val descriptor = kotlin.String.serializer().descriptor
+        override val descriptor = serializer<kotlin.String>().descriptor
 
         override fun deserialize(decoder: Decoder): ProgressType {
-            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
             return ProgressType.values().firstOrNull { it.value == value }
                 ?: ProgressType.unknown_default_open_api
         }
 
         override fun serialize(encoder: Encoder, value: ProgressType) {
-            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
         }
     }
 

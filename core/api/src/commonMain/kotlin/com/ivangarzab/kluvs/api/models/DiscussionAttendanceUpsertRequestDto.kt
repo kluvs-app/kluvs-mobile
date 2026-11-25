@@ -19,7 +19,6 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
-import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -51,16 +50,16 @@ data class DiscussionAttendanceUpsertRequestDto (
     }
 
     internal object StatusSerializer : KSerializer<Status> {
-        override val descriptor = kotlin.String.serializer().descriptor
+        override val descriptor = serializer<kotlin.String>().descriptor
 
         override fun deserialize(decoder: Decoder): Status {
-            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
             return Status.values().firstOrNull { it.value == value }
                 ?: Status.unknown_default_open_api
         }
 
         override fun serialize(encoder: Encoder, value: Status) {
-            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
         }
     }
 

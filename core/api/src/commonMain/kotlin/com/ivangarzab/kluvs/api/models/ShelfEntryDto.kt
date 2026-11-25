@@ -21,7 +21,6 @@ import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
-import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -62,16 +61,16 @@ data class ShelfEntryDto (
     }
 
     internal object SourceSerializer : KSerializer<Source> {
-        override val descriptor = kotlin.String.serializer().descriptor
+        override val descriptor = serializer<kotlin.String>().descriptor
 
         override fun deserialize(decoder: Decoder): Source {
-            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
             return Source.values().firstOrNull { it.value == value }
                 ?: Source.unknown_default_open_api
         }
 
         override fun serialize(encoder: Encoder, value: Source) {
-            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
         }
     }
 

@@ -19,7 +19,6 @@ package com.ivangarzab.kluvs.api.models
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
-import kotlinx.serialization.builtins.serializer
 
 /**
  * 
@@ -73,16 +72,16 @@ data class ClubDto (
     }
 
     internal object JoinPolicySerializer : KSerializer<JoinPolicy> {
-        override val descriptor = kotlin.String.serializer().descriptor
+        override val descriptor = serializer<kotlin.String>().descriptor
 
         override fun deserialize(decoder: Decoder): JoinPolicy {
-            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
             return JoinPolicy.values().firstOrNull { it.value == value }
                 ?: JoinPolicy.unknown_default_open_api
         }
 
         override fun serialize(encoder: Encoder, value: JoinPolicy) {
-            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
         }
     }
 

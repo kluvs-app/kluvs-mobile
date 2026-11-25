@@ -63,12 +63,7 @@ import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
-{{! KLUVS: needed by the enum fallback serializer below }}
-{{#enumUnknownDefaultCase}}
-{{#hasEnums}}
-import kotlinx.serialization.builtins.serializer
-{{/hasEnums}}
-{{/enumUnknownDefaultCase}}
+{{! KLUVS: the enum fallback serializer below uses serializer<T>() from kotlinx.serialization.*, so it needs no extra import }}
 {{#discriminator}}
 import kotlinx.serialization.json.JsonClassDiscriminator
 {{/discriminator}}
@@ -206,16 +201,16 @@ import {{packageName}}.infrastructure.ITransformForStorage
     {{#enumUnknownDefaultCase}}
 
     internal object {{nameInPascalCase}}Serializer : KSerializer<{{nameInPascalCase}}> {
-        override val descriptor = {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}.serializer().descriptor
+        override val descriptor = serializer<{{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}>().descriptor
 
         override fun deserialize(decoder: Decoder): {{nameInPascalCase}} {
-            val value = decoder.decodeSerializableValue({{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}.serializer())
+            val value = decoder.decodeSerializableValue(serializer<{{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}>())
             return {{nameInPascalCase}}.values().firstOrNull { it.value == value }
                 ?: {{nameInPascalCase}}.{{#allowableValues}}{{#enumVars}}{{#-last}}{{&name}}{{/-last}}{{/enumVars}}{{/allowableValues}}
         }
 
         override fun serialize(encoder: Encoder, value: {{nameInPascalCase}}) {
-            encoder.encodeSerializableValue({{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}.serializer(), value.value)
+            encoder.encodeSerializableValue(serializer<{{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}>(), value.value)
         }
     }
     {{/enumUnknownDefaultCase}}

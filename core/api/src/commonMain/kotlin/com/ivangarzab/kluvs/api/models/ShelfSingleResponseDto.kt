@@ -20,7 +20,6 @@ import com.ivangarzab.kluvs.api.models.ShelfStatusDto
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
-import kotlinx.serialization.builtins.serializer
 
 /**
  * Response when book_id is provided (shelf for a single book, or null).
