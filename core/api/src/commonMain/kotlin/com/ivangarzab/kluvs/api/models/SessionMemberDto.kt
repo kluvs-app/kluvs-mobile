@@ -26,6 +26,7 @@ import kotlinx.serialization.encoding.*
  * @param sessionId 
  * @param memberId 
  * @param isReading Whether the member is actively reading (vs. opted out)
+ * @param joinedAt When the member joined the session. Null for rows that pre-date this field and had no session start time to estimate from.
  */
 @Serializable
 
@@ -36,7 +37,10 @@ data class SessionMemberDto (
     @SerialName(value = "member_id") @Required val memberId: kotlin.Int,
 
     /* Whether the member is actively reading (vs. opted out) */
-    @SerialName(value = "is_reading") @Required val isReading: kotlin.Boolean = true
+    @SerialName(value = "is_reading") @Required val isReading: kotlin.Boolean = true,
+
+    /* When the member joined the session. Null for rows that pre-date this field and had no session start time to estimate from. */
+    @SerialName(value = "joined_at") @Required val joinedAt: kotlin.String?
 
 ) {
 
