@@ -14,6 +14,8 @@ fix the spec upstream instead.
 - `openApiGenerate` (openapi-generator, `kotlin`/`multiplatform`) writes to `build/generated/openapi`,
   then `syncGeneratedApiModels` syncs the models into `src/commonMain/.../api/models`
   (removing models that left the spec). Run `:core:api:openApiGenerate` to do both.
+- To try an unreleased spec, set `apiSpecRef` in `build.gradle.kts` and run `:core:api:tryApiSpec`.
+  Don't commit the result. See `.claude/rules/codegen-and-data.md`.
 - In practice this runs in CI: `.github/workflows/regenerate-api-models.yml` fetches the spec from
   `kluvs-api` on an `api-spec-updated` dispatch, regenerates, and opens a PR against `develop`.
 

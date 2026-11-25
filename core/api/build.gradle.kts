@@ -1,3 +1,5 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
 plugins {
     id("kluvs.kmp.library")
     alias(libs.plugins.kotlinSerialization)
@@ -14,6 +16,10 @@ kotlin {
         }
     }
 }
+
+// Read only by the tryApiSpec task. Empty = the saved openapi.json; or a kluvs-api
+// branch or commit SHA (e.g. "main", "fix/some-branch") to try that spec.
+val apiSpecRef = ""
 
 val generatedModelPackagePath = "com/ivangarzab/kluvs/api/models"
 
@@ -115,4 +121,48 @@ val syncGeneratedApiModels by tasks.registering(Sync::class) {
 
 tasks.named("openApiGenerate") {
     finalizedBy(syncGeneratedApiModels)
+}
+
+// tryApiSpec: generates the committed models from the spec that apiSpecRef points at.
+// It has its own generate task so that openApiGenerate (and the regen workflow, which
+// runs it) never reads apiSpecRef.
+val generateTryApiSpecModels by tasks.registering(GenerateTask::class) {
+    // Same generator settings as openApiGenerate. Add any new setting from that block here too.
+    val settings = openApiGenerate
+    generatorName.set(settings.generatorName)
+    library.set(settings.library)
+    cleanupOutput.set(settings.cleanupOutput)
+    packageName.set(settings.packageName)
+    modelPackage.set(settings.modelPackage)
+    modelNameSuffix.set(settings.modelNameSuffix)
+    globalProperties.set(settings.globalProperties)
+    configOptions.set(settings.configOptions)
+    schemaMappings.set(settings.schemaMappings)
+    importMappings.set(settings.importMappings)
+    outputDir.set(layout.buildDirectory.dir("generated/openapi-try").get().asFile.path)
+
+    val ref = apiSpecRef.trim()
+    val message = if (ref.isEmpty()) {
+        inputSpec.set(settings.inputSpec)
+        "Generating API models from the saved core/api/openapi.json."
+    } else {
+        val url = "https://raw.githubusercontent.com/kluvs-app/kluvs-api/$ref/openapi.json"
+        remoteInputSpec.set(url)
+        "WARNING: generating API models from $url. Don't commit them; " +
+            "set apiSpecRef back to \"\" and run tryApiSpec again to reset."
+    }
+
+    // A branch can move while its URL stays the same, so always generate again.
+    outputs.upToDateWhen { false }
+    outputs.cacheIf { false }
+    // quiet level, so the message still shows with --quiet.
+    doFirst { logger.quiet(message) }
+}
+
+val tryApiSpec by tasks.registering(Sync::class) {
+    group = "api"
+    description = "Generates the API models from the kluvs-api ref in apiSpecRef (empty = saved spec)."
+    dependsOn(generateTryApiSpecModels)
+    from(layout.buildDirectory.dir("generated/openapi-try/src/commonMain/kotlin/$generatedModelPackagePath"))
+    into("src/commonMain/kotlin/$generatedModelPackagePath")
 }
