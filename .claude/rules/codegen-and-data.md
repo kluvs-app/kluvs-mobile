@@ -16,6 +16,25 @@ paths:
 - **The one accepted exception** is temporary interim types for parallel-track work against a frozen contract. They live entirely **outside** `core/api` (e.g. `core/data/.../remote/api/dto/`), are never committed, and get swapped for the generated types before any PR opens. Reference: `BookEnrichmentDto.kt` (KT-243/KT-248).
 - Verifying a candidate spec PR in `kluvs-api`: follow section A of the `sync-api-contract` skill (generate the real DTOs; don't just read the JSON).
 
+## Try an unreleased spec
+To generate the DTOs from a kluvs-api commit or branch before it merges:
+
+```bash
+./gradlew :core:api:openApiGenerate -PapiSpecRef=<sha|branch> --quiet --console=plain
+```
+
+`-PapiSpec=<path|url>` takes any other copy of the spec (a local file, relative to the repo root) and wins over `-PapiSpecRef`. Every run that uses an override prints a warning naming the spec.
+
+**Never commit the generated result.** It is written straight into the committed models folder, so restore that folder when you're done and check it's clean (`clean -f` removes models the spec added):
+
+```bash
+git restore core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models
+git clean -f core/api/src/commonMain/kotlin/com/ivangarzab/kluvs/api/models
+git status --short core/api
+```
+
+The regen PR brings the real update. CI and the regen workflow never pass either property.
+
 ## Regen PR branch
 - Never commit manual work to `chore/regenerate-api-models`. `regenerate-api-models.yml` force-pushes that branch and opens or updates the bot PR, so anything you add is lost on the next spec release.
 - When the regen PR needs app-code fixes, **stack** a fix PR on it:

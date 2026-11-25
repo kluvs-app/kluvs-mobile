@@ -17,6 +17,13 @@ kotlin {
 
 val generatedModelPackagePath = "com/ivangarzab/kluvs/api/models"
 
+// Overrides for trying a kluvs-api change before it merges (never commit the output):
+// -PapiSpec=<path|url> wins over -PapiSpecRef=<sha|branch>. Paths are relative to the
+// root project. Without either, the saved openapi.json is used.
+val apiSpecOverride: String? = providers.gradleProperty("apiSpec").orNull?.takeIf { it.isNotBlank() }
+    ?: providers.gradleProperty("apiSpecRef").orNull?.takeIf { it.isNotBlank() }
+        ?.let { "https://raw.githubusercontent.com/kluvs-app/kluvs-api/$it/openapi.json" }
+
 // Generates from the full spec (paths included), not just components.schemas.
 // Request/response envelopes that are only ever defined inline under "paths"
 // (e.g. Server's GET oneOf, Session's PUT response variants) get auto-named
@@ -39,7 +46,13 @@ val generatedModelPackagePath = "com/ivangarzab/kluvs/api/models"
 openApiGenerate {
     generatorName.set("kotlin")
     library.set("multiplatform")
-    inputSpec.set("$projectDir/openapi.json")
+    // Set exactly one of inputSpec (a file) and remoteInputSpec (a URL).
+    val override = apiSpecOverride
+    when {
+        override == null -> inputSpec.set("$projectDir/openapi.json")
+        override.startsWith("http://") || override.startsWith("https://") -> remoteInputSpec.set(override)
+        else -> inputSpec.set(rootProject.file(override).absolutePath)
+    }
     outputDir.set(layout.buildDirectory.dir("generated/openapi").get().asFile.path)
     // Safe to wipe wholesale on every run now that outputDir is a throwaway
     // build/ directory, not the module root.
@@ -115,4 +128,19 @@ val syncGeneratedApiModels by tasks.registering(Sync::class) {
 
 tasks.named("openApiGenerate") {
     finalizedBy(syncGeneratedApiModels)
+
+    val override = apiSpecOverride
+    if (override != null) {
+        // A URL's contents can change while the URL stays the same (a branch ref),
+        // so an override run is never up to date and never comes from the build cache.
+        outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
+        // quiet level, so the warning still shows with --quiet.
+        doFirst {
+            logger.quiet(
+                "WARNING: generating API models from $override, not core/api/openapi.json. " +
+                    "Don't commit the result."
+            )
+        }
+    }
 }
