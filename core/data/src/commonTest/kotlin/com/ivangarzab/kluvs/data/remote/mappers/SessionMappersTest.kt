@@ -92,8 +92,8 @@ class SessionMappersTest {
             status = SessionDto.Status.active,
             book = BookDto(id = 3, title = "Book", author = "Author"),
             members = listOf(
-                SessionParticipantSummaryDto(memberId = 7, memberName = "Ana", isReading = true),
-                SessionParticipantSummaryDto(memberId = 8, memberName = "", isReading = false)
+                SessionParticipantSummaryDto(memberId = 7, memberName = "Ana", isReading = true, joinedAt = "2026-01-01T00:00:00Z"),
+                SessionParticipantSummaryDto(memberId = 8, memberName = "", isReading = false, joinedAt = "2026-01-01T00:00:00Z")
             )
         )
 
