@@ -27,6 +27,7 @@ import kotlinx.serialization.encoding.*
  *
  * @param shelf 
  * @param updatedAt 
+ * @param finishedAt When the book was moved to the `read` shelf. Null unless `shelf` is `read`.
  * @param source 
  * @param book 
  */
@@ -37,6 +38,9 @@ data class ShelfEntryDto (
     @SerialName(value = "shelf") @Required val shelf: ShelfStatusDto,
 
     @SerialName(value = "updated_at") @Required val updatedAt: kotlin.String,
+
+    /* When the book was moved to the `read` shelf. Null unless `shelf` is `read`. */
+    @SerialName(value = "finished_at") @Required val finishedAt: kotlin.String?,
 
     @SerialName(value = "source") @Required val source: ShelfEntryDto.Source,
 

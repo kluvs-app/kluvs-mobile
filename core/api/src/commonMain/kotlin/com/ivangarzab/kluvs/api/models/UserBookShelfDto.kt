@@ -29,6 +29,7 @@ import kotlinx.serialization.encoding.*
  * @param shelf 
  * @param source How the shelf was set — 'manual' (via /shelf) or 'session' (auto-synced from session/discussion participation)
  * @param updatedAt 
+ * @param finishedAt When the book was moved to the `read` shelf. Null unless `shelf` is `read`.
  * @param book 
  */
 @Serializable
@@ -45,6 +46,9 @@ data class UserBookShelfDto (
     @SerialName(value = "source") @Required val source: UserBookShelfDto.Source = Source.manual,
 
     @SerialName(value = "updated_at") @Required val updatedAt: kotlin.String,
+
+    /* When the book was moved to the `read` shelf. Null unless `shelf` is `read`. */
+    @SerialName(value = "finished_at") @Required val finishedAt: kotlin.String?,
 
     @SerialName(value = "book") val book: BookDto? = null
 
