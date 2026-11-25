@@ -39,6 +39,7 @@ class ShelfMappersTest {
         val dto = ShelfEntryDto(
             shelf = ShelfStatusDto.currently_reading,
             updatedAt = "2026-07-01T10:30:00",
+            finishedAt = null,
             source = ShelfEntryDto.Source.session,
             book = bookDto
         )
@@ -58,6 +59,7 @@ class ShelfMappersTest {
     fun `ShelfEntryDto toDomain maps manual source`() {
         val dto = ShelfEntryDto(
             updatedAt = "2026-01-01T00:00:00Z",
+            finishedAt = "2026-01-01T00:00:00Z",
             source = ShelfEntryDto.Source.manual,
             shelf = ShelfStatusDto.read,
             book = bookDto
@@ -77,12 +79,14 @@ class ShelfMappersTest {
             shelves = listOf(
                 ShelfEntryDto(
                     updatedAt = "2026-01-01T00:00:00Z",
+                    finishedAt = "2026-01-01T00:00:00Z",
                     source = ShelfEntryDto.Source.manual,
                     shelf = ShelfStatusDto.read,
                     book = bookDto
                 ),
                 ShelfEntryDto(
                     updatedAt = "2026-01-01T00:00:00Z",
+                    finishedAt = null,
                     source = ShelfEntryDto.Source.session,
                     shelf = ShelfStatusDto.currently_reading,
                     book = bookDto

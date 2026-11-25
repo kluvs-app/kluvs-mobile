@@ -39,6 +39,7 @@ class ShelfRemoteDataSourceTest {
             shelves = listOf(
                 ShelfEntryDto(
                     updatedAt = "2026-01-01T00:00:00Z",
+                    finishedAt = "2026-01-01T00:00:00Z",
                     source = ShelfEntryDto.Source.manual,
                     shelf = ShelfStatusDto.read,
                     book = BookDto(id = 5, title = "The Hobbit", author = "J.R.R. Tolkien")
