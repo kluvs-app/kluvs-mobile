@@ -39,14 +39,29 @@ data class BookIndustryIdentifierDto (
     /**
      * 
      *
-     * Values: ISBN_10,ISBN_13,ISSN,OTHER
+     * Values: ISBN_10,ISBN_13,ISSN,OTHER,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = TypeSerializer::class)
     enum class Type(val value: kotlin.String) {
         @SerialName(value = "ISBN_10") ISBN_10("ISBN_10"),
         @SerialName(value = "ISBN_13") ISBN_13("ISBN_13"),
         @SerialName(value = "ISSN") ISSN("ISSN"),
-        @SerialName(value = "OTHER") OTHER("OTHER");
+        @SerialName(value = "OTHER") OTHER("OTHER"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object TypeSerializer : KSerializer<Type> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): Type {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return Type.values().firstOrNull { it.value == value }
+                ?: Type.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Type) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }

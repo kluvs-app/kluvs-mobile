@@ -34,7 +34,7 @@ class ProgressMappersTest {
         )
 
         // When: Mapping to domain
-        val progress = dto.toDomain()
+        val progress = assertNotNull(dto.toDomain())
 
         // Then: All fields map over, with IDs stringified
         assertEquals("progress-1", progress.id)
@@ -67,7 +67,7 @@ class ProgressMappersTest {
             book = null
         )
 
-        val progress = dto.toDomain()
+        val progress = assertNotNull(dto.toDomain())
 
         assertEquals(ProgressType.PERCENT, progress.type)
         assertEquals(ProgressStatus.COMPLETED, progress.status)

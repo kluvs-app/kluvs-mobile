@@ -17,13 +17,15 @@ package com.ivangarzab.kluvs.api.models
 
 
 import kotlinx.serialization.*
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 /**
  * Valid roles assignable via club_roles. Assigning \"owner\" transfers ownership: the caller must currently be the club's owner, the target must already be a member of the club, and the caller is demoted to \"admin\" as part of the same request.
  *
- * Values: admin,member,owner
+ * Values: admin,member,owner,unknown_default_open_api
  */
-@Serializable
+@Serializable(with = MemberAssignableRoleDtoSerializer::class)
 enum class MemberAssignableRoleDto(val value: kotlin.String) {
 
     @SerialName(value = "admin")
@@ -33,7 +35,10 @@ enum class MemberAssignableRoleDto(val value: kotlin.String) {
     member("member"),
 
     @SerialName(value = "owner")
-    owner("owner");
+    owner("owner"),
+
+    @SerialName(value = "unknown_default_open_api")
+    unknown_default_open_api("unknown_default_open_api");
 
     /**
      * Override [toString()] to avoid using the enum variable name as the value, and instead use
@@ -59,6 +64,19 @@ enum class MemberAssignableRoleDto(val value: kotlin.String) {
             it == value || normalizedData == "$value".lowercase()
           }
         }
+    }
+}
+internal object MemberAssignableRoleDtoSerializer : KSerializer<MemberAssignableRoleDto> {
+    override val descriptor = serializer<kotlin.String>().descriptor
+
+    override fun deserialize(decoder: Decoder): MemberAssignableRoleDto {
+        val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+        return MemberAssignableRoleDto.values().firstOrNull { it.value == value }
+            ?: MemberAssignableRoleDto.unknown_default_open_api
+    }
+
+    override fun serialize(encoder: Encoder, value: MemberAssignableRoleDto) {
+        encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
     }
 }
 

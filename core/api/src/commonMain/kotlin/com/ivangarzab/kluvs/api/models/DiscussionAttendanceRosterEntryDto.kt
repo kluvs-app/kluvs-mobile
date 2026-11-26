@@ -44,13 +44,28 @@ data class DiscussionAttendanceRosterEntryDto (
     /**
      * RSVP response
      *
-     * Values: yes,no,maybe
+     * Values: yes,no,maybe,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = StatusSerializer::class)
     enum class Status(val value: kotlin.String) {
         @SerialName(value = "yes") yes("yes"),
         @SerialName(value = "no") no("no"),
-        @SerialName(value = "maybe") maybe("maybe");
+        @SerialName(value = "maybe") maybe("maybe"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object StatusSerializer : KSerializer<Status> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): Status {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return Status.values().firstOrNull { it.value == value }
+                ?: Status.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Status) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }

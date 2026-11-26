@@ -54,12 +54,27 @@ data class DiscussionNoteDto (
     /**
      * 
      *
-     * Values: `private`,`public`
+     * Values: `private`,`public`,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = VisibilitySerializer::class)
     enum class Visibility(val value: kotlin.String) {
         @SerialName(value = "private") `private`("private"),
-        @SerialName(value = "public") `public`("public");
+        @SerialName(value = "public") `public`("public"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object VisibilitySerializer : KSerializer<Visibility> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): Visibility {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return Visibility.values().firstOrNull { it.value == value }
+                ?: Visibility.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Visibility) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }

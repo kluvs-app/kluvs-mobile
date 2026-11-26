@@ -14,7 +14,7 @@ import com.ivangarzab.kluvs.network.utils.parseDateTimeString
  */
 fun ClubMemberDto.toDomain(): ClubMember {
     return ClubMember(
-        role = Role.fromString(role.value),
+        role = role.toDomain(id),
         member = Member(
             id = id.toString(),
             name = name,
@@ -27,4 +27,9 @@ fun ClubMemberDto.toDomain(): ClubMember {
             shameClubs = null
         )
     )
+}
+
+private fun ClubMemberDto.Role.toDomain(memberId: Int): Role = when (this) {
+    ClubMemberDto.Role.unknown_default_open_api -> unknownRole("Member ID: $memberId")
+    else -> Role.fromString(value)
 }

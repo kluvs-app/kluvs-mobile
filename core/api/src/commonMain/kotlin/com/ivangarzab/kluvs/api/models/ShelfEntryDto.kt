@@ -51,12 +51,27 @@ data class ShelfEntryDto (
     /**
      * 
      *
-     * Values: manual,session
+     * Values: manual,session,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = SourceSerializer::class)
     enum class Source(val value: kotlin.String) {
         @SerialName(value = "manual") manual("manual"),
-        @SerialName(value = "session") session("session");
+        @SerialName(value = "session") session("session"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object SourceSerializer : KSerializer<Source> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): Source {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return Source.values().firstOrNull { it.value == value }
+                ?: Source.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Source) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }

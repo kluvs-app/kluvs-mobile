@@ -53,7 +53,7 @@ class ProgressRemoteDataSourceImpl(
         status: String?,
     ): Result<List<ReadingProgress>> {
         return try {
-            val entries = progressService.getAll(bookId, sessionId, status).map { it.toDomain() }
+            val entries = progressService.getAll(bookId, sessionId, status).mapNotNull { it.toDomain() }
             Bark.d("Fetched progress entries (${entries.size} entries)")
             Result.success(entries)
         } catch (e: Exception) {
@@ -64,7 +64,9 @@ class ProgressRemoteDataSourceImpl(
 
     override suspend fun createProgress(request: ProgressCreateRequestDto): Result<ReadingProgress> {
         return try {
+            // Null only for a progress type this app version doesn't know (logged by the mapper).
             val progress = progressService.create(request).toDomain()
+                ?: throw IllegalStateException("Created progress entry has an unknown progress type")
             Bark.i("Progress entry created (ID: ${progress.id})")
             Result.success(progress)
         } catch (e: Exception) {
@@ -75,7 +77,9 @@ class ProgressRemoteDataSourceImpl(
 
     override suspend fun updateProgress(request: ProgressUpdateRequestDto): Result<ReadingProgress> {
         return try {
+            // Null only for a progress type this app version doesn't know (logged by the mapper).
             val progress = progressService.update(request).toDomain()
+                ?: throw IllegalStateException("Updated progress entry has an unknown progress type")
             Bark.i("Progress entry updated (ID: ${progress.id})")
             Result.success(progress)
         } catch (e: Exception) {

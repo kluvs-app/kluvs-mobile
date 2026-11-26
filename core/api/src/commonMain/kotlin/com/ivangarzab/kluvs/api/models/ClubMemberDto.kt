@@ -63,13 +63,28 @@ data class ClubMemberDto (
     /**
      * Member's role in this club
      *
-     * Values: owner,admin,member
+     * Values: owner,admin,member,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = RoleSerializer::class)
     enum class Role(val value: kotlin.String) {
         @SerialName(value = "owner") owner("owner"),
         @SerialName(value = "admin") admin("admin"),
-        @SerialName(value = "member") member("member");
+        @SerialName(value = "member") member("member"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object RoleSerializer : KSerializer<Role> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): Role {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return Role.values().firstOrNull { it.value == value }
+                ?: Role.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: Role) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }

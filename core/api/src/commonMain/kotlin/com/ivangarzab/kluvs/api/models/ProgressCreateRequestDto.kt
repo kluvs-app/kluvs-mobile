@@ -52,12 +52,27 @@ data class ProgressCreateRequestDto (
     /**
      * 
      *
-     * Values: page,percent
+     * Values: page,percent,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = ProgressTypeSerializer::class)
     enum class ProgressType(val value: kotlin.String) {
         @SerialName(value = "page") page("page"),
-        @SerialName(value = "percent") percent("percent");
+        @SerialName(value = "percent") percent("percent"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object ProgressTypeSerializer : KSerializer<ProgressType> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): ProgressType {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return ProgressType.values().firstOrNull { it.value == value }
+                ?: ProgressType.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: ProgressType) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.data.remote.mappers
 
+import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.api.models.ClubDetailDto
 import com.ivangarzab.kluvs.api.models.ClubDto
 import com.ivangarzab.kluvs.api.models.MemberClubEntryDto
@@ -37,6 +38,7 @@ fun ClubDetailDto.toDomain(): Club {
         joinPolicy = when (joinPolicy) {
             ClubDetailDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
             ClubDetailDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
+            ClubDetailDto.JoinPolicy.unknown_default_open_api -> unknownJoinPolicy(id)
         },
         inviteToken = inviteToken
     )
@@ -59,19 +61,45 @@ fun ClubDto.toDomain(): Club {
         members = null,
         activeSession = null,
         pastSessions = null,
-        joinPolicy = joinPolicy.toDomain(),
+        joinPolicy = joinPolicy.toDomain(id),
         inviteToken = inviteToken
     )
 }
 
-private fun ClubDto.JoinPolicy.toDomain(): JoinPolicy = when (this) {
+private fun ClubDto.JoinPolicy.toDomain(clubId: String): JoinPolicy = when (this) {
     ClubDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
     ClubDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
+    ClubDto.JoinPolicy.unknown_default_open_api -> unknownJoinPolicy(clubId)
 }
 
-private fun MemberClubEntryDto.JoinPolicy.toDomain(): JoinPolicy = when (this) {
+private fun MemberClubEntryDto.JoinPolicy.toDomain(clubId: String): JoinPolicy = when (this) {
     MemberClubEntryDto.JoinPolicy.PRIVATE -> JoinPolicy.PRIVATE
     MemberClubEntryDto.JoinPolicy.INVITE_LINK -> JoinPolicy.INVITE_LINK
+    MemberClubEntryDto.JoinPolicy.unknown_default_open_api -> unknownJoinPolicy(clubId)
+}
+
+/**
+ * Fallback for a join policy this app version doesn't know: [JoinPolicy.PRIVATE], the most
+ * restrictive one, so the app never offers an invite link the server may not honor.
+ * The generated serializer has already replaced the raw wire value, so it can't be logged.
+ */
+internal fun unknownJoinPolicy(clubId: String): JoinPolicy {
+    Bark.w("Unknown join policy from API; falling back to PRIVATE (Club ID: $clubId)")
+    return JoinPolicy.PRIVATE
+}
+
+private fun MemberClubEntryDto.Role.toDomain(clubId: String): Role = when (this) {
+    MemberClubEntryDto.Role.unknown_default_open_api -> unknownRole("Club ID: $clubId")
+    else -> Role.fromString(value)
+}
+
+/**
+ * Fallback for a club role this app version doesn't know: [Role.MEMBER], the least
+ * privileged one, so the app never shows owner/admin actions the server would reject.
+ */
+internal fun unknownRole(context: String): Role {
+    Bark.w("Unknown club role from API; falling back to MEMBER ($context)")
+    return Role.MEMBER
 }
 
 /**
@@ -88,11 +116,11 @@ fun MemberClubEntryDto.toDomain(): Club {
         serverId = serverId,
         foundedDate = parseDateOnlyString(foundedDate),
         shameList = shameList?.map { it.toString() } ?: emptyList(),
-        role = Role.fromString(role.value),
+        role = role.toDomain(id),
         members = null,
         activeSession = null,
         pastSessions = null,
-        joinPolicy = joinPolicy.toDomain(),
+        joinPolicy = joinPolicy.toDomain(id),
         inviteToken = inviteToken
     )
 }

@@ -78,6 +78,22 @@ openApiGenerate {
             "dateLibrary" to "string"
         )
     )
+    // Unknown enum values: adds an unknown_default_open_api case to every generated
+    // enum, and (via the templates below) a serializer that decodes any unrecognized
+    // wire value to it instead of throwing, so shipped app versions survive enum values
+    // the API adds later. Mappers in :core:data turn that case into a safe domain value.
+    // It must go in additionalProperties: the plugin only forwards configOptions keys
+    // the generator lists as CLI options, and the Kotlin generator clears that list,
+    // so "enumUnknownDefaultCase" in configOptions is silently dropped.
+    additionalProperties.set(
+        mapOf(
+            "enumUnknownDefaultCase" to "true"
+        )
+    )
+    // Upstream's multiplatform templates add the unknown case but no fallback
+    // serializer (only the jvm kotlinx_serialization branch has one). The copies in
+    // templates/ add it; see the header comment in each file.
+    templateDir.set("$projectDir/templates")
     // Free-form objects (schemas with `additionalProperties: true`, e.g. Member's
     // platform_metadata) default to `kotlin.collections.Map<String, kotlin.Any>`, but
     // kotlinx.serialization has no serializer for bare `Any` — that fails to compile.
@@ -137,6 +153,8 @@ val generateTryApiSpecModels by tasks.registering(GenerateTask::class) {
     modelNameSuffix.set(settings.modelNameSuffix)
     globalProperties.set(settings.globalProperties)
     configOptions.set(settings.configOptions)
+    additionalProperties.set(settings.additionalProperties)
+    templateDir.set(settings.templateDir)
     schemaMappings.set(settings.schemaMappings)
     importMappings.set(settings.importMappings)
     outputDir.set(layout.buildDirectory.dir("generated/openapi-try").get().asFile.path)

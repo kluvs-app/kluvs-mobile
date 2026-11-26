@@ -70,12 +70,27 @@ data class ServerClubSummaryDto (
     /**
      * Controls how new members can join. PRIVATE = by admin only; INVITE_LINK = anyone with the link.
      *
-     * Values: PRIVATE,INVITE_LINK
+     * Values: PRIVATE,INVITE_LINK,unknown_default_open_api
      */
-    @Serializable
+    @Serializable(with = JoinPolicySerializer::class)
     enum class JoinPolicy(val value: kotlin.String) {
         @SerialName(value = "PRIVATE") PRIVATE("PRIVATE"),
-        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK");
+        @SerialName(value = "INVITE_LINK") INVITE_LINK("INVITE_LINK"),
+        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
+    }
+
+    internal object JoinPolicySerializer : KSerializer<JoinPolicy> {
+        override val descriptor = serializer<kotlin.String>().descriptor
+
+        override fun deserialize(decoder: Decoder): JoinPolicy {
+            val value = decoder.decodeSerializableValue(serializer<kotlin.String>())
+            return JoinPolicy.values().firstOrNull { it.value == value }
+                ?: JoinPolicy.unknown_default_open_api
+        }
+
+        override fun serialize(encoder: Encoder, value: JoinPolicy) {
+            encoder.encodeSerializableValue(serializer<kotlin.String>(), value.value)
+        }
     }
 
 }
