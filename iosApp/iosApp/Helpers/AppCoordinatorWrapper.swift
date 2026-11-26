@@ -38,6 +38,7 @@ enum NavigationStateWrapper: Equatable {
     case initializing
     case unauthenticated
     case authenticated(userId: String)
+    case updateRequired
 
     static func from(_ kotlinState: Shared.NavigationState) -> NavigationStateWrapper {
         if kotlinState is Shared.NavigationState.Initializing {
@@ -46,6 +47,8 @@ enum NavigationStateWrapper: Equatable {
             return .unauthenticated
         } else if let authenticated = kotlinState as? Shared.NavigationState.Authenticated {
             return .authenticated(userId: authenticated.userId)
+        } else if kotlinState is Shared.NavigationState.UpdateRequired {
+            return .updateRequired
         }
         return .initializing
     }

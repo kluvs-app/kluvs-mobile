@@ -1,6 +1,9 @@
 package com.ivangarzab.kluvs.app
 
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
+import com.ivangarzab.kluvs.data.domain.CheckUpdateRequiredUseCase
+import com.ivangarzab.kluvs.data.repositories.ConfigRepository
+import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
 import dev.mokkery.answering.returns
@@ -32,6 +35,7 @@ import kotlin.test.assertTrue
 class AppCoordinatorHelperTest {
 
     private lateinit var authRepository: AuthRepository
+    private lateinit var configRepository: ConfigRepository
     private lateinit var currentUserFlow: MutableStateFlow<User?>
     private lateinit var appCoordinator: AppCoordinator
     private lateinit var testScope: CoroutineScope
@@ -44,6 +48,10 @@ class AppCoordinatorHelperTest {
 
         // Create mocked repository
         authRepository = mock<AuthRepository>()
+        // No minimum supported version by default, so no update is required
+        configRepository = mock<ConfigRepository>()
+        everySuspend { configRepository.getConfig() } returns
+            Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = null))
 
         // Setup repository state flows - start with no user
         currentUserFlow = MutableStateFlow<User?>(null)
@@ -54,7 +62,7 @@ class AppCoordinatorHelperTest {
         testScope = CoroutineScope(testDispatcher + Job())
 
         // Create real AppCoordinator with mocked repository
-        appCoordinator = AppCoordinator(authRepository)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
 
         // Start Koin with test module
         startKoin {
@@ -206,5 +214,9 @@ class AppCoordinatorHelperTest {
 
         closeable1.close()
         closeable2.close()
+    }
+
+    private companion object {
+        const val INSTALLED_VERSION = "1.0.0"
     }
 }

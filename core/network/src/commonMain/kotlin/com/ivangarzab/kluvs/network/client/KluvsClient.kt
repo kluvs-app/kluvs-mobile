@@ -15,7 +15,7 @@ internal const val KLUVS_CLIENT_HEADER = "X-Kluvs-Client"
  * @property version the human-readable release version (MAJOR.MINOR.PATCH, same as the release
  * tag), never a build number.
  */
-internal data class KluvsClient(val platform: String, val version: String) {
+data class KluvsClient(val platform: String, val version: String) {
     val headerValue: String get() = "$platform/$version"
 }
 

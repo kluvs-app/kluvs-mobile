@@ -1,5 +1,6 @@
 package com.ivangarzab.kluvs.data.di
 
+import com.ivangarzab.kluvs.data.domain.CheckUpdateRequiredUseCase
 import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.data.domain.SearchBooksUseCase
 import com.ivangarzab.kluvs.data.local.cache.CachePolicy
@@ -35,6 +36,8 @@ import com.ivangarzab.kluvs.data.remote.api.BookService
 import com.ivangarzab.kluvs.data.remote.api.BookServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.ClubService
 import com.ivangarzab.kluvs.data.remote.api.ClubServiceImpl
+import com.ivangarzab.kluvs.data.remote.api.ConfigService
+import com.ivangarzab.kluvs.data.remote.api.ConfigServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.DiscussionAttendanceService
 import com.ivangarzab.kluvs.data.remote.api.DiscussionAttendanceServiceImpl
 import com.ivangarzab.kluvs.data.remote.api.DiscussionNoteService
@@ -63,6 +66,8 @@ import com.ivangarzab.kluvs.data.remote.source.BookRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.BookRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.ClubRemoteDataSourceImpl
+import com.ivangarzab.kluvs.data.remote.source.ConfigRemoteDataSource
+import com.ivangarzab.kluvs.data.remote.source.ConfigRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.DiscussionAttendanceRemoteDataSource
 import com.ivangarzab.kluvs.data.remote.source.DiscussionAttendanceRemoteDataSourceImpl
 import com.ivangarzab.kluvs.data.remote.source.DiscussionNoteRemoteDataSource
@@ -91,6 +96,8 @@ import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.BookRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ClubRepository
 import com.ivangarzab.kluvs.data.repositories.ClubRepositoryImpl
+import com.ivangarzab.kluvs.data.repositories.ConfigRepository
+import com.ivangarzab.kluvs.data.repositories.ConfigRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ConnectivityRepository
 import com.ivangarzab.kluvs.data.repositories.ConnectivityRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.DiscussionAttendanceRepository
@@ -114,6 +121,7 @@ import com.ivangarzab.kluvs.data.repositories.SessionRepositoryImpl
 import com.ivangarzab.kluvs.data.repositories.ShelfRepository
 import com.ivangarzab.kluvs.data.repositories.ShelfRepositoryImpl
 import com.ivangarzab.kluvs.database.KluvsDatabase
+import com.ivangarzab.kluvs.network.client.KluvsClient
 import com.ivangarzab.kluvs.network.status.OfflineStatus
 import io.github.jan.supabase.SupabaseClient
 import org.koin.core.module.Module
@@ -160,6 +168,7 @@ val coreDataModule = module {
     single<DiscussionNoteService> { DiscussionNoteServiceImpl(get<SupabaseClient>()) }
     single<DiscussionAttendanceService> { DiscussionAttendanceServiceImpl(get<SupabaseClient>()) }
     single<JoinService> { JoinServiceImpl(get<SupabaseClient>()) }
+    single<ConfigService> { ConfigServiceImpl(get<SupabaseClient>()) }
 
     // Remote Data Sources
     single<AvatarRemoteDataSource> { AvatarRemoteDataSourceImpl(get<AvatarService>()) }
@@ -176,6 +185,7 @@ val coreDataModule = module {
     single<DiscussionNoteRemoteDataSource> { DiscussionNoteRemoteDataSourceImpl(get<DiscussionNoteService>()) }
     single<DiscussionAttendanceRemoteDataSource> { DiscussionAttendanceRemoteDataSourceImpl(get<DiscussionAttendanceService>()) }
     single<JoinRemoteDataSource> { JoinRemoteDataSourceImpl(get<JoinService>()) }
+    single<ConfigRemoteDataSource> { ConfigRemoteDataSourceImpl(get<ConfigService>()) }
 
     // Repositories
     single<ConnectivityRepository> { ConnectivityRepositoryImpl(get<OfflineStatus>()) }
@@ -262,10 +272,19 @@ val coreDataModule = module {
         )
     }
     single<JoinRepository> { JoinRepositoryImpl(get<JoinRemoteDataSource>()) }
+    single<ConfigRepository> { ConfigRepositoryImpl(get<ConfigRemoteDataSource>()) }
 
     // Use Cases shared across features
     factory<SearchBooksUseCase> { SearchBooksUseCase(get<BookRepository>()) }
     factory<RegisterBookUseCase> { RegisterBookUseCase(get<BookRepository>()) }
+
+    // Use Cases for the app shell
+    factory<CheckUpdateRequiredUseCase> {
+        CheckUpdateRequiredUseCase(
+            configRepository = get<ConfigRepository>(),
+            installedVersion = get<KluvsClient>().version
+        )
+    }
 }
 
 expect val databaseModule: Module

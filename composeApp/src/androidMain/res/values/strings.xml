@@ -185,4 +185,9 @@
     <string name="book_field_edition">Edition</string>
     <string name="book_about_the_author">About the Author</string>
     <string name="book_more_by_x">More by %s</string>
+
+    <!-- Force update screen -->
+    <string name="force_update_heading">Time for an update.</string>
+    <string name="force_update_body">This version of Kluvs is no longer supported. Update the app to keep reading with your clubs.</string>
+    <string name="force_update_button">Update</string>
 </resources>

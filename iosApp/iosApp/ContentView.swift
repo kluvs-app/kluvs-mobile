@@ -27,6 +27,8 @@ struct ContentView: View {
                             navigationPath.append(MainRoute.join(token: nil))
                         }
                     )
+                case .updateRequired:
+                    ForceUpdateView()
                 }
             }
             .navigationDestination(for: MainRoute.self) { route in
@@ -61,6 +63,9 @@ struct ContentView: View {
             if case .authenticated = newState {
                 navigationPath = NavigationPath()
             } else if case .unauthenticated = newState {
+                navigationPath = NavigationPath()
+            } else if case .updateRequired = newState {
+                // Hard block: drop anything pushed on top so only the update screen is reachable
                 navigationPath = NavigationPath()
             }
             // Re-route afterwards: a deep link that landed before auth resolved would
@@ -101,6 +106,8 @@ struct ContentView: View {
     private func routePendingInviteIfNeeded() {
         guard let token = pendingJoinCoordinator.incomingInviteToken else { return }
         if case .initializing = appCoordinator.navigationState { return }
+        // Leave the token pending: an outdated app can't open Join
+        if case .updateRequired = appCoordinator.navigationState { return }
 
         navigationPath.append(MainRoute.join(token: token))
         pendingJoinCoordinator.onConsumeIncomingInviteToken()
