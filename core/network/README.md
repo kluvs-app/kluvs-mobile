@@ -10,7 +10,7 @@ data layer exposes to the UI.
 
 ## Key Components
 
-- **`coreNetworkModule`**: Koin module creating `SupabaseClient` and `OfflineStatus`.
+- **`coreNetworkModule`**: Koin module creating `SupabaseClient`, `OfflineStatus` and `KluvsClient`.
 - **`BuildKonfig`** (generated): `SUPABASE_URL` / `SUPABASE_KEY` for the selected flavor
   (`integration` by default, or `production` via `-Pbuildkonfig.flavor=production`), plus
   `TEST_SUPABASE_URL` / `TEST_SUPABASE_KEY` for integration tests. Values come from Gradle
@@ -18,6 +18,9 @@ data layer exposes to the UI.
 - **`OfflineStatus`**: `isOffline: StateFlow<Boolean>`, fed by `OfflineStatusPlugin` on the
   client's HTTP pipeline and re-checked in the background by `ConnectivityProbe` while offline.
   Read only by the data layer (`ConnectivityRepository`).
+- **`KluvsClient`**: the installed app's platform and release version, read at runtime
+  (Android `PackageInfo.versionName`, iOS `CFBundleShortVersionString`) and sent on every request
+  as `X-Kluvs-Client: android/<version>` or `ios/<version>`.
 - **`JsonHelper`**: the shared `Json` config for Supabase function responses.
 - **`DateParsingUtils`**: `parseDateOnlyString()` / `parseDateTimeString()` for API date strings.
 
