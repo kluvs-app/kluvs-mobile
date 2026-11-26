@@ -1,6 +1,9 @@
 package com.ivangarzab.kluvs.network.di
 
 import com.ivangarzab.kluvs.network.BuildKonfig
+import com.ivangarzab.kluvs.network.client.KluvsClient
+import com.ivangarzab.kluvs.network.client.kluvsClientModule
+import com.ivangarzab.kluvs.network.client.sendKluvsClientHeader
 import com.ivangarzab.kluvs.network.status.ConnectivityProbe
 import com.ivangarzab.kluvs.network.status.OfflineStatus
 import com.ivangarzab.kluvs.network.status.OfflineStatusPlugin
@@ -18,6 +21,7 @@ val coreNetworkModule = module {
 
     single<SupabaseClient> {
         val offlineStatus = get<OfflineStatus>()
+        val kluvsClient = get<KluvsClient>()
         createSupabaseClient(
             supabaseUrl = BuildKonfig.SUPABASE_URL,
             supabaseKey = BuildKonfig.SUPABASE_KEY
@@ -31,7 +35,11 @@ val coreNetworkModule = module {
             // upgrade that changes or removes it fails there first.
             httpConfig {
                 install(OfflineStatusPlugin) { status = offlineStatus }
+                sendKluvsClientHeader(kluvsClient)
             }
         }
     }
+
+    // KluvsClient - platform-specific module
+    includes(kluvsClientModule)
 }
