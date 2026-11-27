@@ -4,36 +4,54 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
+import com.ivangarzab.kluvs.data.domain.CheckUpdateRequiredUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
  * App-level coordinator that manages navigation state based on app-wide conditions.
  *
  * Handles:
+ * - Force updates: the installed app is older than the backend supports
  * - Authentication state (logged in/out)
- * - Future: Onboarding, force updates, etc.
+ * - Future: Onboarding, etc.
  *
  * Platform code observes [navigationState] to perform actual navigation.
  */
 class AppCoordinator(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val checkUpdateRequired: CheckUpdateRequiredUseCase
 ) : ViewModel() {
 
-    private val _navigationState = MutableStateFlow<NavigationState>(NavigationState.Initializing)
-    val navigationState: StateFlow<NavigationState> = _navigationState.asStateFlow()
+    private val authState = MutableStateFlow<NavigationState>(NavigationState.Initializing)
+    private val updateRequired = MutableStateFlow(false)
+
+    /** [NavigationState.UpdateRequired] takes priority over every auth state. */
+    val navigationState: StateFlow<NavigationState> =
+        combine(authState, updateRequired) { auth, mustUpdate ->
+            if (mustUpdate) NavigationState.UpdateRequired else auth
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, NavigationState.Initializing)
 
     init {
         Bark.d("Initializing app coordinator")
+        // Runs alongside auth restore so a slow or failed check never delays launch
+        viewModelScope.launch {
+            if (checkUpdateRequired()) {
+                Bark.i("Navigation: Update required")
+                updateRequired.value = true
+            }
+        }
         viewModelScope.launch {
             // Initialize auth (restore session if exists)
             authRepository.initialize()
 
             // Observe auth state changes
             authRepository.currentUser.collect { user ->
-                _navigationState.value = if (user != null) {
+                authState.value = if (user != null) {
                     Bark.i("Navigation: User authenticated (ID: ${user.id})")
                     NavigationState.Authenticated(userId = user.id)
                 } else {
@@ -67,4 +85,10 @@ sealed class NavigationState {
      * Platform should navigate to main app.
      */
     data class Authenticated(val userId: String) : NavigationState()
+
+    /**
+     * The installed app is older than the backend's minimum supported version.
+     * Platform should show the force-update screen and nothing else (hard block).
+     */
+    data object UpdateRequired : NavigationState()
 }

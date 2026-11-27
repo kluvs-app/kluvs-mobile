@@ -41,6 +41,7 @@ import com.ivangarzab.kluvs.ui.auth.LoginScreen
 import com.ivangarzab.kluvs.ui.auth.SignupScreen
 import com.ivangarzab.kluvs.ui.join.JoinScreen
 import com.ivangarzab.kluvs.ui.settings.SettingsScreen
+import com.ivangarzab.kluvs.ui.update.ForceUpdateScreen
 import org.koin.android.ext.android.inject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -143,6 +144,15 @@ fun MainNavHost(
             NavigationState.Initializing -> {
                 // Do nothing - show splash/loading
             }
+            NavigationState.UpdateRequired -> {
+                // Hard block: clear the whole back stack so Back exits the app instead of
+                // returning to a screen the outdated app can no longer use.
+                if (navController.currentDestination?.route != NavDestinations.UPDATE) {
+                    navController.navigate(NavDestinations.UPDATE) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
         }
     }
 
@@ -154,6 +164,8 @@ fun MainNavHost(
     LaunchedEffect(incomingInviteToken, navState) {
         val token = incomingInviteToken ?: return@LaunchedEffect
         if (navState is NavigationState.Initializing) return@LaunchedEffect
+        // Leave the token pending: an outdated app can't open Join
+        if (navState is NavigationState.UpdateRequired) return@LaunchedEffect
 
         navController.navigate(NavDestinations.joinRoute(token)) {
             launchSingleTop = true
@@ -189,6 +201,9 @@ fun MainNavHost(
                         navController.navigate(NavDestinations.SIGNUP)
                     },
                 )
+            }
+            composable(NavDestinations.UPDATE) {
+                ForceUpdateScreen()
             }
             composable(NavDestinations.SIGNUP) {
                 SignupScreen(
@@ -264,6 +279,7 @@ object NavDestinations {
     const val SETTINGS = "settings"
     const val SETTINGS_ROUTE = "$SETTINGS/{userId}"
     const val JOIN = "join"
+    const val UPDATE = "update"
     const val JOIN_TOKEN_ARG = "token"
     const val JOIN_ROUTE = "$JOIN?$JOIN_TOKEN_ARG={$JOIN_TOKEN_ARG}"
 

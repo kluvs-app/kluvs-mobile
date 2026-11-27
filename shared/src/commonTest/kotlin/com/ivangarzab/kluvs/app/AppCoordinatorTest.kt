@@ -1,6 +1,9 @@
 package com.ivangarzab.kluvs.app
 
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
+import com.ivangarzab.kluvs.data.domain.CheckUpdateRequiredUseCase
+import com.ivangarzab.kluvs.data.repositories.ConfigRepository
+import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
 import dev.mokkery.answering.returns
@@ -29,6 +32,7 @@ import kotlin.test.assertIs
 class AppCoordinatorTest {
 
     private lateinit var authRepository: AuthRepository
+    private lateinit var configRepository: ConfigRepository
     private lateinit var appCoordinator: AppCoordinator
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -36,6 +40,10 @@ class AppCoordinatorTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         authRepository = mock<AuthRepository>()
+        // No minimum supported version by default, so no update is required
+        configRepository = mock<ConfigRepository>()
+        everySuspend { configRepository.getConfig() } returns
+            Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = null))
     }
 
     @AfterTest
@@ -51,7 +59,7 @@ class AppCoordinatorTest {
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
         // When
-        appCoordinator = AppCoordinator(authRepository)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
 
         // Wait for initialization to complete
         testScheduler.advanceUntilIdle()
@@ -75,7 +83,7 @@ class AppCoordinatorTest {
         everySuspend { authRepository.initialize() } returns Result.success(testUser)
 
         // When
-        appCoordinator = AppCoordinator(authRepository)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
 
         // Wait for initialization to complete
         testScheduler.advanceUntilIdle()
@@ -93,7 +101,7 @@ class AppCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
-        appCoordinator = AppCoordinator(authRepository)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
 
         // Wait for initialization
         testScheduler.advanceUntilIdle()
@@ -131,7 +139,7 @@ class AppCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(testUser)
 
-        appCoordinator = AppCoordinator(authRepository)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
 
         // Wait for initialization
         testScheduler.advanceUntilIdle()
@@ -160,7 +168,7 @@ class AppCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(user1)
 
-        appCoordinator = AppCoordinator(authRepository)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
 
         // Wait for initialization
         testScheduler.advanceUntilIdle()
@@ -184,5 +192,65 @@ class AppCoordinatorTest {
         val state2 = appCoordinator.navigationState.value
         assertIs<NavigationState.Authenticated>(state2)
         assertEquals("user-2", state2.userId)
+    }
+
+    @Test
+    fun `transitions to UpdateRequired when installed version is below minimum`() = runTest {
+        // Given
+        every { authRepository.currentUser } returns MutableStateFlow<User?>(null)
+        everySuspend { authRepository.initialize() } returns Result.success(null)
+        everySuspend { configRepository.getConfig() } returns
+            Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = "2.0.0"))
+
+        // When
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        testScheduler.advanceUntilIdle()
+
+        // Then
+        assertIs<NavigationState.UpdateRequired>(appCoordinator.navigationState.value)
+    }
+
+    @Test
+    fun `UpdateRequired is kept when auth state changes`() = runTest {
+        // Given
+        val currentUserFlow = MutableStateFlow<User?>(null)
+        every { authRepository.currentUser } returns currentUserFlow
+        everySuspend { authRepository.initialize() } returns Result.success(null)
+        everySuspend { configRepository.getConfig() } returns
+            Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = "2.0.0"))
+
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        testScheduler.advanceUntilIdle()
+
+        // When - a restored session arrives after the check
+        currentUserFlow.value = User(
+            id = "user-123",
+            email = "test@example.com",
+            displayName = "Test User",
+            avatarUrl = null,
+            provider = AuthProvider.EMAIL
+        )
+
+        // Then - the update screen still wins
+        assertIs<NavigationState.UpdateRequired>(appCoordinator.navigationState.value)
+    }
+
+    @Test
+    fun `starts normally when the config request fails`() = runTest {
+        // Given
+        every { authRepository.currentUser } returns MutableStateFlow<User?>(null)
+        everySuspend { authRepository.initialize() } returns Result.success(null)
+        everySuspend { configRepository.getConfig() } returns Result.failure(Exception("Offline"))
+
+        // When
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        testScheduler.advanceUntilIdle()
+
+        // Then
+        assertIs<NavigationState.Unauthenticated>(appCoordinator.navigationState.value)
+    }
+
+    private companion object {
+        const val INSTALLED_VERSION = "1.0.0"
     }
 }

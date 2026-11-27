@@ -1,8 +1,11 @@
 package com.ivangarzab.kluvs.app
 
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
+import com.ivangarzab.kluvs.data.domain.CheckUpdateRequiredUseCase
+import com.ivangarzab.kluvs.data.repositories.ConfigRepository
 import com.ivangarzab.kluvs.data.repositories.JoinRepository
 import com.ivangarzab.kluvs.model.AuthProvider
+import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.User
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -69,7 +72,12 @@ class PendingJoinCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
-        appCoordinator = AppCoordinator(authRepository)
+        // No minimum supported version, so no update is required
+        val configRepository = mock<ConfigRepository>()
+        everySuspend { configRepository.getConfig() } returns
+            Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = null))
+
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, "1.0.0"))
     }
 
     @AfterTest
