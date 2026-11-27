@@ -28,7 +28,7 @@ struct ContentView: View {
                         }
                     )
                 case .updateRequired:
-                    ForceUpdateView()
+                    ForceUpdateView(onUpdate: appCoordinator.onUpdateApp)
                 }
             }
             .navigationDestination(for: MainRoute.self) { route in

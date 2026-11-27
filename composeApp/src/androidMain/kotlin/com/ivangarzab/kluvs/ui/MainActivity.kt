@@ -203,7 +203,7 @@ fun MainNavHost(
                 )
             }
             composable(NavDestinations.UPDATE) {
-                ForceUpdateScreen()
+                ForceUpdateScreen(onUpdate = appCoordinator::onUpdateApp)
             }
             composable(NavDestinations.SIGNUP) {
                 SignupScreen(

@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -29,8 +28,6 @@ import com.ivangarzab.kluvs.designsystem.components.buttons.PrimaryButton
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.feature
 
-private const val PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.ivangarzab.kluvs"
-
 // design-system tokens.json § component.illustration (size.mobile, gap) and
 // § component.empty-state.body (max-width on mobile)
 private val ILLUSTRATION_SIZE = 240.dp
@@ -39,22 +36,11 @@ private val BODY_MAX_WIDTH = 240.dp
 
 /**
  * Hard block shown when the installed app is older than the backend supports
- * ([com.ivangarzab.kluvs.app.NavigationState.UpdateRequired]). The only way forward is the store.
+ * ([com.ivangarzab.kluvs.app.NavigationState.UpdateRequired]). The only way forward is the store,
+ * which [onUpdate] opens as a shared platform effect.
  */
 @Composable
-fun ForceUpdateScreen(modifier: Modifier = Modifier) {
-    val uriHandler = LocalUriHandler.current
-    ForceUpdateContent(
-        modifier = modifier,
-        onUpdate = {
-            Bark.i("Opening Play Store listing to update")
-            uriHandler.openUri(PLAY_STORE_URL)
-        }
-    )
-}
-
-@Composable
-private fun ForceUpdateContent(
+fun ForceUpdateScreen(
     modifier: Modifier = Modifier,
     onUpdate: () -> Unit
 ) {
@@ -106,7 +92,7 @@ private fun ForceUpdateContent(
 @PreviewLightDark
 @Composable
 private fun Preview_ForceUpdateScreen() = KluvsTheme {
-    ForceUpdateContent(
+    ForceUpdateScreen(
         modifier = Modifier.background(color = KluvsTheme.colors.background),
         onUpdate = { Bark.d("Preview: Update tapped") }
     )

@@ -4,11 +4,16 @@ import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
+import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,6 +36,7 @@ class AuthViewModelTest {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var viewModel: AuthViewModel
+    private lateinit var platformEffectHandler: PlatformEffectHandler
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @BeforeTest
@@ -43,7 +49,8 @@ class AuthViewModelTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
-        viewModel = createAuthViewModel(authRepository)
+        platformEffectHandler = mock(MockMode.autoUnit)
+        viewModel = createAuthViewModel(authRepository, platformEffectHandler)
     }
 
     @AfterTest
@@ -528,5 +535,50 @@ class AuthViewModelTest {
         assertEquals("Please enter a valid email", viewModel.uiState.value.emailError)
         assertEquals("Password must be at least 6 characters", viewModel.uiState.value.passwordError)
         assertEquals("Passwords must match", viewModel.uiState.value.confirmPasswordError)
+    }
+
+    // ========== OAuth Tests ==========
+
+    @Test
+    fun `signInWithDiscord opens the OAuth URL and shows the form again`() {
+        // Given
+        everySuspend { authRepository.signInWithDiscord() } returns Result.success(OAUTH_URL)
+
+        // When
+        viewModel.signInWithDiscord()
+
+        // Then
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        verify { platformEffectHandler.handle(PlatformEffect.OpenUrl(OAUTH_URL)) }
+    }
+
+    @Test
+    fun `signInWithGoogle opens the OAuth URL and shows the form again`() {
+        // Given
+        everySuspend { authRepository.signInWithGoogle() } returns Result.success(OAUTH_URL)
+
+        // When
+        viewModel.signInWithGoogle()
+
+        // Then
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        verify { platformEffectHandler.handle(PlatformEffect.OpenUrl(OAUTH_URL)) }
+    }
+
+    @Test
+    fun `signInWithDiscord shows an error and opens nothing when the URL request fails`() {
+        // Given
+        everySuspend { authRepository.signInWithDiscord() } returns Result.failure(AuthError.UnexpectedError)
+
+        // When
+        viewModel.signInWithDiscord()
+
+        // Then
+        assertIs<AuthState.Error>(viewModel.state.value)
+        verify(VerifyMode.not) { platformEffectHandler.handle(any()) }
+    }
+
+    private companion object {
+        const val OAUTH_URL = "https://auth.example.com/authorize"
     }
 }

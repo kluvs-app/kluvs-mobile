@@ -15,6 +15,9 @@ import com.ivangarzab.kluvs.auth.domain.SignInWithGoogleUseCase
 import com.ivangarzab.kluvs.auth.domain.SignUpWithEmailUseCase
 import com.ivangarzab.kluvs.auth.domain.ValidateCredentialsUseCase
 import com.ivangarzab.kluvs.model.User
+import com.ivangarzab.kluvs.presentation.effect.EffectChannel
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +39,10 @@ class AuthViewModel(
     private val signInWithGoogleOAuth: SignInWithGoogleUseCase,
     private val signInWithAppleIdToken: SignInWithAppleUseCase,
     private val completeOAuthSignIn: HandleOAuthCallbackUseCase,
+    platformEffectHandler: PlatformEffectHandler,
 ) : ViewModel() {
+
+    private val platformEffects = EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -187,8 +193,8 @@ class AuthViewModel(
     }
 
     /**
-     * Initiates Discord OAuth sign-in flow.
-     * Emits [AuthState.OAuthPending] with the OAuth URL to open in browser.
+     * Initiates Discord OAuth sign-in flow: opens the OAuth URL in the browser, then waits
+     * for [handleOAuthCallback].
      */
     fun signInWithDiscord() = viewModelScope.launch {
         Bark.d("Discord OAuth initiated")
@@ -196,7 +202,8 @@ class AuthViewModel(
         signInWithDiscordOAuth()
             .onSuccess { url ->
                 Bark.d("Discord OAuth URL generated")
-                _state.update { AuthState.OAuthPending(url) }
+                _state.update { AuthState.Unauthenticated }
+                platformEffects.send(PlatformEffect.OpenUrl(url))
             }
             .onFailure { error ->
                 Bark.e("Discord OAuth failed. Sign in via Discord unavailable.", error)
@@ -207,8 +214,8 @@ class AuthViewModel(
     }
 
     /**
-     * Initiates Google OAuth sign-in flow.
-     * Emits [AuthState.OAuthPending] with the OAuth URL to open in browser.
+     * Initiates Google OAuth sign-in flow: opens the OAuth URL in the browser, then waits
+     * for [handleOAuthCallback].
      */
     fun signInWithGoogle() = viewModelScope.launch {
         Bark.d("Google OAuth initiated")
@@ -216,7 +223,8 @@ class AuthViewModel(
         signInWithGoogleOAuth()
             .onSuccess { url ->
                 Bark.d("Google OAuth URL generated")
-                _state.update { AuthState.OAuthPending(url) }
+                _state.update { AuthState.Unauthenticated }
+                platformEffects.send(PlatformEffect.OpenUrl(url))
             }
             .onFailure { error ->
                 Bark.e("Google OAuth failed. Sign in via Google unavailable.", error)
@@ -224,14 +232,6 @@ class AuthViewModel(
                     AuthState.Error(error as? AuthError ?: AuthError.UnexpectedError)
                 }
             }
-    }
-
-    /**
-     * Resets state to [AuthState.Unauthenticated].
-     * Used when OAuth URL has been launched and we're waiting for callback.
-     */
-    fun onOAuthUrlLaunched() {
-        _state.update { AuthState.Unauthenticated }
     }
 
     /**
@@ -294,8 +294,6 @@ sealed class AuthState {
     data object Loading : AuthState()
     data class Authenticated(val user: User) : AuthState()
     data class Error(val error: AuthError) : AuthState()
-    /** OAuth flow initiated - UI should open the URL in a browser */
-    data class OAuthPending(val url: String) : AuthState()
     /** Email sign up succeeded but requires email confirmation before a session is created */
     data class EmailConfirmationPending(val email: String) : AuthState()
 }

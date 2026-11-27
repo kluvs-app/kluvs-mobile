@@ -1,6 +1,5 @@
 package com.ivangarzab.kluvs.ui.clubs
 
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,12 +20,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.app.InviteLink
 import com.ivangarzab.kluvs.designsystem.components.buttons.SecondaryButton
 import com.ivangarzab.kluvs.designsystem.components.controls.ToggleControl
@@ -58,10 +55,10 @@ fun ShareClubBottomSheet(
     isOperationInProgress: Boolean,
     onTogglePolicy: (JoinPolicy) -> Unit,
     onRotate: () -> Unit,
+    onCopy: (inviteUrl: String) -> Unit,
+    onShare: (inviteUrl: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val isInviteActive = joinPolicy == JoinPolicy.INVITE_LINK && inviteToken != null
     val inviteUrl = inviteToken?.let { InviteLink.build(it) }
@@ -113,7 +110,7 @@ fun ShareClubBottomSheet(
                             style = KluvsTheme.typography.label,
                             color = if (copied) KluvsTheme.colors.success else KluvsTheme.colors.accent,
                             modifier = Modifier.clickable {
-                                clipboardManager.setText(AnnotatedString(inviteUrl))
+                                onCopy(inviteUrl)
                                 copied = true
                                 coroutineScope.launch {
                                     delay(2000)
@@ -129,13 +126,7 @@ fun ShareClubBottomSheet(
                     ) {
                         SecondaryButton(
                             text = "Share",
-                            onClick = {
-                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, inviteUrl)
-                                }
-                                context.startActivity(Intent.createChooser(sendIntent, "Share invite link"))
-                            }
+                            onClick = { onShare(inviteUrl) }
                         )
                         if (canManage) {
                             SecondaryButton(text = "Rotate link", onClick = onRotate, enabled = !isOperationInProgress)
@@ -163,6 +154,8 @@ fun Preview_ShareClubBottomSheet_Owner() = KluvsTheme {
         isOperationInProgress = false,
         onTogglePolicy = {},
         onRotate = {},
+        onCopy = { Bark.d("Preview: Copy tapped") },
+        onShare = { Bark.d("Preview: Share tapped") },
         onDismiss = {}
     )
 }
@@ -177,6 +170,8 @@ fun Preview_ShareClubBottomSheet_Admin() = KluvsTheme {
         isOperationInProgress = false,
         onTogglePolicy = {},
         onRotate = {},
+        onCopy = { Bark.d("Preview: Copy tapped") },
+        onShare = { Bark.d("Preview: Share tapped") },
         onDismiss = {}
     )
 }

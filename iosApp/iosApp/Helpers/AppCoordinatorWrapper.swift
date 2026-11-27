@@ -28,6 +28,10 @@ class AppCoordinatorWrapper: ObservableObject {
         }
     }
 
+    func onUpdateApp() {
+        helper.onUpdateApp()
+    }
+
     deinit {
         cancellable?.close()
     }

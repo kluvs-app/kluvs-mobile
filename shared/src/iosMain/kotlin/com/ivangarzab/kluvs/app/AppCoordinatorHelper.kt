@@ -26,4 +26,6 @@ class AppCoordinatorHelper : KoinComponent {
         val job = appCoordinator.navigationState.onEach { callback(it) }.launchIn(coroutineScope)
         return Closeable { job.cancel() }
     }
+
+    fun onUpdateApp() = appCoordinator.onUpdateApp()
 }

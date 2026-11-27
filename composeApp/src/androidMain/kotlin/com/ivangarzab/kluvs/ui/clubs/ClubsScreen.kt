@@ -209,6 +209,8 @@ fun ClubsScreen(
                     onDeleteClub = viewModel::onDeleteClub,
                     onUpdateJoinPolicy = viewModel::onUpdateJoinPolicy,
                     onRotateInviteLink = viewModel::onRotateInviteLink,
+                    onCopyInviteLink = viewModel::onCopyInviteLink,
+                    onShareInviteLink = viewModel::onShareInviteLink,
                     onBookSearchQueryChange = viewModel::onBookSearchQueryChange,
                     onSearchBooks = viewModel::onSearchBooks,
                     onSelectBook = viewModel::onSelectBook,
@@ -261,6 +263,8 @@ fun ClubsScreenContent(
     onDeleteClub: () -> Unit = {},
     onUpdateJoinPolicy: (JoinPolicy) -> Unit = {},
     onRotateInviteLink: () -> Unit = {},
+    onCopyInviteLink: (String) -> Unit = {},
+    onShareInviteLink: (String) -> Unit = {},
     onBookSearchQueryChange: (String) -> Unit = {},
     onSearchBooks: (String) -> Unit = {},
     onSelectBook: (Book) -> Unit = {},
@@ -553,6 +557,8 @@ fun ClubsScreenContent(
                         isOperationInProgress = state.isOperationInProgress,
                         onTogglePolicy = onUpdateJoinPolicy,
                         onRotate = onRotateInviteLink,
+                        onCopy = onCopyInviteLink,
+                        onShare = onShareInviteLink,
                         onDismiss = { showShareClubSheet = false }
                     )
                 }

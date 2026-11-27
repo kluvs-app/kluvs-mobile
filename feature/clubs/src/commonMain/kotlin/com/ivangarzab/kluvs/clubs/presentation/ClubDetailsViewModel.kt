@@ -40,6 +40,9 @@ import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.JoinPolicy
+import com.ivangarzab.kluvs.presentation.effect.EffectChannel
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.coroutines.Job
@@ -88,8 +91,11 @@ class ClubDetailsViewModel(
     private val getDiscussionNoteUseCase: GetDiscussionNoteUseCase,
     private val createDiscussionNoteUseCase: CreateDiscussionNoteUseCase,
     private val updateDiscussionNoteUseCase: UpdateDiscussionNoteUseCase,
-    private val deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase
+    private val deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase,
+    platformEffectHandler: PlatformEffectHandler
 ) : ViewModel() {
+
+    private val platformEffects = EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }
 
     private val _state = MutableStateFlow(ClubDetailsState())
     val state: StateFlow<ClubDetailsState> = _state.asStateFlow()
@@ -407,6 +413,18 @@ class ClubDetailsViewModel(
         launchMutation("Invite link rotated") {
             rotateInviteLinkUseCase(RotateInviteLinkUseCase.Params(clubId), role)
         }
+    }
+
+    /** Copies the club's [inviteUrl] to the clipboard. */
+    fun onCopyInviteLink(inviteUrl: String) {
+        Bark.i("Copying invite link (Club ID: $currentClubId)")
+        platformEffects.send(PlatformEffect.CopyToClipboard(inviteUrl))
+    }
+
+    /** Opens the system share sheet with the club's [inviteUrl]. */
+    fun onShareInviteLink(inviteUrl: String) {
+        Bark.i("Sharing invite link (Club ID: $currentClubId)")
+        platformEffects.send(PlatformEffect.ShareText(inviteUrl))
     }
 
     // -------------------------------------------------------------------------

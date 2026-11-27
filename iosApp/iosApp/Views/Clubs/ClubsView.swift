@@ -382,7 +382,9 @@ private struct ClubDetailView: View {
                 canManage: viewModel.userRole == .owner,
                 isOperationInProgress: viewModel.isOperationInProgress,
                 onTogglePolicy: { viewModel.onUpdateJoinPolicy($0) },
-                onRotate: { viewModel.onRotateInviteLink() }
+                onRotate: { viewModel.onRotateInviteLink() },
+                onCopy: { viewModel.onCopyInviteLink($0) },
+                onShare: { viewModel.onShareInviteLink($0) }
             )
         }
         // Edit club name

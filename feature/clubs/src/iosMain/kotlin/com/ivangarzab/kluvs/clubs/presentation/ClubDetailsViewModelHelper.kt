@@ -55,6 +55,8 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun onConsumeDeletedClubId() = viewModel.onConsumeDeletedClubId()
     fun onUpdateJoinPolicy(joinPolicy: JoinPolicy) = viewModel.onUpdateJoinPolicy(joinPolicy)
     fun onRotateInviteLink() = viewModel.onRotateInviteLink()
+    fun onCopyInviteLink(inviteUrl: String) = viewModel.onCopyInviteLink(inviteUrl)
+    fun onShareInviteLink(inviteUrl: String) = viewModel.onShareInviteLink(inviteUrl)
 
     // Session tab — book search
     fun onBookSearchQueryChange(query: String) = viewModel.onBookSearchQueryChange(query)
