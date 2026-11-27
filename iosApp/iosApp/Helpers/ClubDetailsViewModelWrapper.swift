@@ -106,6 +106,8 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     func onConsumeDeletedClubId() { helper.onConsumeDeletedClubId() }
     func onUpdateJoinPolicy(_ joinPolicy: Shared.JoinPolicy) { helper.onUpdateJoinPolicy(joinPolicy: joinPolicy) }
     func onRotateInviteLink() { helper.onRotateInviteLink() }
+    func onCopyInviteLink(_ inviteUrl: String) { helper.onCopyInviteLink(inviteUrl: inviteUrl) }
+    func onShareInviteLink(_ inviteUrl: String) { helper.onShareInviteLink(inviteUrl: inviteUrl) }
 
     // Session tab — book search
     func onBookSearchQueryChange(_ query: String) { helper.onBookSearchQueryChange(query: query) }

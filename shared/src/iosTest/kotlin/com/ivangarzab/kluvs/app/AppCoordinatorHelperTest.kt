@@ -6,6 +6,8 @@ import com.ivangarzab.kluvs.data.repositories.ConfigRepository
 import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
@@ -38,6 +40,7 @@ class AppCoordinatorHelperTest {
     private lateinit var configRepository: ConfigRepository
     private lateinit var currentUserFlow: MutableStateFlow<User?>
     private lateinit var appCoordinator: AppCoordinator
+    private val sideEffectHandler = mock<SideEffectHandler>(MockMode.autoUnit)
     private lateinit var testScope: CoroutineScope
     private lateinit var helper: AppCoordinatorHelper
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -62,7 +65,7 @@ class AppCoordinatorHelperTest {
         testScope = CoroutineScope(testDispatcher + Job())
 
         // Create real AppCoordinator with mocked repository
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
 
         // Start Koin with test module
         startKoin {

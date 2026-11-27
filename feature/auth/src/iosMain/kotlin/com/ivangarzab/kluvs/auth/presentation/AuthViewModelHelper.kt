@@ -69,8 +69,6 @@ class AuthViewModelHelper : KoinComponent {
 
     fun handleOAuthCallback(callbackUrl: String) = viewModel.handleOAuthCallback(callbackUrl)
 
-    fun onOAuthUrlLaunched() = viewModel.onOAuthUrlLaunched()
-
     fun signInWithApple(idToken: String) = viewModel.signInWithApple(idToken)
 
     fun dismissEmailConfirmationSheet() = viewModel.dismissEmailConfirmationSheet()

@@ -106,10 +106,6 @@ class AuthViewModelWrapper: ObservableObject {
         helper.handleOAuthCallback(callbackUrl: callbackUrl)
     }
 
-    func onOAuthUrlLaunched() {
-        helper.onOAuthUrlLaunched()
-    }
-
     func signInWithApple(idToken: String) {
         helper.signInWithApple(idToken: idToken)
     }
@@ -141,7 +137,6 @@ enum AuthStateWrapper: Equatable {
     case loading
     case authenticated(user: Shared.User)
     case error(error: Shared.AuthError)
-    case oauthPending(url: String) // Why not just loading?
     case emailConfirmationPending(email: String)
 
     // Custom Equatable implementation since Kotlin classes may not be Equatable
@@ -155,8 +150,6 @@ enum AuthStateWrapper: Equatable {
             return lUser.id == rUser.id
         case (.error, .error):
             return true // We just care that it's an error state
-        case (.oauthPending(let lUrl), .oauthPending(let rUrl)):
-            return lUrl == rUrl
         case (.emailConfirmationPending(let lEmail), .emailConfirmationPending(let rEmail)):
             return lEmail == rEmail
         default:
@@ -173,8 +166,6 @@ enum AuthStateWrapper: Equatable {
             return .authenticated(user: authenticated.user)
         } else if let error = kotlinState as? Shared.AuthState.Error {
             return .error(error: error.error)
-        } else if let oauthPending = kotlinState as? Shared.AuthState.OAuthPending {
-            return .oauthPending(url: oauthPending.url)
         } else if let emailConfirmationPending = kotlinState as? Shared.AuthState.EmailConfirmationPending {
             return .emailConfirmationPending(email: emailConfirmationPending.email)
         }

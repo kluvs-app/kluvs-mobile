@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.data.domain.CheckUpdateRequiredUseCase
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffect
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectChannel
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,8 +27,11 @@ import kotlinx.coroutines.launch
  */
 class AppCoordinator(
     private val authRepository: AuthRepository,
-    private val checkUpdateRequired: CheckUpdateRequiredUseCase
+    private val checkUpdateRequired: CheckUpdateRequiredUseCase,
+    sideEffectHandler: SideEffectHandler
 ) : ViewModel() {
+
+    private val sideEffects = SideEffectChannel().apply { handleWith(sideEffectHandler, viewModelScope) }
 
     private val authState = MutableStateFlow<NavigationState>(NavigationState.Initializing)
     private val updateRequired = MutableStateFlow(false)
@@ -60,6 +66,12 @@ class AppCoordinator(
                 }
             }
         }
+    }
+
+    /** The user tapped Update on the force-update screen. */
+    fun onUpdateApp() {
+        Bark.i("User chose to update the app")
+        sideEffects.send(SideEffect.OpenStoreListing)
     }
 }
 

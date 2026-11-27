@@ -1,6 +1,5 @@
 package com.ivangarzab.kluvs.ui.auth
 
-import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -9,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.ivangarzab.kluvs.auth.presentation.AuthMode
 import com.ivangarzab.kluvs.auth.presentation.AuthState
 import com.ivangarzab.kluvs.auth.presentation.AuthViewModel
@@ -19,7 +17,6 @@ import com.ivangarzab.kluvs.ui.OAuthCallbackHandler
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.ui.extensions.toLocalizedMessage
 import org.koin.androidx.compose.koinViewModel
-import androidx.core.net.toUri
 
 @Composable
 fun LoginScreen(
@@ -27,7 +24,6 @@ fun LoginScreen(
     viewModel: AuthViewModel = koinViewModel(),
     onNavigateToSignUp: () -> Unit,
 ) {
-    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     var showForgotSheet by remember { mutableStateOf(false) }
@@ -46,20 +42,9 @@ fun LoginScreen(
         }
     }
 
-    // Launch browser when OAuthPending state is emitted
-    LaunchedEffect(state) {
-        if (state is AuthState.OAuthPending) {
-            val url = (state as AuthState.OAuthPending).url
-            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-            context.startActivity(intent)
-            viewModel.onOAuthUrlLaunched()
-        }
-    }
-
     when (state) {
         is AuthState.Loading -> LoadingScreen()
         is AuthState.Authenticated -> { /* No-op */ }
-        is AuthState.OAuthPending -> LoadingScreen() // Show loading while browser opens
         is AuthState.Unauthenticated,
         is AuthState.EmailConfirmationPending,
         is AuthState.Error -> {

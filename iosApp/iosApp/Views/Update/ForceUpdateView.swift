@@ -1,8 +1,6 @@
 import SwiftUI
 import DesignSystem
 
-private let appStoreURL = URL(string: "https://apps.apple.com/app/id6757938950")!
-
 // design-system tokens.json § component.illustration (size.mobile, gap) and
 // § component.empty-state.body (max-width on mobile)
 private let illustrationSize: CGFloat = 240
@@ -10,10 +8,10 @@ private let illustrationGap: CGFloat = 24
 private let bodyMaxWidth: CGFloat = 240
 
 /// Hard block shown when the installed app is older than the backend supports
-/// (`NavigationState.UpdateRequired`). The only way forward is the App Store.
-/// Mirrors Android's `ForceUpdateScreen` composable.
+/// (`NavigationState.UpdateRequired`). The only way forward is the App Store, which `onUpdate`
+/// opens through the shared side effects. Mirrors Android's `ForceUpdateScreen` composable.
 struct ForceUpdateView: View {
-    @Environment(\.openURL) private var openURL
+    let onUpdate: () -> Void
 
     var body: some View {
         // Scrolls so the only way forward stays reachable on short screens (landscape), while
@@ -41,7 +39,7 @@ struct ForceUpdateView: View {
                             .frame(maxWidth: bodyMaxWidth)
                         PrimaryButton(
                             text: String(localized: "force_update_button"),
-                            action: { openURL(appStoreURL) },
+                            action: onUpdate,
                             fillWidth: true
                         )
                         .padding(.top, 6)
@@ -59,5 +57,5 @@ struct ForceUpdateView: View {
 }
 
 #Preview {
-    ForceUpdateView()
+    ForceUpdateView(onUpdate: {})
 }

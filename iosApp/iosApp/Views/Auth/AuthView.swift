@@ -19,11 +19,6 @@ struct AuthView: View {
                 LoadingView()
             case .authenticated:
                 EmptyView() // Navigation handled by AppCoordinator
-            case .oauthPending(let url):
-                LoadingView()
-                    .onAppear {
-                        openOAuthUrl(url)
-                    }
             case .unauthenticated, .error, .emailConfirmationPending:
                 AuthFormView(
                     mode: authMode,
@@ -80,15 +75,6 @@ struct AuthView: View {
                 }
             }
         )
-    }
-
-    private func openOAuthUrl(_ urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        UIApplication.shared.open(url) { success in
-            if success {
-                viewModel.onOAuthUrlLaunched()
-            }
-        }
     }
 }
 

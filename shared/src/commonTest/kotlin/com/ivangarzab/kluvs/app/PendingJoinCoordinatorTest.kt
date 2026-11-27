@@ -7,6 +7,8 @@ import com.ivangarzab.kluvs.data.repositories.JoinRepository
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.User
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
@@ -77,7 +79,11 @@ class PendingJoinCoordinatorTest {
         everySuspend { configRepository.getConfig() } returns
             Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = null))
 
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, "1.0.0"))
+        appCoordinator = AppCoordinator(
+            authRepository,
+            CheckUpdateRequiredUseCase(configRepository, "1.0.0"),
+            mock<SideEffectHandler>(MockMode.autoUnit)
+        )
     }
 
     @AfterTest

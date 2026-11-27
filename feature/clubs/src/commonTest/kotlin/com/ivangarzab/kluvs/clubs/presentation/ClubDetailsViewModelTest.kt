@@ -53,6 +53,8 @@ import com.ivangarzab.kluvs.model.Discussion
 import com.ivangarzab.kluvs.model.DiscussionNote
 import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffect
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
 import com.ivangarzab.kluvs.model.ProgressStatus
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.ReadingProgress
@@ -61,11 +63,13 @@ import com.ivangarzab.kluvs.model.Session
 import com.ivangarzab.kluvs.model.SessionMember
 import com.ivangarzab.kluvs.model.UserFacingException
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
+import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify
 import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
@@ -135,6 +139,7 @@ class ClubDetailsViewModelTest {
     private lateinit var updateDiscussionNoteUseCase: UpdateDiscussionNoteUseCase
     private lateinit var deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase
     private lateinit var viewModel: ClubDetailsViewModel
+    private val sideEffectHandler = mock<SideEffectHandler>(MockMode.autoUnit)
 
     private val formatDateTime = FormatDateTimeUseCase()
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -201,7 +206,8 @@ class ClubDetailsViewModelTest {
             toggleSessionParticipationUseCase,
             getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase,
             getDiscussionNoteUseCase, createDiscussionNoteUseCase,
-            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase
+            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase,
+            sideEffectHandler
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
@@ -1093,6 +1099,20 @@ class ClubDetailsViewModelTest {
         assertNull(viewModel.state.value.operationResult)
     }
 
+    @Test
+    fun `onCopyInviteLink copies the invite URL`() = runTest {
+        viewModel.onCopyInviteLink(INVITE_URL)
+
+        verify { sideEffectHandler.handle(SideEffect.CopyToClipboard(INVITE_URL)) }
+    }
+
+    @Test
+    fun `onShareInviteLink shares the invite URL`() = runTest {
+        viewModel.onShareInviteLink(INVITE_URL)
+
+        verify { sideEffectHandler.handle(SideEffect.ShareText(INVITE_URL)) }
+    }
+
     // -------------------------------------------------------------------------
     // Reading progress & end session
     // -------------------------------------------------------------------------
@@ -1724,5 +1744,9 @@ class ClubDetailsViewModelTest {
         assertTrue(shownBefore != null)
         assertEquals(false, seen.contains(false), "Club details should never be cleared during the reload")
         collector.cancel()
+    }
+
+    private companion object {
+        const val INVITE_URL = "https://app.kluvs.com/join/abc123"
     }
 }

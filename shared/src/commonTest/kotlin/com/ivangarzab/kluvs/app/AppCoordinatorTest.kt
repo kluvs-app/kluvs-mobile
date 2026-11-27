@@ -6,10 +6,14 @@ import com.ivangarzab.kluvs.data.repositories.ConfigRepository
 import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffect
+import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.mock
+import dev.mokkery.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +38,7 @@ class AppCoordinatorTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var configRepository: ConfigRepository
     private lateinit var appCoordinator: AppCoordinator
+    private val sideEffectHandler = mock<SideEffectHandler>(MockMode.autoUnit)
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @BeforeTest
@@ -59,7 +64,7 @@ class AppCoordinatorTest {
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
         // When
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
 
         // Wait for initialization to complete
         testScheduler.advanceUntilIdle()
@@ -83,7 +88,7 @@ class AppCoordinatorTest {
         everySuspend { authRepository.initialize() } returns Result.success(testUser)
 
         // When
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
 
         // Wait for initialization to complete
         testScheduler.advanceUntilIdle()
@@ -101,7 +106,7 @@ class AppCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
 
         // Wait for initialization
         testScheduler.advanceUntilIdle()
@@ -139,7 +144,7 @@ class AppCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(testUser)
 
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
 
         // Wait for initialization
         testScheduler.advanceUntilIdle()
@@ -168,7 +173,7 @@ class AppCoordinatorTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(user1)
 
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
 
         // Wait for initialization
         testScheduler.advanceUntilIdle()
@@ -203,7 +208,7 @@ class AppCoordinatorTest {
             Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = "2.0.0"))
 
         // When
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
         testScheduler.advanceUntilIdle()
 
         // Then
@@ -219,7 +224,7 @@ class AppCoordinatorTest {
         everySuspend { configRepository.getConfig() } returns
             Result.success(ClientConfig(flags = emptyMap(), minSupportedVersion = "2.0.0"))
 
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
         testScheduler.advanceUntilIdle()
 
         // When - a restored session arrives after the check
@@ -243,11 +248,25 @@ class AppCoordinatorTest {
         everySuspend { configRepository.getConfig() } returns Result.failure(Exception("Offline"))
 
         // When
-        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION))
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
         testScheduler.advanceUntilIdle()
 
         // Then
         assertIs<NavigationState.Unauthenticated>(appCoordinator.navigationState.value)
+    }
+
+    @Test
+    fun `onUpdateApp opens the store listing`() = runTest {
+        // Given
+        every { authRepository.currentUser } returns MutableStateFlow<User?>(null)
+        everySuspend { authRepository.initialize() } returns Result.success(null)
+        appCoordinator = AppCoordinator(authRepository, CheckUpdateRequiredUseCase(configRepository, INSTALLED_VERSION), sideEffectHandler)
+
+        // When
+        appCoordinator.onUpdateApp()
+
+        // Then
+        verify { sideEffectHandler.handle(SideEffect.OpenStoreListing) }
     }
 
     private companion object {

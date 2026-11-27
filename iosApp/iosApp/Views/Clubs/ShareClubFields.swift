@@ -20,8 +20,9 @@ struct ShareClubFields: View {
     let isOperationInProgress: Bool
     let onTogglePolicy: (Shared.JoinPolicy) -> Void
     let onRotate: () -> Void
+    let onCopy: (String) -> Void
+    let onShare: (String) -> Void
 
-    @State private var showShareSheet = false
     @State private var copied = false
 
     private var isInviteActive: Bool {
@@ -65,7 +66,7 @@ struct ShareClubFields: View {
                             .truncationMode(.middle)
                         Spacer()
                         Button(copied ? "Copied!" : "Copy") {
-                            UIPasteboard.general.string = inviteUrl
+                            onCopy(inviteUrl)
                             copied = true
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
                         }
@@ -78,7 +79,7 @@ struct ShareClubFields: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                     HStack {
-                        SecondaryButton(text: "Share", action: { showShareSheet = true })
+                        SecondaryButton(text: "Share", action: { onShare(inviteUrl) })
                         Spacer()
                         if canManage {
                             SecondaryButton(text: "Rotate link", action: onRotate, enabled: !isOperationInProgress)
@@ -91,26 +92,7 @@ struct ShareClubFields: View {
                     .foregroundColor(KluvsTheme.colors.contentMuted)
             }
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let inviteUrl {
-                ActivityView(activityItems: [inviteUrl])
-            }
-        }
     }
-}
-
-/// `UIActivityViewController` wrapper — SwiftUI has no built-in native share sheet
-/// trigger prior to `ShareLink` (iOS 16+); this works across the app's deployment target.
-/// Kept as a real native `.sheet()` (not converted to `BottomSheet`) since this is OS chrome, not
-/// design-system content — same reasoning as leaving `SafariView`'s wrapper native.
-private struct ActivityView: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
@@ -120,7 +102,9 @@ private struct ActivityView: UIViewControllerRepresentable {
         canManage: true,
         isOperationInProgress: false,
         onTogglePolicy: { _ in },
-        onRotate: {}
+        onRotate: {},
+        onCopy: { _ in },
+        onShare: { _ in }
     )
     .padding()
     .background(KluvsTheme.colors.bar)

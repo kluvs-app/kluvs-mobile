@@ -28,7 +28,10 @@ paths:
 
 ## ViewModel state
 - One `StateFlow<{Screen}State>` per screen. User intents are `on<Event>()` functions.
-- One-shot events (success notices, transient errors) are modeled as state flags cleared by an `onDismiss<X>()` intent (e.g. `onDismissSaveSuccess`), until the planned SideEffects layer lands.
+- **Side effects** are one-shot actions that aren't screen state: open a link or the store listing, copy, share. They're cases of the sealed `SideEffect` class in `core/presentation/.../presentation/sideeffect/`. A ViewModel takes a `SideEffectHandler`, owns a `SideEffectChannel` wired to it (`SideEffectChannel().apply { handleWith(sideEffectHandler, viewModelScope) }`), and calls `sideEffects.send(...)`. Each platform runs every case in its own Kotlin handler (`AndroidSideEffectHandler`, `IosSideEffectHandler`), so screens on either platform never open URLs, the clipboard or the share sheet themselves.
+  - Add a new kind of side effect as a case on `SideEffect`, never per screen, and handle it in both platform handlers.
+  - Anything that stays on screen (our own sheets, dialogs) is state, not a side effect: it has to survive rotation and be dismissed.
+- Success notices and transient errors are still state flags cleared by an `onDismiss<X>()` intent (e.g. `onDismissSaveSuccess`). They need translated text and a shared listener on each screen, which a planned base ViewModel will add.
 - When a refresh fails, keep the content already on screen and report the failure via a snackbar, not an error page (see `ClubDetailsViewModel`, `MeViewModel`).
 
 ## iOS bridge
