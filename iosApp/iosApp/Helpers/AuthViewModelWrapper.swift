@@ -21,6 +21,8 @@ class AuthViewModelWrapper: ObservableObject {
     @Published var emailError: String? = nil
     @Published var passwordError: String? = nil
     @Published var confirmPasswordError: String? = nil
+    /// The open sheet — owned by the shared ViewModel, see AuthUiState.activeSheet
+    @Published var activeSheet: Shared.AuthSheet? = nil
 
     // Forgot password UI state
     @Published var forgotPasswordEmailField: String = ""
@@ -57,6 +59,7 @@ class AuthViewModelWrapper: ObservableObject {
                 self.emailError = uiState.emailError
                 self.passwordError = uiState.passwordError
                 self.confirmPasswordError = uiState.confirmPasswordError
+                self.activeSheet = uiState.activeSheet
             }
         }
         cancellables.append(uiStateCancellable)
@@ -118,9 +121,8 @@ class AuthViewModelWrapper: ObservableObject {
         helper.sendPasswordResetEmail()
     }
 
-    func resetForgotPasswordState() {
-        helper.resetForgotPasswordState()
-    }
+    func onOpenSheet(_ sheet: Shared.AuthSheet) { helper.onOpenSheet(sheet: sheet) }
+    func onDismissSheet() { helper.onDismissSheet() }
 
     func dismissEmailConfirmationSheet() {
         helper.dismissEmailConfirmationSheet()

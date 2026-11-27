@@ -1,6 +1,7 @@
 import SwiftUI
 import SafariServices
 import PhotosUI
+import Shared
 import DesignSystem
 
 struct SettingsView: View {
@@ -8,7 +9,6 @@ struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModelWrapper()
     @State private var showSaveSuccess = false
     @State private var showChangePasswordSuccess = false
-    @State private var showCredits = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -44,13 +44,13 @@ struct SettingsView: View {
                     )
 
                     AccountSection(
-                        onChangePasswordClick: { viewModel.onChangePasswordSheetOpened() },
-                        onDeleteAccountClick: { viewModel.onDeleteAccountClicked() }
+                        onChangePasswordClick: { viewModel.onOpenSheet(SettingsSheet.ChangePassword.shared) },
+                        onDeleteAccountClick: { viewModel.onOpenDialog(SettingsDialog.DeleteAccount.shared) }
                     )
 
                     LegalSection()
 
-                    AboutSection(onCreditsClick: { showCredits = true })
+                    AboutSection(onCreditsClick: { viewModel.onOpenSheet(SettingsSheet.Credits.shared) })
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -79,9 +79,7 @@ struct SettingsView: View {
         }
         .onChange(of: viewModel.changePasswordSuccess) { success in
             if success {
-                // Close the sheet before the toast appears, matching Android's ordering —
-                // otherwise the sheet would stay open while the toast is visible.
-                viewModel.onChangePasswordSheetDismissed()
+                // The ViewModel already closed the sheet
                 showChangePasswordSuccess = true
                 viewModel.onDismissChangePasswordSuccess()
             }
@@ -118,25 +116,28 @@ struct SettingsView: View {
         .animation(.easeInOut(duration: 0.3), value: viewModel.avatarError)
         .animation(.easeInOut(duration: 0.3), value: viewModel.deleteAccountError)
         .kluvsConfirmationDialog(
-            isPresented: $viewModel.isDeleteAccountDialogOpen,
+            isPresented: Binding(get: { viewModel.activeDialog == SettingsDialog.DeleteAccount.shared }, set: { _ in }),
             title: String(localized: "delete_account"),
             message: String(localized: "delete_account_confirmation_message"),
             confirmLabel: String(localized: "delete_account"),
             isDestructive: true,
-            onDismiss: { viewModel.onDeleteAccountDialogDismissed() },
+            onDismiss: { viewModel.onDismissDialog() },
             onConfirm: { viewModel.onDeleteAccountConfirmed() }
         )
         .changePasswordSheet(
             isPresented: Binding(
-                get: { viewModel.isChangePasswordSheetOpen },
-                set: { if !$0 { viewModel.onChangePasswordSheetDismissed() } }
+                get: { viewModel.activeSheet == SettingsSheet.ChangePassword.shared },
+                set: { if !$0 { viewModel.onDismissSheet() } }
             ),
             viewModel: viewModel
         )
         // Attached here (not on `AboutSection`) so the sheet's full-screen scrim covers the whole
         // screen — an overlay on a small subview would be clipped to that subview's frame.
         .kluvsBottomSheet(
-            isPresented: $showCredits,
+            isPresented: Binding(
+                get: { viewModel.activeSheet == SettingsSheet.Credits.shared },
+                set: { if !$0 { viewModel.onDismissSheet() } }
+            ),
             header: String(localized: "credits_title"),
             content: { CreditsSheetContent() }
         )

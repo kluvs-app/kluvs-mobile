@@ -13,7 +13,6 @@ struct ChangePasswordSheetModifier: ViewModifier {
             .kluvsBottomSheet(
                 isPresented: $isPresented,
                 header: String(localized: "change_password"),
-                onDismiss: { viewModel.onChangePasswordSheetDismissed() },
                 content: {
                     ChangePasswordSheetForm(viewModel: viewModel)
                 },

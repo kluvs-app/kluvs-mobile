@@ -5,12 +5,12 @@
 //  Single view that toggles between login/signup modes (standard iOS pattern)
 //
 import SwiftUI
+import Shared
 
 struct AuthView: View {
     @StateObject private var viewModel = AuthViewModelWrapper()
     @StateObject private var oauthHandler = OAuthCallbackHandler.shared
     @State private var authMode: AuthMode = .login
-    @State private var showForgotSheet = false
 
     var body: some View {
         Group {
@@ -34,7 +34,7 @@ struct AuthView: View {
                                 authMode = .login
                             }
                         case .forgetPassword:
-                            showForgotSheet = true
+                            viewModel.onOpenSheet(AuthSheet.ForgotPassword.shared)
                         }
                     }
                 )
@@ -46,7 +46,13 @@ struct AuthView: View {
                 oauthHandler.clearCallback()
             }
         }
-        .authForgotSheet(isPresented: $showForgotSheet, viewModel: viewModel)
+        .authForgotSheet(
+            isPresented: Binding(
+                get: { viewModel.activeSheet == AuthSheet.ForgotPassword.shared },
+                set: { if !$0 { viewModel.onDismissSheet() } }
+            ),
+            viewModel: viewModel
+        )
         .authSignupSentSheet(
             isPresented: isEmailConfirmationPendingBinding,
             email: emailConfirmationPendingEmail,
