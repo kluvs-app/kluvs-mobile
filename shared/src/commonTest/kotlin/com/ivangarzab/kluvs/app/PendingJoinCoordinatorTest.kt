@@ -7,7 +7,7 @@ import com.ivangarzab.kluvs.data.repositories.JoinRepository
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.ClientConfig
 import com.ivangarzab.kluvs.model.User
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -82,7 +82,7 @@ class PendingJoinCoordinatorTest {
         appCoordinator = AppCoordinator(
             authRepository,
             CheckUpdateRequiredUseCase(configRepository, "1.0.0"),
-            mock<SideEffectHandler>(MockMode.autoUnit)
+            mock<PlatformEffectHandler>(MockMode.autoUnit)
         )
     }
 

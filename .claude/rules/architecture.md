@@ -28,10 +28,19 @@ paths:
 
 ## ViewModel state
 - One `StateFlow<{Screen}State>` per screen. User intents are `on<Event>()` functions.
-- **Side effects** are one-shot actions that aren't screen state: open a link or the store listing, copy, share. They're cases of the sealed `SideEffect` class in `core/presentation/.../presentation/sideeffect/`. A ViewModel takes a `SideEffectHandler`, owns a `SideEffectChannel` wired to it (`SideEffectChannel().apply { handleWith(sideEffectHandler, viewModelScope) }`), and calls `sideEffects.send(...)`. Each platform runs every case in its own Kotlin handler (`AndroidSideEffectHandler`, `IosSideEffectHandler`), so screens on either platform never open URLs, the clipboard or the share sheet themselves.
-  - Add a new kind of side effect as a case on `SideEffect`, never per screen, and handle it in both platform handlers.
-  - Anything that stays on screen (our own sheets, dialogs) is state, not a side effect: it has to survive rotation and be dismissed.
-- Success notices and transient errors are still state flags cleared by an `onDismiss<X>()` intent (e.g. `onDismissSaveSuccess`). They need translated text and a shared listener on each screen, which a planned base ViewModel will add.
+- **Side effects** are one-shot things a ViewModel wants to happen. There are three categories, named after who handles them. To pick one: could it run with no screen on top? It's a platform effect. Does it need this screen and disappear once it happens? It's a screen effect. Does it stay on screen? It's state.
+
+  | | Platform effect | Screen effect (planned) | State |
+  |---|---|---|---|
+  | What | Something only the phone can do | A one-shot event the visible screen reacts to | Anything that stays visible |
+  | Examples | Open a link or the store listing, copy, share | Show a toast or snackbar, close a sheet after saving | Sheets, dialogs, banners, loading |
+  | Handled by | One Kotlin handler per platform | One shared listener per platform, in the screen scaffold | The screen, from `StateFlow` or local UI state |
+
+- **Platform effects** are cases of the sealed `PlatformEffect` class in `core/presentation/.../presentation/effect/`. A ViewModel takes a `PlatformEffectHandler`, owns an `EffectChannel<PlatformEffect>` wired to it (`EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }`), and calls `platformEffects.send(...)`. Each platform runs every case in its own Kotlin handler (`AndroidPlatformEffectHandler`, `IosPlatformEffectHandler`), so screens on either platform never open URLs, the clipboard or the share sheet themselves.
+  - Add a new kind as a case on `PlatformEffect`, never per screen, and handle it in both platform handlers.
+  - Name a case after what the phone does, never why the screen wants it: `ShareText(text)`, not `ShareClubInvite`; `OpenUrl(url)`, not `OpenPrivacyPolicy`. The screen-specific part (which text, which link, when) stays in the ViewModel. The list should grow with the phone's capabilities, not with the number of screens.
+- **Screen effects** (`ScreenEffect`) aren't built yet; a planned base ViewModel adds them. They'll follow the same rules: one shared sealed class with cases named by action (`ShowMessage`, not `ShowClubSavedToast`). Until then, success notices and transient errors are state flags cleared by an `onDismiss<X>()` intent (e.g. `onDismissSaveSuccess`).
+- A sheet's visibility is state, because it has to survive rotation and be dismissed. Only the moment around it (close the sheet because the save succeeded) is an effect.
 - When a refresh fails, keep the content already on screen and report the failure via a snackbar, not an error page (see `ClubDetailsViewModel`, `MeViewModel`).
 
 ## iOS bridge

@@ -12,8 +12,8 @@ val corePresentationModule = module {
     factoryOf(::GetSessionProgressUseCase)
     factoryOf(::SaveProgressUseCase)
 
-    // SideEffectHandler - platform-specific module
-    includes(sideEffectHandlerModule)
+    // PlatformEffectHandler - platform-specific module
+    includes(platformEffectHandlerModule)
 }
 
-expect val sideEffectHandlerModule: Module
+expect val platformEffectHandlerModule: Module

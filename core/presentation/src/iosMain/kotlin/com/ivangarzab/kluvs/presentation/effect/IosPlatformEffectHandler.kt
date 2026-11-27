@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.presentation.sideeffect
+package com.ivangarzab.kluvs.presentation.effect
 
 import com.ivangarzab.bark.Bark
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -14,24 +14,24 @@ import platform.UIKit.popoverPresentationController
 
 private const val APP_STORE_URL = "https://apps.apple.com/app/id6757938950"
 
-/** Runs [SideEffect]s with UIKit. Must be called on the main thread, as UIKit requires. */
-internal class IosSideEffectHandler : SideEffectHandler {
+/** Runs [PlatformEffect]s with UIKit. Must be called on the main thread, as UIKit requires. */
+internal class IosPlatformEffectHandler : PlatformEffectHandler {
 
-    override fun handle(effect: SideEffect) {
+    override fun handle(effect: PlatformEffect) {
         when (effect) {
-            is SideEffect.OpenUrl -> {
+            is PlatformEffect.OpenUrl -> {
                 Bark.d("Opening external URL")
                 openUrl(effect.url)
             }
-            SideEffect.OpenStoreListing -> {
+            PlatformEffect.OpenStoreListing -> {
                 Bark.i("Opening App Store listing")
                 openUrl(APP_STORE_URL)
             }
-            is SideEffect.CopyToClipboard -> {
+            is PlatformEffect.CopyToClipboard -> {
                 Bark.d("Copying text to clipboard")
                 UIPasteboard.generalPasteboard.string = effect.text
             }
-            is SideEffect.ShareText -> {
+            is PlatformEffect.ShareText -> {
                 Bark.d("Opening share sheet")
                 shareText(effect.text)
             }

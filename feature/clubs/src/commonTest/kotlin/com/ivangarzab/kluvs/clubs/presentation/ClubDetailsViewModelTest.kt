@@ -53,8 +53,8 @@ import com.ivangarzab.kluvs.model.Discussion
 import com.ivangarzab.kluvs.model.DiscussionNote
 import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.Member
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffect
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import com.ivangarzab.kluvs.model.ProgressStatus
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.ReadingProgress
@@ -139,7 +139,7 @@ class ClubDetailsViewModelTest {
     private lateinit var updateDiscussionNoteUseCase: UpdateDiscussionNoteUseCase
     private lateinit var deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase
     private lateinit var viewModel: ClubDetailsViewModel
-    private val sideEffectHandler = mock<SideEffectHandler>(MockMode.autoUnit)
+    private val platformEffectHandler = mock<PlatformEffectHandler>(MockMode.autoUnit)
 
     private val formatDateTime = FormatDateTimeUseCase()
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -207,7 +207,7 @@ class ClubDetailsViewModelTest {
             getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase,
             getDiscussionNoteUseCase, createDiscussionNoteUseCase,
             updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase,
-            sideEffectHandler
+            platformEffectHandler
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
@@ -1103,14 +1103,14 @@ class ClubDetailsViewModelTest {
     fun `onCopyInviteLink copies the invite URL`() = runTest {
         viewModel.onCopyInviteLink(INVITE_URL)
 
-        verify { sideEffectHandler.handle(SideEffect.CopyToClipboard(INVITE_URL)) }
+        verify { platformEffectHandler.handle(PlatformEffect.CopyToClipboard(INVITE_URL)) }
     }
 
     @Test
     fun `onShareInviteLink shares the invite URL`() = runTest {
         viewModel.onShareInviteLink(INVITE_URL)
 
-        verify { sideEffectHandler.handle(SideEffect.ShareText(INVITE_URL)) }
+        verify { platformEffectHandler.handle(PlatformEffect.ShareText(INVITE_URL)) }
     }
 
     // -------------------------------------------------------------------------

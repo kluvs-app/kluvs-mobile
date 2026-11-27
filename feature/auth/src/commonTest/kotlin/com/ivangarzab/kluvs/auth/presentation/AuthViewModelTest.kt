@@ -4,8 +4,8 @@ import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.AuthRepository
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffect
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -36,7 +36,7 @@ class AuthViewModelTest {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var viewModel: AuthViewModel
-    private lateinit var sideEffectHandler: SideEffectHandler
+    private lateinit var platformEffectHandler: PlatformEffectHandler
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @BeforeTest
@@ -49,8 +49,8 @@ class AuthViewModelTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
-        sideEffectHandler = mock(MockMode.autoUnit)
-        viewModel = createAuthViewModel(authRepository, sideEffectHandler)
+        platformEffectHandler = mock(MockMode.autoUnit)
+        viewModel = createAuthViewModel(authRepository, platformEffectHandler)
     }
 
     @AfterTest
@@ -549,7 +549,7 @@ class AuthViewModelTest {
 
         // Then
         assertIs<AuthState.Unauthenticated>(viewModel.state.value)
-        verify { sideEffectHandler.handle(SideEffect.OpenUrl(OAUTH_URL)) }
+        verify { platformEffectHandler.handle(PlatformEffect.OpenUrl(OAUTH_URL)) }
     }
 
     @Test
@@ -562,7 +562,7 @@ class AuthViewModelTest {
 
         // Then
         assertIs<AuthState.Unauthenticated>(viewModel.state.value)
-        verify { sideEffectHandler.handle(SideEffect.OpenUrl(OAUTH_URL)) }
+        verify { platformEffectHandler.handle(PlatformEffect.OpenUrl(OAUTH_URL)) }
     }
 
     @Test
@@ -575,7 +575,7 @@ class AuthViewModelTest {
 
         // Then
         assertIs<AuthState.Error>(viewModel.state.value)
-        verify(VerifyMode.not) { sideEffectHandler.handle(any()) }
+        verify(VerifyMode.not) { platformEffectHandler.handle(any()) }
     }
 
     private companion object {

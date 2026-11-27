@@ -1,4 +1,4 @@
-package com.ivangarzab.kluvs.presentation.sideeffect
+package com.ivangarzab.kluvs.presentation.effect
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -13,30 +13,30 @@ private const val PLAY_STORE_APP_URL = "market://details?id=$PACKAGE_NAME"
 private const val PLAY_STORE_WEB_URL = "https://play.google.com/store/apps/details?id=$PACKAGE_NAME"
 
 /**
- * Runs [SideEffect]s with the application [Context]. Activities started from it need
+ * Runs [PlatformEffect]s with the application [Context]. Activities started from it need
  * [Intent.FLAG_ACTIVITY_NEW_TASK], since there is no Activity to start them from.
  */
-internal class AndroidSideEffectHandler(private val context: Context) : SideEffectHandler {
+internal class AndroidPlatformEffectHandler(private val context: Context) : PlatformEffectHandler {
 
-    override fun handle(effect: SideEffect) {
+    override fun handle(effect: PlatformEffect) {
         when (effect) {
-            is SideEffect.OpenUrl -> {
+            is PlatformEffect.OpenUrl -> {
                 Bark.d("Opening external URL")
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(effect.url)))
             }
-            SideEffect.OpenStoreListing -> {
+            PlatformEffect.OpenStoreListing -> {
                 Bark.i("Opening Play Store listing")
                 // The Play Store app when it's installed, the web listing otherwise
                 if (!startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PLAY_STORE_APP_URL)))) {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PLAY_STORE_WEB_URL)))
                 }
             }
-            is SideEffect.CopyToClipboard -> {
+            is PlatformEffect.CopyToClipboard -> {
                 Bark.d("Copying text to clipboard")
                 val clipboard = context.getSystemService(ClipboardManager::class.java)
                 clipboard.setPrimaryClip(ClipData.newPlainText(null, effect.text))
             }
-            is SideEffect.ShareText -> {
+            is PlatformEffect.ShareText -> {
                 Bark.d("Opening share sheet")
                 val send = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"

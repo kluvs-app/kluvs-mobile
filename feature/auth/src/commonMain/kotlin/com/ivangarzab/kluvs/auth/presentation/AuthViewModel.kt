@@ -15,9 +15,9 @@ import com.ivangarzab.kluvs.auth.domain.SignInWithGoogleUseCase
 import com.ivangarzab.kluvs.auth.domain.SignUpWithEmailUseCase
 import com.ivangarzab.kluvs.auth.domain.ValidateCredentialsUseCase
 import com.ivangarzab.kluvs.model.User
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffect
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectChannel
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.EffectChannel
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,10 +39,10 @@ class AuthViewModel(
     private val signInWithGoogleOAuth: SignInWithGoogleUseCase,
     private val signInWithAppleIdToken: SignInWithAppleUseCase,
     private val completeOAuthSignIn: HandleOAuthCallbackUseCase,
-    sideEffectHandler: SideEffectHandler,
+    platformEffectHandler: PlatformEffectHandler,
 ) : ViewModel() {
 
-    private val sideEffects = SideEffectChannel().apply { handleWith(sideEffectHandler, viewModelScope) }
+    private val platformEffects = EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -203,7 +203,7 @@ class AuthViewModel(
             .onSuccess { url ->
                 Bark.d("Discord OAuth URL generated")
                 _state.update { AuthState.Unauthenticated }
-                sideEffects.send(SideEffect.OpenUrl(url))
+                platformEffects.send(PlatformEffect.OpenUrl(url))
             }
             .onFailure { error ->
                 Bark.e("Discord OAuth failed. Sign in via Discord unavailable.", error)
@@ -224,7 +224,7 @@ class AuthViewModel(
             .onSuccess { url ->
                 Bark.d("Google OAuth URL generated")
                 _state.update { AuthState.Unauthenticated }
-                sideEffects.send(SideEffect.OpenUrl(url))
+                platformEffects.send(PlatformEffect.OpenUrl(url))
             }
             .onFailure { error ->
                 Bark.e("Google OAuth failed. Sign in via Google unavailable.", error)

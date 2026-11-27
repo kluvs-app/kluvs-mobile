@@ -37,7 +37,7 @@ private val BODY_MAX_WIDTH = 240.dp
 /**
  * Hard block shown when the installed app is older than the backend supports
  * ([com.ivangarzab.kluvs.app.NavigationState.UpdateRequired]). The only way forward is the store,
- * which [onUpdate] opens through the shared side effects.
+ * which [onUpdate] opens as a shared platform effect.
  */
 @Composable
 fun ForceUpdateScreen(

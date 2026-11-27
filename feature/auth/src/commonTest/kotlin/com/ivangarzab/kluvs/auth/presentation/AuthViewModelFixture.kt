@@ -11,7 +11,7 @@ import com.ivangarzab.kluvs.auth.domain.SignInWithEmailUseCase
 import com.ivangarzab.kluvs.auth.domain.SignInWithGoogleUseCase
 import com.ivangarzab.kluvs.auth.domain.SignUpWithEmailUseCase
 import com.ivangarzab.kluvs.auth.domain.ValidateCredentialsUseCase
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import dev.mokkery.MockMode
 import dev.mokkery.mock
 
@@ -21,7 +21,7 @@ import dev.mokkery.mock
  */
 internal fun createAuthViewModel(
     authRepository: AuthRepository,
-    sideEffectHandler: SideEffectHandler = mock(MockMode.autoUnit),
+    platformEffectHandler: PlatformEffectHandler = mock(MockMode.autoUnit),
 ) = AuthViewModel(
     initializeAuth = InitializeAuthUseCase(authRepository),
     observeCurrentUser = ObserveCurrentUserUseCase(authRepository),
@@ -33,5 +33,5 @@ internal fun createAuthViewModel(
     signInWithGoogleOAuth = SignInWithGoogleUseCase(authRepository),
     signInWithAppleIdToken = SignInWithAppleUseCase(authRepository),
     completeOAuthSignIn = HandleOAuthCallbackUseCase(authRepository),
-    sideEffectHandler = sideEffectHandler,
+    platformEffectHandler = platformEffectHandler,
 )

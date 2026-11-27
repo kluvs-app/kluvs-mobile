@@ -44,7 +44,7 @@ import com.ivangarzab.kluvs.data.repositories.ProgressRepository
 import com.ivangarzab.kluvs.data.repositories.SessionRepository
 import com.ivangarzab.kluvs.model.Club
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
-import com.ivangarzab.kluvs.presentation.sideeffect.SideEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
@@ -143,7 +143,7 @@ class ClubDetailsViewModelHelperTest {
             createDiscussionNoteUseCase = CreateDiscussionNoteUseCase(discussionNoteRepository),
             updateDiscussionNoteUseCase = UpdateDiscussionNoteUseCase(discussionNoteRepository),
             deleteDiscussionNoteUseCase = DeleteDiscussionNoteUseCase(discussionNoteRepository),
-            sideEffectHandler = mock<SideEffectHandler>(MockMode.autoUnit)
+            platformEffectHandler = mock<PlatformEffectHandler>(MockMode.autoUnit)
         )
 
         // Start Koin with test module

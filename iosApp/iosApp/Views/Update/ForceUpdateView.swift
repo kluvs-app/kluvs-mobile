@@ -9,7 +9,7 @@ private let bodyMaxWidth: CGFloat = 240
 
 /// Hard block shown when the installed app is older than the backend supports
 /// (`NavigationState.UpdateRequired`). The only way forward is the App Store, which `onUpdate`
-/// opens through the shared side effects. Mirrors Android's `ForceUpdateScreen` composable.
+/// opens as a shared platform effect. Mirrors Android's `ForceUpdateScreen` composable.
 struct ForceUpdateView: View {
     let onUpdate: () -> Void
 

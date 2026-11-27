@@ -107,7 +107,7 @@ val clubsFeatureModule = module {
             createDiscussionNoteUseCase = get(),
             updateDiscussionNoteUseCase = get(),
             deleteDiscussionNoteUseCase = get(),
-            sideEffectHandler = get()
+            platformEffectHandler = get()
         )
     }
 }
