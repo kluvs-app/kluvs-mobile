@@ -281,6 +281,24 @@ class ClubDetailsViewModelHelperTest {
     }
 
     @Test
+    fun `onOpenSheet and onDismissSheet pass through to the ViewModel`() = runTest {
+        helper.onOpenSheet(ClubDetailsSheet.EditDiscussion("d1"))
+        assertEquals(ClubDetailsSheet.EditDiscussion("d1"), viewModel.state.value.activeSheet)
+
+        helper.onDismissSheet()
+        assertNull(viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `onOpenDialog and onDismissDialog pass through to the ViewModel`() = runTest {
+        helper.onOpenDialog(ClubDetailsDialog.LeaveClub)
+        assertEquals(ClubDetailsDialog.LeaveClub, viewModel.state.value.activeDialog)
+
+        helper.onDismissDialog()
+        assertNull(viewModel.state.value.activeDialog)
+    }
+
+    @Test
     fun `multiple observers can observe simultaneously`() = runTest {
         // Given
         val observer1States = mutableListOf<ClubDetailsState>()

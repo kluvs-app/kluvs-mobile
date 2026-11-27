@@ -111,6 +111,13 @@ class ClubDetailsViewModelHelper : KoinComponent {
     // UI event consumption
     fun onConsumeOperationResult() = viewModel.onConsumeOperationResult()
 
+    // ── Sheets and dialogs ────────────────────────────────────────────────────
+
+    fun onOpenSheet(sheet: ClubDetailsSheet) = viewModel.onOpenSheet(sheet)
+    fun onDismissSheet() = viewModel.onDismissSheet()
+    fun onOpenDialog(dialog: ClubDetailsDialog) = viewModel.onOpenDialog(dialog)
+    fun onDismissDialog() = viewModel.onDismissDialog()
+
     /** Safely unwraps a sealed [OperationResult] to a plain message string for iOS. */
     fun operationResultMessage(result: OperationResult?): String? = when (result) {
         is OperationResult.Success -> result.message

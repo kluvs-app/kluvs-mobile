@@ -41,7 +41,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthForgotSheet(
-    onDismiss: () -> Unit,
     viewModel: AuthViewModel = koinViewModel(),
 ) {
     val state by viewModel.forgotPasswordState.collectAsState()
@@ -50,10 +49,7 @@ fun AuthForgotSheet(
         state = state,
         onEmailFieldChange = viewModel::onForgotPasswordEmailChanged,
         onSubmit = viewModel::sendPasswordResetEmail,
-        onDismiss = {
-            viewModel.resetForgotPasswordState()
-            onDismiss()
-        },
+        onDismiss = viewModel::onDismissSheet,
     )
 }
 

@@ -165,7 +165,7 @@ class ClubDetailsViewModel(
 
     fun selectClub(clubId: String) {
         val role = _state.value.availableClubs.find { it.id == clubId }?.role
-        _state.update { it.copy(selectedClubId = clubId, userRole = role) }
+        _state.update { it.copy(selectedClubId = clubId, userRole = role, activeSheet = null, activeDialog = null) }
         loadClubData(clubId)
     }
 
@@ -294,6 +294,8 @@ class ClubDetailsViewModel(
      * must consume it via [onConsumeCreatedClubId] once handled.
      */
     fun onCreateClub(userId: String, name: String) {
+        // The sheet stays open while saving, so ignore a second tap on Create
+        if (_state.value.isOperationInProgress) return
         viewModelScope.launch {
             _state.update { it.copy(isOperationInProgress = true) }
             createClubUseCase(CreateClubUseCase.Params(userId, name))
@@ -306,6 +308,7 @@ class ClubDetailsViewModel(
                             operationResult = OperationResult.Success("Club created")
                         )
                     }
+                    closeSheet(ifShowing = ClubDetailsSheet.CreateClub)
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Create club. ${error.message}", error)
@@ -332,7 +335,7 @@ class ClubDetailsViewModel(
     fun onUpdateClubName(newName: String) {
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
-        launchMutation("Club name updated") {
+        launchMutation("Club name updated", closingSheet = ClubDetailsSheet.EditClub) {
             updateClubUseCase(UpdateClubUseCase.Params(clubId, newName), role).onSuccess {
                 // The clubs list is only reloaded on tab entry, so patch the renamed row here
                 _state.update { state ->
@@ -351,6 +354,7 @@ class ClubDetailsViewModel(
      * the now-gone club's detail screen.
      */
     fun onDeleteClub() {
+        onDismissDialog()
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
         viewModelScope.launch {
@@ -364,6 +368,7 @@ class ClubDetailsViewModel(
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             deletedClubId = clubId,
                             selectedClubId = null,
+                            activeSheet = null,
                             operationResult = OperationResult.Success("Club deleted")
                         )
                     }
@@ -510,7 +515,7 @@ class ClubDetailsViewModel(
     fun onCreateSession(book: Book, dueDate: LocalDateTime?) {
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
-        launchMutation("Session created") {
+        launchMutation("Session created", closingSheet = ClubDetailsSheet.CreateSession) {
             createSessionUseCase(CreateSessionUseCase.Params(clubId, book, dueDate), role)
         }
     }
@@ -518,7 +523,7 @@ class ClubDetailsViewModel(
     fun onUpdateSession(book: Book?, dueDate: LocalDateTime?) {
         val role = _state.value.userRole ?: return
         val sessionId = _state.value.activeSession?.sessionId ?: return
-        launchMutation("Session updated") {
+        launchMutation("Session updated", closingSheet = ClubDetailsSheet.EditSession) {
             updateSessionUseCase(UpdateSessionUseCase.Params(sessionId, book, dueDate), role)
         }
     }
@@ -545,6 +550,8 @@ class ClubDetailsViewModel(
         markFinished: Boolean
     ) {
         val session = _state.value.activeSession ?: return
+        // The sheet stays open while saving, so ignore a second tap on Save
+        if (_state.value.isOperationInProgress) return
         viewModelScope.launch {
             _state.update { it.copy(isOperationInProgress = true) }
             saveProgressUseCase(
@@ -567,6 +574,7 @@ class ClubDetailsViewModel(
                             operationResult = OperationResult.Success("Progress updated")
                         )
                     }
+                    closeSheet(ifShowing = ClubDetailsSheet.UpdateProgress)
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update. ${error.message}", error)
@@ -588,6 +596,7 @@ class ClubDetailsViewModel(
      * its no-active-session state.
      */
     fun onEndSession() {
+        onDismissDialog()
         val role = _state.value.userRole ?: return
         val sessionId = _state.value.activeSession?.sessionId ?: return
         viewModelScope.launch {
@@ -673,7 +682,11 @@ class ClubDetailsViewModel(
     fun onCreateDiscussion(title: String, location: String, date: LocalDateTime) {
         val role = _state.value.userRole ?: return
         val sessionId = _state.value.activeSession?.sessionId ?: return
-        launchMutation("Discussion created", refreshFromCache = true) {
+        launchMutation(
+            "Discussion created",
+            refreshFromCache = true,
+            closingSheet = ClubDetailsSheet.CreateDiscussion
+        ) {
             createDiscussionUseCase(CreateDiscussionUseCase.Params(sessionId, title, location, date), role)
         }
     }
@@ -681,12 +694,17 @@ class ClubDetailsViewModel(
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, date: LocalDateTime?) {
         val role = _state.value.userRole ?: return
         _state.value.activeSession ?: return
-        launchMutation("Discussion updated", refreshFromCache = true) {
+        launchMutation(
+            "Discussion updated",
+            refreshFromCache = true,
+            closingSheet = ClubDetailsSheet.EditDiscussion(discussionId)
+        ) {
             updateDiscussionUseCase(UpdateDiscussionUseCase.Params(discussionId, title, location, date), role)
         }
     }
 
     fun onDeleteDiscussion(discussionId: String) {
+        onDismissDialog()
         val role = _state.value.userRole ?: return
         _state.value.activeSession ?: return
         launchMutation("Discussion deleted", refreshFromCache = true) {
@@ -853,6 +871,7 @@ class ClubDetailsViewModel(
 
     /** Deletes the signed-in member's note for a discussion and resets its map entry to empty. */
     fun onDeleteDiscussionNote(discussionId: String) {
+        onDismissDialog()
         val noteId = _state.value.discussionNotes[discussionId]?.noteId ?: return
         viewModelScope.launch {
             deleteDiscussionNoteUseCase(DeleteDiscussionNoteUseCase.Params(noteId))
@@ -860,6 +879,7 @@ class ClubDetailsViewModel(
                     _state.update {
                         it.copy(discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo()))
                     }
+                    closeSheet(ifShowing = ClubDetailsSheet.DiscussionNote(discussionId))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Delete discussion note. ${error.message}", error)
@@ -881,12 +901,13 @@ class ClubDetailsViewModel(
     fun onUpdateMemberRole(memberId: String, currentMemberId: String, newRole: Role) {
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
-        launchMutation("Member role updated") {
+        launchMutation("Member role updated", closingSheet = ClubDetailsSheet.ChangeRole(memberId)) {
             updateMemberRoleUseCase(UpdateMemberRoleUseCase.Params(memberId, clubId, currentMemberId, newRole), role)
         }
     }
 
     fun onRemoveMember(memberId: String, currentMemberId: String) {
+        onDismissDialog()
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Member removed") {
@@ -901,6 +922,7 @@ class ClubDetailsViewModel(
      * club's detail screen, mirroring [onDeleteClub].
      */
     fun onLeaveClub() {
+        onDismissDialog()
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
         val memberId = _state.value.currentMemberId ?: return
@@ -915,6 +937,7 @@ class ClubDetailsViewModel(
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             leftClubId = clubId,
                             selectedClubId = null,
+                            activeSheet = null,
                             operationResult = OperationResult.Success("Left club")
                         )
                     }
@@ -934,12 +957,39 @@ class ClubDetailsViewModel(
     }
 
     fun onTransferOwnership(newOwnerId: String) {
+        onDismissDialog()
         val role = _state.value.userRole ?: return
         val clubId = currentClubId ?: return
         val currentMemberId = _state.value.currentMemberId ?: return
         launchMutation("Ownership transferred") {
             transferOwnershipUseCase(TransferOwnershipUseCase.Params(currentMemberId, newOwnerId, clubId), role)
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Sheets and dialogs
+    // -------------------------------------------------------------------------
+
+    /** Opens [sheet], replacing any sheet already open. Create Session always opens with a fresh book search. */
+    fun onOpenSheet(sheet: ClubDetailsSheet) {
+        if (sheet == ClubDetailsSheet.CreateSession) onResetBookSearch()
+        _state.update { it.copy(activeSheet = sheet) }
+    }
+
+    /** Closes the open sheet: Cancel, the close button, swipe down, back, or a tap outside. */
+    fun onDismissSheet() {
+        if (_state.value.activeSheet == ClubDetailsSheet.CreateSession) onResetBookSearch()
+        _state.update { it.copy(activeSheet = null) }
+    }
+
+    /** Opens [dialog] on top of the screen, or on top of the open sheet. */
+    fun onOpenDialog(dialog: ClubDetailsDialog) {
+        _state.update { it.copy(activeDialog = dialog) }
+    }
+
+    /** Closes the open dialog. Confirming a dialog closes it too. */
+    fun onDismissDialog() {
+        _state.update { it.copy(activeDialog = null) }
     }
 
     // -------------------------------------------------------------------------
@@ -961,12 +1011,18 @@ class ClubDetailsViewModel(
      * [refreshFromCache] is for mutations whose repository writes the result into the cache
      * (discussions): the reload reads the cache instead of forcing a full refetch. Every other
      * mutation forces one.
+     *
+     * [closingSheet] is the sheet the save came from; it closes on success (see [closeSheet]).
+     * Sheets stay open while saving, so a sheet save is ignored while another operation runs,
+     * which stops a double tap from creating something twice.
      */
     private fun launchMutation(
         successMessage: String,
         refreshFromCache: Boolean = false,
+        closingSheet: ClubDetailsSheet? = null,
         block: suspend () -> Result<*>
     ) {
+        if (closingSheet != null && _state.value.isOperationInProgress) return
         viewModelScope.launch {
             _state.update { it.copy(isOperationInProgress = true) }
             val result = block()
@@ -976,6 +1032,7 @@ class ClubDetailsViewModel(
                     // on until the follow-up refetch lands; otherwise the screen sits unchanged
                     // (and looks like nothing happened) while the club reloads.
                     _state.update { it.copy(operationResult = OperationResult.Success(successMessage)) }
+                    closingSheet?.let { closeSheet(ifShowing = it) }
                     refresh(forceRefresh = !refreshFromCache)
                     loadClubDataJob?.join()
                     _state.update { it.copy(isOperationInProgress = false) }
@@ -992,5 +1049,15 @@ class ClubDetailsViewModel(
                     }
                 }
         }
+    }
+
+    /**
+     * Closes the open sheet after a successful save, but only if it's still [ifShowing]. The user
+     * may have dismissed it mid-save and opened another one, which must stay open.
+     */
+    private fun closeSheet(ifShowing: ClubDetailsSheet) {
+        if (_state.value.activeSheet != ifShowing) return
+        if (ifShowing == ClubDetailsSheet.CreateSession) onResetBookSearch()
+        _state.update { it.copy(activeSheet = null) }
     }
 }

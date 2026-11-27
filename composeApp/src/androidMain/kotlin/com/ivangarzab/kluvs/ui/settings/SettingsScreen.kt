@@ -23,11 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -35,6 +32,8 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.settings.presentation.EditableProfile
+import com.ivangarzab.kluvs.settings.presentation.SettingsDialog
+import com.ivangarzab.kluvs.settings.presentation.SettingsSheet
 import com.ivangarzab.kluvs.settings.presentation.SettingsState
 import com.ivangarzab.kluvs.settings.presentation.SettingsViewModel
 import com.ivangarzab.kluvs.designsystem.components.appbars.TopAppBar
@@ -98,13 +97,9 @@ fun SettingsScreen(
 
     LaunchedEffect(state.changePasswordSuccess) {
         if (state.changePasswordSuccess) {
-            // Close the sheet before awaiting the snackbar — showSnackbar suspends until it
-            // auto-dismisses, so doing this after would leave the sheet open the whole time.
-            // isChangePasswordSheetOpen isn't this effect's key, so clearing it here doesn't
-            // cancel the coroutine — but changePasswordSuccess IS the key, so it must stay
-            // untouched until after showSnackbar returns, or the recomposition it triggers
-            // would cancel the in-flight snackbar before it's shown.
-            viewModel.onChangePasswordSheetDismissed()
+            // The ViewModel already closed the sheet. changePasswordSuccess is this effect's key,
+            // so it must stay untouched until showSnackbar returns, or the recomposition it
+            // triggers would cancel the in-flight snackbar before it's shown.
             snackbarHostState.showSnackbar(context.getString(R.string.password_updated))
             viewModel.onDismissChangePasswordSuccess()
         }
@@ -122,14 +117,14 @@ fun SettingsScreen(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
             )
         },
-        onChangePasswordClick = viewModel::onChangePasswordSheetOpened,
-        onChangePasswordSheetDismiss = viewModel::onChangePasswordSheetDismissed,
         onNewPasswordFieldChange = viewModel::onNewPasswordFieldChanged,
         onConfirmPasswordFieldChange = viewModel::onConfirmPasswordFieldChanged,
         onSubmitChangePassword = viewModel::onSubmitChangePassword,
-        onDeleteAccountClick = viewModel::onDeleteAccountClicked,
-        onDeleteAccountDialogDismiss = viewModel::onDeleteAccountDialogDismissed,
         onDeleteAccountConfirmed = viewModel::onDeleteAccountConfirmed,
+        onOpenSheet = viewModel::onOpenSheet,
+        onDismissSheet = viewModel::onDismissSheet,
+        onOpenDialog = viewModel::onOpenDialog,
+        onDismissDialog = viewModel::onDismissDialog,
     )
 }
 
@@ -143,17 +138,16 @@ fun SettingsScreenContent(
     onHandleChanged: (String) -> Unit = {},
     onSaveProfile: () -> Unit = {},
     onAvatarClick: () -> Unit = {},
-    onChangePasswordClick: () -> Unit = {},
-    onChangePasswordSheetDismiss: () -> Unit = {},
     onNewPasswordFieldChange: (String) -> Unit = {},
     onConfirmPasswordFieldChange: (String) -> Unit = {},
     onSubmitChangePassword: () -> Unit = {},
-    onDeleteAccountClick: () -> Unit = {},
-    onDeleteAccountDialogDismiss: () -> Unit = {},
     onDeleteAccountConfirmed: () -> Unit = {},
+    onOpenSheet: (SettingsSheet) -> Unit = {},
+    onDismissSheet: () -> Unit = {},
+    onOpenDialog: (SettingsDialog) -> Unit = {},
+    onDismissDialog: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    var showCredits by rememberSaveable { mutableStateOf(false) }
 
     // Deletion is irreversible once sent — swallow back presses so the user can't leave
     // Settings mid-request and end up back in the app with a deleted account.
@@ -197,33 +191,31 @@ fun SettingsScreenContent(
             )
 
             AccountSection(
-                onChangePasswordClick = onChangePasswordClick,
-                onDeleteAccountClick = onDeleteAccountClick,
+                onChangePasswordClick = { onOpenSheet(SettingsSheet.ChangePassword) },
+                onDeleteAccountClick = { onOpenDialog(SettingsDialog.DeleteAccount) },
             )
 
             LegalSection(context = context)
 
-            AboutSection(context = context, onCreditsClick = { showCredits = true })
+            AboutSection(context = context, onCreditsClick = { onOpenSheet(SettingsSheet.Credits) })
         }
 
-        if (showCredits) {
-            CreditsSheet(onDismiss = { showCredits = false })
-        }
-
-        if (state.isChangePasswordSheetOpen) {
-            ChangePasswordSheet(
+        when (state.activeSheet) {
+            SettingsSheet.Credits -> CreditsSheet(onDismiss = onDismissSheet)
+            SettingsSheet.ChangePassword -> ChangePasswordSheet(
                 state = state,
                 onNewPasswordFieldChange = onNewPasswordFieldChange,
                 onConfirmPasswordFieldChange = onConfirmPasswordFieldChange,
                 onSubmit = onSubmitChangePassword,
-                onDismiss = onChangePasswordSheetDismiss,
+                onDismiss = onDismissSheet,
             )
+            null -> Unit
         }
 
-        if (state.isDeleteAccountDialogOpen) {
+        if (state.activeDialog == SettingsDialog.DeleteAccount) {
             DeleteAccountConfirmationDialog(
                 onConfirm = onDeleteAccountConfirmed,
-                onDismiss = onDeleteAccountDialogDismiss,
+                onDismiss = onDismissDialog,
             )
         }
     }

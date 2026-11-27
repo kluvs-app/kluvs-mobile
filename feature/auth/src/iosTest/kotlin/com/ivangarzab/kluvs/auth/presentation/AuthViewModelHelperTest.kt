@@ -273,14 +273,15 @@ class AuthViewModelHelperTest {
     }
 
     @Test
-    fun `resetForgotPasswordState clears state`() = runTest {
+    fun `onDismissSheet clears Forgot Password state`() = runTest {
         // Given
         everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
+        helper.onOpenSheet(AuthSheet.ForgotPassword)
         helper.onForgotPasswordEmailChanged("test@example.com")
         helper.sendPasswordResetEmail()
 
         // When
-        helper.resetForgotPasswordState()
+        helper.onDismissSheet()
         val receivedStates = mutableListOf<ForgotPasswordUiState>()
         val closeable = helper.observeForgotPasswordState { state ->
             receivedStates.add(state)

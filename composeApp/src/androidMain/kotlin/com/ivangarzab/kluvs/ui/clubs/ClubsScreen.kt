@@ -33,10 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -46,6 +44,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsDialog
+import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsSheet
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
 import com.ivangarzab.kluvs.clubs.presentation.OperationResult
@@ -158,9 +158,6 @@ fun ClubsScreen(
             startDestination = "list"
         ) {
             composable("list") {
-                var showCreateClubSheet by remember { mutableStateOf(false) }
-                var showJoinSheet by remember { mutableStateOf(false) }
-
                 ClubsListScreen(
                     modifier = Modifier.fillMaxSize(),
                     state = state,
@@ -171,29 +168,25 @@ fun ClubsScreen(
                         viewModel.selectClub(clubId)
                         navController.navigate("detail/$clubId")
                     },
-                    onAddClub = { showCreateClubSheet = true },
-                    onJoinWithCode = { showJoinSheet = true }
+                    onAddClub = { viewModel.onOpenSheet(ClubDetailsSheet.CreateClub) },
+                    onJoinWithCode = { viewModel.onOpenSheet(ClubDetailsSheet.JoinClub) }
                 )
 
-                if (showCreateClubSheet) {
-                    CreateClubBottomSheet(
-                        onCreate = { name ->
-                            viewModel.onCreateClub(userId, name)
-                            showCreateClubSheet = false
-                        },
-                        onDismiss = { showCreateClubSheet = false }
+                when (state.activeSheet) {
+                    ClubDetailsSheet.CreateClub -> CreateClubBottomSheet(
+                        onCreate = { name -> viewModel.onCreateClub(userId, name) },
+                        onDismiss = viewModel::onDismissSheet
                     )
-                }
-
-                if (showJoinSheet) {
-                    JoinBottomSheet(
-                        onDismiss = { showJoinSheet = false },
+                    // Joining runs in JoinViewModel, so this screen closes the sheet itself once it reports back
+                    ClubDetailsSheet.JoinClub -> JoinBottomSheet(
+                        onDismiss = viewModel::onDismissSheet,
                         onJoined = { clubId ->
-                            showJoinSheet = false
+                            viewModel.onDismissSheet()
                             viewModel.selectClub(clubId)
                             navController.navigate("detail/$clubId")
                         }
                     )
+                    else -> Unit
                 }
             }
             composable("detail/{clubId}") {
@@ -215,7 +208,6 @@ fun ClubsScreen(
                     onSearchBooks = viewModel::onSearchBooks,
                     onSelectBook = viewModel::onSelectBook,
                     onClearBook = viewModel::onClearSelectedBook,
-                    onResetBookSearch = viewModel::onResetBookSearch,
                     onCreateSession = viewModel::onCreateSession,
                     onUpdateSession = viewModel::onUpdateSession,
                     onEndSession = viewModel::onEndSession,
@@ -234,11 +226,16 @@ fun ClubsScreen(
                         viewModel.onUpdateMemberRole(memberId, currentMemberId, newRole)
                     },
                     onRemoveMember = { memberId ->
-                        val currentMemberId = state.currentMemberId ?: return@ClubsScreenContent
-                        viewModel.onRemoveMember(memberId, currentMemberId)
+                        // Without our own member ID there's nothing to send; just close the dialog
+                        state.currentMemberId?.let { viewModel.onRemoveMember(memberId, it) }
+                            ?: viewModel.onDismissDialog()
                     },
                     onLeaveClub = viewModel::onLeaveClub,
-                    onTransferOwnership = viewModel::onTransferOwnership
+                    onTransferOwnership = viewModel::onTransferOwnership,
+                    onOpenSheet = viewModel::onOpenSheet,
+                    onDismissSheet = viewModel::onDismissSheet,
+                    onOpenDialog = viewModel::onOpenDialog,
+                    onDismissDialog = viewModel::onDismissDialog
                 )
             }
         }
@@ -269,7 +266,6 @@ fun ClubsScreenContent(
     onSearchBooks: (String) -> Unit = {},
     onSelectBook: (Book) -> Unit = {},
     onClearBook: () -> Unit = {},
-    onResetBookSearch: () -> Unit = {},
     onCreateSession: (Book, LocalDateTime?) -> Unit = { _, _ -> },
     onUpdateSession: (Book?, LocalDateTime?) -> Unit = { _, _ -> },
     onEndSession: () -> Unit = {},
@@ -287,24 +283,11 @@ fun ClubsScreenContent(
     onRemoveMember: (memberId: String) -> Unit = {},
     onLeaveClub: () -> Unit = {},
     onTransferOwnership: (memberId: String) -> Unit = {},
+    onOpenSheet: (ClubDetailsSheet) -> Unit = {},
+    onDismissSheet: () -> Unit = {},
+    onOpenDialog: (ClubDetailsDialog) -> Unit = {},
+    onDismissDialog: () -> Unit = {},
 ) {
-    // Sheet / dialog visibility state
-    var showEditClubSheet by remember { mutableStateOf(false) }
-    var showShareClubSheet by remember { mutableStateOf(false) }
-    var showDeleteClubDialog by remember { mutableStateOf(false) }
-    var showLeaveClubDialog by remember { mutableStateOf(false) }
-    var showCreateSessionSheet by remember { mutableStateOf(false) }
-    var showEditSessionSheet by remember { mutableStateOf(false) }
-    var showEndSessionDialog by remember { mutableStateOf(false) }
-    var showProgressSheet by remember { mutableStateOf(false) }
-    var showCreateDiscussionSheet by remember { mutableStateOf(false) }
-    var editingDiscussionId by remember { mutableStateOf<String?>(null) }
-    var deletingDiscussionId by remember { mutableStateOf<String?>(null) }
-    var openNoteDiscussionId by remember { mutableStateOf<String?>(null) }
-    var changingRoleMemberId by remember { mutableStateOf<String?>(null) }
-    var removingMemberId by remember { mutableStateOf<String?>(null) }
-    var transferOwnershipTargetId by remember { mutableStateOf<String?>(null) }
-
     val currentUserId = userId
 
     AnimatedContent(
@@ -374,15 +357,15 @@ fun ClubsScreenContent(
                                         add(
                                             ActionMenuItem(
                                                 label = "Share",
-                                                onClick = { showShareClubSheet = true }
+                                                onClick = { onOpenSheet(ClubDetailsSheet.ShareClub) }
                                             )
                                         )
                                         if (canManageClub) {
-                                            add(ActionMenuItem(label = "Edit", onClick = { showEditClubSheet = true }))
+                                            add(ActionMenuItem(label = "Edit", onClick = { onOpenSheet(ClubDetailsSheet.EditClub) }))
                                             add(
                                                 ActionMenuItem(
                                                     label = "Delete",
-                                                    onClick = { showDeleteClubDialog = true },
+                                                    onClick = { onOpenDialog(ClubDetailsDialog.DeleteClub) },
                                                     isDestructive = true
                                                 )
                                             )
@@ -390,7 +373,7 @@ fun ClubsScreenContent(
                                             add(
                                                 ActionMenuItem(
                                                     label = "Leave Club",
-                                                    onClick = { showLeaveClubDialog = true },
+                                                    onClick = { onOpenDialog(ClubDetailsDialog.LeaveClub) },
                                                     isDestructive = true
                                                 )
                                             )
@@ -485,13 +468,10 @@ fun ClubsScreenContent(
                                         userRole = state.userRole,
                                         members = state.members,
                                         currentMemberId = state.currentMemberId,
-                                        onEditSession = { showEditSessionSheet = true },
-                                        onEndSession = { showEndSessionDialog = true },
-                                        onUpdateProgress = { showProgressSheet = true },
-                                        onCreateSession = {
-                                            onResetBookSearch()
-                                            showCreateSessionSheet = true
-                                        },
+                                        onEditSession = { onOpenSheet(ClubDetailsSheet.EditSession) },
+                                        onEndSession = { onOpenDialog(ClubDetailsDialog.EndSession) },
+                                        onUpdateProgress = { onOpenSheet(ClubDetailsSheet.UpdateProgress) },
+                                        onCreateSession = { onOpenSheet(ClubDetailsSheet.CreateSession) },
                                         onToggleParticipation = { isReading ->
                                             val currentMemberId = state.currentMemberId ?: return@OverviewTab
                                             onToggleParticipation(currentMemberId, isReading)
@@ -501,14 +481,11 @@ fun ClubsScreenContent(
                                         modifier = discussionsTabModifier,
                                         sessionDetails = state.activeSession,
                                         userRole = state.userRole,
-                                        onCreateSession = {
-                                            onResetBookSearch()
-                                            showCreateSessionSheet = true
-                                        },
-                                        onCreateDiscussion = { showCreateDiscussionSheet = true },
-                                        onEditDiscussion = { id -> editingDiscussionId = id },
-                                        onDeleteDiscussion = { id -> deletingDiscussionId = id },
-                                        onOpenNote = { id -> openNoteDiscussionId = id },
+                                        onCreateSession = { onOpenSheet(ClubDetailsSheet.CreateSession) },
+                                        onCreateDiscussion = { onOpenSheet(ClubDetailsSheet.CreateDiscussion) },
+                                        onEditDiscussion = { id -> onOpenSheet(ClubDetailsSheet.EditDiscussion(id)) },
+                                        onDeleteDiscussion = { id -> onOpenDialog(ClubDetailsDialog.DeleteDiscussion(id)) },
+                                        onOpenNote = { id -> onOpenSheet(ClubDetailsSheet.DiscussionNote(id)) },
                                         discussionRosters = state.discussionRosters,
                                         onLoadAttendanceRoster = onLoadAttendanceRoster,
                                         onSetAttendance = onSetAttendance
@@ -519,10 +496,10 @@ fun ClubsScreenContent(
                                         participants = state.activeSession?.participants ?: emptyList(),
                                         currentUserId = currentUserId,
                                         userRole = state.userRole,
-                                        onChangeRole = { memberId -> changingRoleMemberId = memberId },
-                                        onRemoveMember = { memberId -> removingMemberId = memberId },
-                                        onTransferOwnership = { memberId -> transferOwnershipTargetId = memberId },
-                                        onInviteMember = { showShareClubSheet = true }
+                                        onChangeRole = { memberId -> onOpenSheet(ClubDetailsSheet.ChangeRole(memberId)) },
+                                        onRemoveMember = { memberId -> onOpenDialog(ClubDetailsDialog.RemoveMember(memberId)) },
+                                        onTransferOwnership = { memberId -> onOpenDialog(ClubDetailsDialog.TransferOwnership(memberId)) },
+                                        onInviteMember = { onOpenSheet(ClubDetailsSheet.ShareClub) }
                                     )
                                 }
                             }
@@ -530,250 +507,271 @@ fun ClubsScreenContent(
                     }
                 }
 
-                // TODO: Everything underneath there is screaming for a ViewModel, with side effect handling
-                //  and at least one new extra enum--we'll need that soon
-                // ---- General tab sheets / dialogs ----
+                ClubDetailsSheetHost(
+                    state = state,
+                    onDismissSheet = onDismissSheet,
+                    onOpenDialog = onOpenDialog,
+                    onUpdateClubName = onUpdateClubName,
+                    onUpdateJoinPolicy = onUpdateJoinPolicy,
+                    onRotateInviteLink = onRotateInviteLink,
+                    onCopyInviteLink = onCopyInviteLink,
+                    onShareInviteLink = onShareInviteLink,
+                    onBookSearchQueryChange = onBookSearchQueryChange,
+                    onSearchBooks = onSearchBooks,
+                    onSelectBook = onSelectBook,
+                    onClearBook = onClearBook,
+                    onCreateSession = onCreateSession,
+                    onUpdateSession = onUpdateSession,
+                    onSaveProgress = onSaveProgress,
+                    onCreateDiscussion = onCreateDiscussion,
+                    onUpdateDiscussion = onUpdateDiscussion,
+                    onLoadDiscussionNote = onLoadDiscussionNote,
+                    onSaveDiscussionNote = onSaveDiscussionNote,
+                    onUpdateMemberRole = onUpdateMemberRole,
+                )
 
-                if (showEditClubSheet) {
-                    EditClubBottomSheet(
-                        currentName = state.currentClubDetails?.clubName ?: "",
-                        onSave = { newName ->
-                            onUpdateClubName(newName)
-                            showEditClubSheet = false
-                        },
-                        onDismiss = { showEditClubSheet = false },
-                        onDeleteClub = {
-                            showEditClubSheet = false
-                            showDeleteClubDialog = true
-                        }
-                    )
-                }
-
-                if (showShareClubSheet) {
-                    ShareClubBottomSheet(
-                        joinPolicy = state.currentClubDetails?.joinPolicy,
-                        inviteToken = state.currentClubDetails?.inviteToken,
-                        canManage = state.userRole == Role.OWNER,
-                        isOperationInProgress = state.isOperationInProgress,
-                        onTogglePolicy = onUpdateJoinPolicy,
-                        onRotate = onRotateInviteLink,
-                        onCopy = onCopyInviteLink,
-                        onShare = onShareInviteLink,
-                        onDismiss = { showShareClubSheet = false }
-                    )
-                }
-
-                if (showDeleteClubDialog) {
-                    ConfirmationDialog(
-                        title = "Delete Club",
-                        message = "Are you sure you want to delete \"${state.currentClubDetails?.clubName}\"? This action cannot be undone.",
-                        confirmLabel = "Delete",
-                        isDestructive = true,
-                        onConfirm = {
-                            onDeleteClub()
-                            showDeleteClubDialog = false
-                        },
-                        onDismiss = { showDeleteClubDialog = false }
-                    )
-                }
-
-                if (showLeaveClubDialog) {
-                    ConfirmationDialog(
-                        title = "Leave Club",
-                        message = "Are you sure you want to leave \"${state.currentClubDetails?.clubName}\"? You'll need a new invite to rejoin.",
-                        confirmLabel = "Leave",
-                        isDestructive = true,
-                        onConfirm = {
-                            onLeaveClub()
-                            showLeaveClubDialog = false
-                        },
-                        onDismiss = { showLeaveClubDialog = false }
-                    )
-                }
-
-                // ---- Session tab sheets ----
-
-                if (showCreateSessionSheet) {
-                    CreateSessionBottomSheet(
-                        bookSearchQuery = state.bookSearchQuery,
-                        bookSearchResults = state.bookSearchResults,
-                        selectedBook = state.selectedBook,
-                        isSearchingBooks = state.isSearchingBooks,
-                        isRegisteringBook = state.isRegisteringBook,
-                        bookSearchError = state.bookSearchError,
-                        onBookSearchQueryChange = onBookSearchQueryChange,
-                        onSearchBooks = onSearchBooks,
-                        onSelectBook = onSelectBook,
-                        onClearBook = onClearBook,
-                        onSave = { book, dueDate ->
-                            onCreateSession(book, dueDate)
-                            onResetBookSearch()
-                            showCreateSessionSheet = false
-                        },
-                        onDismiss = {
-                            onResetBookSearch()
-                            showCreateSessionSheet = false
-                        }
-                    )
-                }
-
-                if (showEditSessionSheet) {
-                    EditSessionBottomSheet(
-                        initialDueDate = state.activeSession?.rawDueDate,
-                        onSave = { dueDate ->
-                            onUpdateSession(null, dueDate)
-                            showEditSessionSheet = false
-                        },
-                        onDismiss = { showEditSessionSheet = false }
-                    )
-                }
-
-                if (showEndSessionDialog) {
-                    val readingCount = state.activeSession?.participants?.count { it.isReading } ?: 0
-                    val creditMessage = if (readingCount > 0) {
-                        "$readingCount member${if (readingCount != 1) "s" else ""} will receive credit."
-                    } else {
-                        "No members are marked as reading — no credit will be awarded."
-                    }
-                    ConfirmationDialog(
-                        title = "End Session",
-                        message = "Are you sure you want to end the current reading session for " +
-                            "\"${state.activeSession?.book?.title}\"?\n\n$creditMessage",
-                        confirmLabel = "Confirm End",
-                        isDestructive = true,
-                        onConfirm = {
-                            onEndSession()
-                            showEndSessionDialog = false
-                        },
-                        onDismiss = { showEndSessionDialog = false }
-                    )
-                }
-
-                if (showProgressSheet) {
-                    state.activeSession?.let { session ->
-                        // ReadingProgressBottomSheet is hollow (design-system primitives
-                        // migration) — it reports back in ProgressTrackingMode, translated to the
-                        // domain ProgressType at this boundary.
-                        ReadingProgressBottomSheet(
-                            bookTitle = session.book.title,
-                            pageCount = session.book.pageCount,
-                            initialType = (state.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
-                            initialCurrentPage = state.ownProgress?.currentPage,
-                            initialPercentComplete = state.ownProgress?.percentComplete,
-                            initialMarkFinished = state.ownProgress?.isCompleted ?: false,
-                            onSave = { type, currentPage, percentComplete, markFinished ->
-                                onSaveProgress(type.toDomain(), currentPage, percentComplete, markFinished)
-                                showProgressSheet = false
-                            },
-                            onDismiss = { showProgressSheet = false }
-                        )
-                    }
-                }
-
-                // ---- Discussion sheets / dialogs ----
-
-                if (showCreateDiscussionSheet) {
-                    DiscussionBottomSheet(
-                        bookTitle = state.activeSession?.book?.title,
-                        onSave = { title, location, date ->
-                            onCreateDiscussion(title, location, date)
-                            showCreateDiscussionSheet = false
-                        },
-                        onDismiss = { showCreateDiscussionSheet = false }
-                    )
-                }
-
-                editingDiscussionId?.let { discussionId ->
-                    val discussion = state.activeSession?.discussions?.find { it.id == discussionId }
-                    DiscussionBottomSheet(
-                        isEditing = true,
-                        initialTitle = discussion?.title ?: "",
-                        initialLocation = discussion?.location ?: "",
-                        initialDate = discussion?.rawDate,
-                        bookTitle = state.activeSession?.book?.title,
-                        onSave = { title, location, date ->
-                            onUpdateDiscussion(discussionId, title, location, date)
-                            editingDiscussionId = null
-                        },
-                        onDismiss = { editingDiscussionId = null }
-                    )
-                }
-
-                deletingDiscussionId?.let { discussionId ->
-                    ConfirmationDialog(
-                        title = "Delete Discussion",
-                        message = "Are you sure you want to delete this discussion?",
-                        confirmLabel = "Delete",
-                        isDestructive = true,
-                        onConfirm = {
-                            onDeleteDiscussion(discussionId)
-                            deletingDiscussionId = null
-                        },
-                        onDismiss = { deletingDiscussionId = null }
-                    )
-                }
-
-                openNoteDiscussionId?.let { discussionId ->
-                    LaunchedEffect(discussionId) { onLoadDiscussionNote(discussionId) }
-                    DiscussionNoteSheet(
-                        discussionTitle = state.activeSession?.discussions
-                            ?.firstOrNull { it.id == discussionId }?.title,
-                        note = state.discussionNotes[discussionId],
-                        onSave = { content -> onSaveDiscussionNote(discussionId, content) },
-                        onDelete = {
-                            onDeleteDiscussionNote(discussionId)
-                            openNoteDiscussionId = null
-                        },
-                        onDismiss = { openNoteDiscussionId = null }
-                    )
-                }
-
-                // ---- Member sheets / dialogs ----
-
-                changingRoleMemberId?.let { memberId ->
-                    val member = state.members.find { it.memberId == memberId }
-                    ChangeRoleBottomSheet(
-                        memberName = member?.name ?: "",
-                        currentRole = member?.role ?: Role.MEMBER,
-                        onSave = { newRole ->
-                            onUpdateMemberRole(memberId, newRole)
-                            changingRoleMemberId = null
-                        },
-                        onDismiss = { changingRoleMemberId = null }
-                    )
-                }
-
-                removingMemberId?.let { memberId ->
-                    val member = state.members.find { it.memberId == memberId }
-                    ConfirmationDialog(
-                        title = "Remove Member",
-                        message = "Are you sure you want to remove ${member?.name ?: "this member"} from the club?",
-                        confirmLabel = "Remove",
-                        isDestructive = true,
-                        onConfirm = {
-                            onRemoveMember(memberId)
-                            removingMemberId = null
-                        },
-                        onDismiss = { removingMemberId = null }
-                    )
-                }
-
-                transferOwnershipTargetId?.let { memberId ->
-                    val member = state.members.find { it.memberId == memberId }
-                    ConfirmationDialog(
-                        title = "Transfer Ownership",
-                        message = "Make ${member?.name ?: "this member"} the new owner of \"${state.currentClubDetails?.clubName}\"? You'll be demoted to Admin.",
-                        confirmLabel = "Transfer",
-                        isDestructive = true,
-                        onConfirm = {
-                            onTransferOwnership(memberId)
-                            transferOwnershipTargetId = null
-                        },
-                        onDismiss = { transferOwnershipTargetId = null }
-                    )
-                }
+                // Drawn after the sheet so a dialog opened over a sheet (delete note) lands on top
+                ClubDetailsDialogHost(
+                    state = state,
+                    onDismissDialog = onDismissDialog,
+                    onDeleteClub = onDeleteClub,
+                    onLeaveClub = onLeaveClub,
+                    onEndSession = onEndSession,
+                    onDeleteDiscussion = onDeleteDiscussion,
+                    onDeleteDiscussionNote = onDeleteDiscussionNote,
+                    onRemoveMember = onRemoveMember,
+                    onTransferOwnership = onTransferOwnership,
+                )
             }
         }
+    }
+}
+
+/** Draws [ClubDetailsState.activeSheet]. Saves close their sheet from the ViewModel once they succeed. */
+@Composable
+private fun ClubDetailsSheetHost(
+    state: ClubDetailsState,
+    onDismissSheet: () -> Unit,
+    onOpenDialog: (ClubDetailsDialog) -> Unit,
+    onUpdateClubName: (String) -> Unit,
+    onUpdateJoinPolicy: (JoinPolicy) -> Unit,
+    onRotateInviteLink: () -> Unit,
+    onCopyInviteLink: (String) -> Unit,
+    onShareInviteLink: (String) -> Unit,
+    onBookSearchQueryChange: (String) -> Unit,
+    onSearchBooks: (String) -> Unit,
+    onSelectBook: (Book) -> Unit,
+    onClearBook: () -> Unit,
+    onCreateSession: (Book, LocalDateTime?) -> Unit,
+    onUpdateSession: (Book?, LocalDateTime?) -> Unit,
+    onSaveProgress: (ProgressType, Int?, Float?, Boolean) -> Unit,
+    onCreateDiscussion: (String, String, LocalDateTime) -> Unit,
+    onUpdateDiscussion: (String, String?, String?, LocalDateTime?) -> Unit,
+    onLoadDiscussionNote: (discussionId: String) -> Unit,
+    onSaveDiscussionNote: (discussionId: String, content: String) -> Unit,
+    onUpdateMemberRole: (memberId: String, newRole: Role) -> Unit,
+) {
+    when (val sheet = state.activeSheet) {
+        ClubDetailsSheet.EditClub -> EditClubBottomSheet(
+            currentName = state.currentClubDetails?.clubName ?: "",
+            onSave = onUpdateClubName,
+            onDismiss = onDismissSheet,
+            onDeleteClub = {
+                onDismissSheet()
+                onOpenDialog(ClubDetailsDialog.DeleteClub)
+            }
+        )
+
+        ClubDetailsSheet.ShareClub -> ShareClubBottomSheet(
+            joinPolicy = state.currentClubDetails?.joinPolicy,
+            inviteToken = state.currentClubDetails?.inviteToken,
+            canManage = state.userRole == Role.OWNER,
+            isOperationInProgress = state.isOperationInProgress,
+            onTogglePolicy = onUpdateJoinPolicy,
+            onRotate = onRotateInviteLink,
+            onCopy = onCopyInviteLink,
+            onShare = onShareInviteLink,
+            onDismiss = onDismissSheet
+        )
+
+        ClubDetailsSheet.CreateSession -> CreateSessionBottomSheet(
+            bookSearchQuery = state.bookSearchQuery,
+            bookSearchResults = state.bookSearchResults,
+            selectedBook = state.selectedBook,
+            isSearchingBooks = state.isSearchingBooks,
+            isRegisteringBook = state.isRegisteringBook,
+            bookSearchError = state.bookSearchError,
+            onBookSearchQueryChange = onBookSearchQueryChange,
+            onSearchBooks = onSearchBooks,
+            onSelectBook = onSelectBook,
+            onClearBook = onClearBook,
+            onSave = onCreateSession,
+            onDismiss = onDismissSheet
+        )
+
+        ClubDetailsSheet.EditSession -> EditSessionBottomSheet(
+            initialDueDate = state.activeSession?.rawDueDate,
+            onSave = { dueDate -> onUpdateSession(null, dueDate) },
+            onDismiss = onDismissSheet
+        )
+
+        ClubDetailsSheet.UpdateProgress -> state.activeSession?.let { session ->
+            // ReadingProgressBottomSheet is hollow (design-system primitives
+            // migration) — it reports back in ProgressTrackingMode, translated to the
+            // domain ProgressType at this boundary.
+            ReadingProgressBottomSheet(
+                bookTitle = session.book.title,
+                pageCount = session.book.pageCount,
+                initialType = (state.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
+                initialCurrentPage = state.ownProgress?.currentPage,
+                initialPercentComplete = state.ownProgress?.percentComplete,
+                initialMarkFinished = state.ownProgress?.isCompleted ?: false,
+                onSave = { type, currentPage, percentComplete, markFinished ->
+                    onSaveProgress(type.toDomain(), currentPage, percentComplete, markFinished)
+                },
+                onDismiss = onDismissSheet
+            )
+        }
+
+        ClubDetailsSheet.CreateDiscussion -> DiscussionBottomSheet(
+            bookTitle = state.activeSession?.book?.title,
+            onSave = onCreateDiscussion,
+            onDismiss = onDismissSheet
+        )
+
+        is ClubDetailsSheet.EditDiscussion -> {
+            val discussion = state.activeSession?.discussions?.find { it.id == sheet.discussionId }
+            DiscussionBottomSheet(
+                isEditing = true,
+                initialTitle = discussion?.title ?: "",
+                initialLocation = discussion?.location ?: "",
+                initialDate = discussion?.rawDate,
+                bookTitle = state.activeSession?.book?.title,
+                onSave = { title, location, date -> onUpdateDiscussion(sheet.discussionId, title, location, date) },
+                onDismiss = onDismissSheet
+            )
+        }
+
+        is ClubDetailsSheet.DiscussionNote -> {
+            LaunchedEffect(sheet.discussionId) { onLoadDiscussionNote(sheet.discussionId) }
+            DiscussionNoteSheet(
+                discussionTitle = state.activeSession?.discussions
+                    ?.firstOrNull { it.id == sheet.discussionId }?.title,
+                note = state.discussionNotes[sheet.discussionId],
+                onSave = { content -> onSaveDiscussionNote(sheet.discussionId, content) },
+                onDelete = { onOpenDialog(ClubDetailsDialog.DeleteDiscussionNote(sheet.discussionId)) },
+                onDismiss = onDismissSheet
+            )
+        }
+
+        is ClubDetailsSheet.ChangeRole -> {
+            val member = state.members.find { it.memberId == sheet.memberId }
+            ChangeRoleBottomSheet(
+                memberName = member?.name ?: "",
+                currentRole = member?.role ?: Role.MEMBER,
+                onSave = { newRole -> onUpdateMemberRole(sheet.memberId, newRole) },
+                onDismiss = onDismissSheet
+            )
+        }
+
+        // Drawn by the clubs list, not the detail screen
+        ClubDetailsSheet.CreateClub, ClubDetailsSheet.JoinClub, null -> Unit
+    }
+}
+
+/** Draws [ClubDetailsState.activeDialog]. Confirming calls the action, which closes the dialog. */
+@Composable
+private fun ClubDetailsDialogHost(
+    state: ClubDetailsState,
+    onDismissDialog: () -> Unit,
+    onDeleteClub: () -> Unit,
+    onLeaveClub: () -> Unit,
+    onEndSession: () -> Unit,
+    onDeleteDiscussion: (String) -> Unit,
+    onDeleteDiscussionNote: (discussionId: String) -> Unit,
+    onRemoveMember: (memberId: String) -> Unit,
+    onTransferOwnership: (memberId: String) -> Unit,
+) {
+    when (val dialog = state.activeDialog) {
+        ClubDetailsDialog.DeleteClub -> ConfirmationDialog(
+            title = "Delete Club",
+            message = "Are you sure you want to delete \"${state.currentClubDetails?.clubName}\"? This action cannot be undone.",
+            confirmLabel = "Delete",
+            isDestructive = true,
+            onConfirm = onDeleteClub,
+            onDismiss = onDismissDialog
+        )
+
+        ClubDetailsDialog.LeaveClub -> ConfirmationDialog(
+            title = "Leave Club",
+            message = "Are you sure you want to leave \"${state.currentClubDetails?.clubName}\"? You'll need a new invite to rejoin.",
+            confirmLabel = "Leave",
+            isDestructive = true,
+            onConfirm = onLeaveClub,
+            onDismiss = onDismissDialog
+        )
+
+        ClubDetailsDialog.EndSession -> {
+            val readingCount = state.activeSession?.participants?.count { it.isReading } ?: 0
+            val creditMessage = if (readingCount > 0) {
+                "$readingCount member${if (readingCount != 1) "s" else ""} will receive credit."
+            } else {
+                "No members are marked as reading — no credit will be awarded."
+            }
+            ConfirmationDialog(
+                title = "End Session",
+                message = "Are you sure you want to end the current reading session for " +
+                    "\"${state.activeSession?.book?.title}\"?\n\n$creditMessage",
+                confirmLabel = "Confirm End",
+                isDestructive = true,
+                onConfirm = onEndSession,
+                onDismiss = onDismissDialog
+            )
+        }
+
+        is ClubDetailsDialog.DeleteDiscussion -> ConfirmationDialog(
+            title = "Delete Discussion",
+            message = "Are you sure you want to delete this discussion?",
+            confirmLabel = "Delete",
+            isDestructive = true,
+            onConfirm = { onDeleteDiscussion(dialog.discussionId) },
+            onDismiss = onDismissDialog
+        )
+
+        is ClubDetailsDialog.DeleteDiscussionNote -> ConfirmationDialog(
+            title = "Delete Note",
+            message = "Are you sure you want to delete this note?",
+            confirmLabel = "Delete",
+            isDestructive = true,
+            onConfirm = { onDeleteDiscussionNote(dialog.discussionId) },
+            onDismiss = onDismissDialog
+        )
+
+        is ClubDetailsDialog.RemoveMember -> {
+            val member = state.members.find { it.memberId == dialog.memberId }
+            ConfirmationDialog(
+                title = "Remove Member",
+                message = "Are you sure you want to remove ${member?.name ?: "this member"} from the club?",
+                confirmLabel = "Remove",
+                isDestructive = true,
+                onConfirm = { onRemoveMember(dialog.memberId) },
+                onDismiss = onDismissDialog
+            )
+        }
+
+        is ClubDetailsDialog.TransferOwnership -> {
+            val member = state.members.find { it.memberId == dialog.memberId }
+            ConfirmationDialog(
+                title = "Transfer Ownership",
+                message = "Make ${member?.name ?: "this member"} the new owner of \"${state.currentClubDetails?.clubName}\"? You'll be demoted to Admin.",
+                confirmLabel = "Transfer",
+                isDestructive = true,
+                onConfirm = { onTransferOwnership(dialog.memberId) },
+                onDismiss = onDismissDialog
+            )
+        }
+
+        null -> Unit
     }
 }
 

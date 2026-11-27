@@ -32,10 +32,6 @@ class MeViewModelHelper : KoinComponent {
 
     fun refresh(forceRefresh: Boolean = false) = viewModel.refresh(forceRefresh)
 
-    fun showLogoutConfirmation() = viewModel.onSignOutClicked()
-
-    fun hideLogoutConfirmation() = viewModel.onSignOutDialogDismissed()
-
     fun confirmLogout() = viewModel.onSignOutDialogConfirmed()
 
     fun clearSnackbarError() = viewModel.clearSnackbarError()
@@ -44,7 +40,11 @@ class MeViewModelHelper : KoinComponent {
     fun onSaveProgress(sessionId: String, type: ProgressType, currentPage: Int?, percentComplete: Int?, markFinished: Boolean) =
         viewModel.onSaveProgress(sessionId, type, currentPage, percentComplete?.toFloat(), markFinished)
 
-    fun onReadingLogClicked() = viewModel.onReadingLogClicked()
+    fun onOpenSheet(sheet: MeSheet) = viewModel.onOpenSheet(sheet)
 
-    fun onReadingLogDismissed() = viewModel.onReadingLogDismissed()
+    fun onDismissSheet() = viewModel.onDismissSheet()
+
+    fun onOpenDialog(dialog: MeDialog) = viewModel.onOpenDialog(dialog)
+
+    fun onDismissDialog() = viewModel.onDismissDialog()
 }

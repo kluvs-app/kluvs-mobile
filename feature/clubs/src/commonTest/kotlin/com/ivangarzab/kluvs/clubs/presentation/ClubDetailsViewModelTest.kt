@@ -1746,6 +1746,181 @@ class ClubDetailsViewModelTest {
         collector.cancel()
     }
 
+    // ========================================
+    // KT-362: VIEWMODEL-DRIVEN SHEETS AND DIALOGS
+    // ========================================
+
+    /** Loads [ownedClub] "club-1" and stubs a rename to "New Name" with [renameResult]. */
+    private fun stubRename(renameResult: Result<Club>) {
+        val old = ownedClub("club-1", "Old Name")
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
+            Result.success(Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(old)))
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(old)
+        everySuspend { clubRepository.getClub("club-1", forceRefresh = true) } returns Result.success(old)
+        everySuspend { clubRepository.updateClub(clubId = "club-1", name = "New Name") } returns renameResult
+        viewModel.loadUserClubs("u1")
+    }
+
+    @Test
+    fun `no sheet or dialog is open initially`() {
+        assertNull(viewModel.state.value.activeSheet)
+        assertNull(viewModel.state.value.activeDialog)
+    }
+
+    @Test
+    fun `onOpenSheet opens the sheet and onDismissSheet closes it`() = runTest {
+        viewModel.onOpenSheet(ClubDetailsSheet.ChangeRole("m2"))
+        assertEquals(ClubDetailsSheet.ChangeRole("m2"), viewModel.state.value.activeSheet)
+
+        viewModel.onDismissSheet()
+        assertNull(viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `onOpenDialog stacks on top of the open sheet and onDismissDialog leaves the sheet open`() = runTest {
+        viewModel.onOpenSheet(ClubDetailsSheet.DiscussionNote("d1"))
+        viewModel.onOpenDialog(ClubDetailsDialog.DeleteDiscussionNote("d1"))
+
+        assertEquals(ClubDetailsSheet.DiscussionNote("d1"), viewModel.state.value.activeSheet)
+        assertEquals(ClubDetailsDialog.DeleteDiscussionNote("d1"), viewModel.state.value.activeDialog)
+
+        viewModel.onDismissDialog()
+
+        assertNull(viewModel.state.value.activeDialog)
+        assertEquals(ClubDetailsSheet.DiscussionNote("d1"), viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `opening Create Session starts from a fresh book search`() = runTest {
+        viewModel.onBookSearchQueryChange("leftover")
+
+        viewModel.onOpenSheet(ClubDetailsSheet.CreateSession)
+
+        assertEquals("", viewModel.state.value.bookSearchQuery)
+    }
+
+    @Test
+    fun `dismissing Create Session clears the book search`() = runTest {
+        viewModel.onOpenSheet(ClubDetailsSheet.CreateSession)
+        viewModel.onBookSearchQueryChange("dune")
+
+        viewModel.onDismissSheet()
+
+        assertNull(viewModel.state.value.activeSheet)
+        assertEquals("", viewModel.state.value.bookSearchQuery)
+    }
+
+    @Test
+    fun `a successful save closes the sheet it came from`() = runTest {
+        stubRename(Result.success(ownedClub("club-1", "New Name")))
+        viewModel.onOpenSheet(ClubDetailsSheet.EditClub)
+
+        viewModel.onUpdateClubName("New Name")
+
+        assertNull(viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `a failed save leaves the sheet open`() = runTest {
+        stubRename(Result.failure(RuntimeException("Network error")))
+        viewModel.onOpenSheet(ClubDetailsSheet.EditClub)
+
+        viewModel.onUpdateClubName("New Name")
+
+        assertEquals(ClubDetailsSheet.EditClub, viewModel.state.value.activeSheet)
+        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+    }
+
+    @Test
+    fun `a save that finishes after its sheet was swapped does not close the new sheet`() = runTest {
+        val old = ownedClub("club-1", "Old Name")
+        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
+            Result.success(Member(id = "m1", userId = "u1", name = "Alice", clubs = listOf(old)))
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(old)
+        everySuspend { clubRepository.getClub("club-1", forceRefresh = true) } returns Result.success(old)
+        everySuspend { clubRepository.updateClub(clubId = "club-1", name = "New Name") } calls {
+            delay(1_000)
+            Result.success(ownedClub("club-1", "New Name"))
+        }
+        viewModel.loadUserClubs("u1")
+        viewModel.onOpenSheet(ClubDetailsSheet.EditClub)
+
+        viewModel.onUpdateClubName("New Name")
+        viewModel.onDismissSheet()
+        viewModel.onOpenSheet(ClubDetailsSheet.ShareClub)
+        advanceUntilIdle()
+
+        assertEquals(ClubDetailsSheet.ShareClub, viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `a second tap on Save while the first save runs is ignored`() = runTest {
+        loadClubWithActiveSession()
+        everySuspend { discussionRepository.createDiscussion(any(), any(), any(), any()) } calls {
+            delay(1_000)
+            Result.success(Discussion(id = "d1", sessionId = "session-1", title = "Ch. 1", date = LocalDateTime(2026, 12, 1, 19, 0)))
+        }
+        viewModel.onOpenSheet(ClubDetailsSheet.CreateDiscussion)
+
+        viewModel.onCreateDiscussion("Ch. 1", "Discord", LocalDateTime(2026, 12, 1, 19, 0))
+        viewModel.onCreateDiscussion("Ch. 1", "Discord", LocalDateTime(2026, 12, 1, 19, 0))
+        advanceUntilIdle()
+
+        verifySuspend(VerifyMode.exactly(1)) { discussionRepository.createDiscussion(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `saving progress closes the progress sheet`() = runTest {
+        loadClubWithActiveSession()
+        everySuspend {
+            progressRepository.createProgress(any(), any(), any(), any(), any())
+        } returns Result.success(ownProgress())
+        viewModel.onOpenSheet(ClubDetailsSheet.UpdateProgress)
+
+        viewModel.onSaveProgress(ProgressType.PAGE, currentPage = 50, percentComplete = null, markFinished = false)
+
+        assertNull(viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `confirming a dialog closes it right away`() = runTest {
+        loadClubWithActiveSession(role = Role.OWNER)
+        everySuspend { sessionRepository.finishSession("session-1") } returns
+            Result.failure(RuntimeException("Network error"))
+        viewModel.onOpenDialog(ClubDetailsDialog.EndSession)
+
+        viewModel.onEndSession()
+
+        assertNull(viewModel.state.value.activeDialog)
+    }
+
+    @Test
+    fun `deleting a note closes its confirmation dialog and the note sheet`() = runTest {
+        loadClubWithDiscussion()
+        everySuspend { discussionNoteRepository.getNote("d1") } returns Result.success(note())
+        viewModel.onLoadDiscussionNote("d1")
+        everySuspend { discussionNoteRepository.deleteNote("n1") } returns Result.success(Unit)
+        viewModel.onOpenSheet(ClubDetailsSheet.DiscussionNote("d1"))
+        viewModel.onOpenDialog(ClubDetailsDialog.DeleteDiscussionNote("d1"))
+
+        viewModel.onDeleteDiscussionNote("d1")
+
+        assertNull(viewModel.state.value.activeDialog)
+        assertNull(viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `selecting a club closes any sheet or dialog left from the previous one`() = runTest {
+        viewModel.onOpenSheet(ClubDetailsSheet.ShareClub)
+        viewModel.onOpenDialog(ClubDetailsDialog.LeaveClub)
+        everySuspend { clubRepository.getClub("club-2") } returns Result.success(ownedClub("club-2", "Other"))
+
+        viewModel.selectClub("club-2")
+
+        assertNull(viewModel.state.value.activeSheet)
+        assertNull(viewModel.state.value.activeDialog)
+    }
+
     private companion object {
         const val INVITE_URL = "https://app.kluvs.com/join/abc123"
     }

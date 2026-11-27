@@ -41,5 +41,35 @@ data class ClubDetailsState(
     val bookSearchError: String? = null,
     /** The book chosen (and registered, with a real server-assigned ID) for the session being created. */
     val selectedBook: Book? = null,
-    val isRegisteringBook: Boolean = false
+    val isRegisteringBook: Boolean = false,
+    /** The bottom sheet on screen, if any. Opened with `onOpenSheet`, closed by `onDismissSheet` or a successful save. */
+    val activeSheet: ClubDetailsSheet? = null,
+    /** The confirmation dialog on screen, if any. It can sit on top of [activeSheet]. */
+    val activeDialog: ClubDetailsDialog? = null
 )
+
+/** Bottom sheets on the Clubs list and club detail screens. At most one is open at a time. */
+sealed class ClubDetailsSheet {
+    data object CreateClub : ClubDetailsSheet()
+    data object JoinClub : ClubDetailsSheet()
+    data object EditClub : ClubDetailsSheet()
+    data object ShareClub : ClubDetailsSheet()
+    data object CreateSession : ClubDetailsSheet()
+    data object EditSession : ClubDetailsSheet()
+    data object UpdateProgress : ClubDetailsSheet()
+    data object CreateDiscussion : ClubDetailsSheet()
+    data class EditDiscussion(val discussionId: String) : ClubDetailsSheet()
+    data class DiscussionNote(val discussionId: String) : ClubDetailsSheet()
+    data class ChangeRole(val memberId: String) : ClubDetailsSheet()
+}
+
+/** Confirmation dialogs on the club detail screen. At most one is open at a time. */
+sealed class ClubDetailsDialog {
+    data object DeleteClub : ClubDetailsDialog()
+    data object LeaveClub : ClubDetailsDialog()
+    data object EndSession : ClubDetailsDialog()
+    data class DeleteDiscussion(val discussionId: String) : ClubDetailsDialog()
+    data class DeleteDiscussionNote(val discussionId: String) : ClubDetailsDialog()
+    data class RemoveMember(val memberId: String) : ClubDetailsDialog()
+    data class TransferOwnership(val memberId: String) : ClubDetailsDialog()
+}

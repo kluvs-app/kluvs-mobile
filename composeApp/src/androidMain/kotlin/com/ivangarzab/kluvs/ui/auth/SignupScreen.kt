@@ -4,11 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.ivangarzab.kluvs.auth.presentation.AuthMode
+import com.ivangarzab.kluvs.auth.presentation.AuthSheet
 import com.ivangarzab.kluvs.auth.presentation.AuthState
 import com.ivangarzab.kluvs.auth.presentation.AuthViewModel
 import com.ivangarzab.kluvs.auth.presentation.LoginNavigation
@@ -26,13 +24,8 @@ fun SignupScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    var showForgotSheet by remember { mutableStateOf(false) }
-
-    if (showForgotSheet) {
-        AuthForgotSheet(
-            viewModel = viewModel,
-            onDismiss = { showForgotSheet = false },
-        )
+    if (uiState.activeSheet == AuthSheet.ForgotPassword) {
+        AuthForgotSheet(viewModel = viewModel)
     }
 
     if (state is AuthState.EmailConfirmationPending) {
@@ -74,7 +67,7 @@ fun SignupScreen(
                 onNavigate = {
                     when (it) {
                         LoginNavigation.SignIn -> onNavigateToLogIn()
-                        else -> showForgotSheet = true
+                        else -> viewModel.onOpenSheet(AuthSheet.ForgotPassword)
                     }
                 }
             )
