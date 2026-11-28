@@ -83,6 +83,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -147,6 +150,8 @@ class ClubDetailsViewModelTest {
     @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        // BaseViewModel gets its PlatformEffectHandler from Koin
+        startKoin { modules(module { single<PlatformEffectHandler> { platformEffectHandler } }) }
         clubRepository = mock<ClubRepository>()
         memberRepository = mock<MemberRepository>()
         sessionRepository = mock<SessionRepository>()
@@ -206,8 +211,7 @@ class ClubDetailsViewModelTest {
             toggleSessionParticipationUseCase,
             getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase,
             getDiscussionNoteUseCase, createDiscussionNoteUseCase,
-            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase,
-            platformEffectHandler
+            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
@@ -225,6 +229,7 @@ class ClubDetailsViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        stopKoin()
         Dispatchers.resetMain()
     }
 

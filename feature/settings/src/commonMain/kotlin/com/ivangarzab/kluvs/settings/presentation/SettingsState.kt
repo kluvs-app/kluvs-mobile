@@ -14,7 +14,6 @@ data class SettingsState(
     // Save operation state
     val isSaving: Boolean = false,
     val saveError: String? = null,
-    val saveSuccess: Boolean = false,
     // Derived: are there unsaved changes?
     val hasChanges: Boolean = false,
     // Avatar upload state
@@ -27,7 +26,6 @@ data class SettingsState(
     val confirmPasswordError: String? = null,
     val isChangingPassword: Boolean = false,
     val changePasswordGeneralError: AuthError? = null,
-    val changePasswordSuccess: Boolean = false,
     // Delete account state
     val isDeletingAccount: Boolean = false,
     val deleteAccountError: String? = null,

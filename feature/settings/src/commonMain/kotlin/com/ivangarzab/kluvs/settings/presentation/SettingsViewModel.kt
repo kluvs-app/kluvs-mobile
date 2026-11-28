@@ -1,21 +1,20 @@
 package com.ivangarzab.kluvs.settings.presentation
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
+import com.ivangarzab.kluvs.presentation.effect.NoticeKey
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
+import com.ivangarzab.kluvs.presentation.effect.SnackbarMessage
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModel
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
 import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateUserProfileUseCase
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -31,19 +30,16 @@ class SettingsViewModel(
     private val changePasswordUseCase: ChangePasswordUseCase,
     private val deleteAccountUseCase: DeleteAccountUseCase,
     private val signOutUseCase: SignOutUseCase
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(SettingsState())
-    val state: StateFlow<SettingsState> = _state.asStateFlow()
+) : BaseViewModel<SettingsState>(SettingsState()) {
 
     fun loadProfile(userId: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            updateState { it.copy(isLoading = true, error = null) }
 
             getEditableProfile(userId)
                 .onSuccess { profile ->
                     Bark.i("Settings profile loaded (Member ID: ${profile.memberId})")
-                    _state.update {
+                    updateState {
                         it.copy(
                             isLoading = false,
                             profile = profile,
@@ -55,13 +51,13 @@ class SettingsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Failed to load profile for Settings screen.", error)
-                    _state.update { it.copy(isLoading = false, error = error.toDisplayMessage()) }
+                    updateState { it.copy(isLoading = false, error = error.toDisplayMessage()) }
                 }
         }
     }
 
     fun onNameChanged(name: String) {
-        _state.update { state ->
+        updateState { state ->
             state.copy(
                 editedName = name,
                 hasChanges = computeHasChanges(state.copy(editedName = name))
@@ -84,55 +80,51 @@ class SettingsViewModel(
         } else {
             "Handles can only contain lowercase letters, numbers, and hyphens"
         }
-        _state.update { state ->
+        updateState { state ->
             val updated = state.copy(editedHandle = lowered, handleError = handleError)
             updated.copy(hasChanges = computeHasChanges(updated))
         }
     }
 
     fun onSaveProfile() {
-        val state = _state.value
+        val state = currentState
         if (state.isSaving || state.handleError != null) return
         val profile = state.profile ?: return
 
         viewModelScope.launch {
-            _state.update { it.copy(isSaving = true, saveError = null) }
+            updateState { it.copy(isSaving = true, saveError = null) }
 
             updateUserProfile(profile.memberId, state.editedName, state.editedHandle)
                 .onSuccess {
                     Bark.i("Profile saved successfully (Member ID: ${profile.memberId})")
-                    _state.update {
+                    updateState {
                         it.copy(
                             isSaving = false,
-                            saveSuccess = true,
                             profile = it.profile?.copy(name = it.editedName, handle = it.editedHandle),
                             hasChanges = false
                         )
                     }
+                    send(ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.SAVE_SUCCESS)))
                 }
                 .onFailure { error ->
                     // Covers the 409 "handle already taken" case — AppError.Conflict carries the
                     // backend's own clean, human-readable detail via toDisplayMessage().
                     Bark.e("Failed to save profile (Member ID: ${profile.memberId}).", error)
-                    _state.update {
+                    updateState {
                         it.copy(isSaving = false, saveError = error.toDisplayMessage())
                     }
                 }
         }
     }
 
-    fun onDismissSaveSuccess() {
-        _state.update { it.copy(saveSuccess = false) }
-    }
-
     fun uploadAvatar(imageData: ByteArray) {
         viewModelScope.launch {
-            _state.update { it.copy(isUploadingAvatar = true, avatarError = null) }
+            updateState { it.copy(isUploadingAvatar = true, avatarError = null) }
 
-            val memberId = _state.value.profile?.memberId
+            val memberId = currentState.profile?.memberId
             if (memberId == null) {
                 Bark.e("No member ID available to update avatar. Please retry.", null)
-                _state.update {
+                updateState {
                     it.copy(
                         isUploadingAvatar = false,
                         avatarError = "No member ID available"
@@ -144,59 +136,59 @@ class SettingsViewModel(
             updateAvatarUseCase(memberId, imageData)
                 .onSuccess { newAvatarUrl ->
                     Bark.i("Avatar uploaded successfully (ID: $memberId)")
-                    _state.update {
+                    updateState {
                         it.copy(profile = it.profile?.copy(avatarUrl = newAvatarUrl))
                     }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to upload avatar (ID: $memberId). Please retry.", error)
-                    _state.update { it.copy(avatarError = error.toDisplayMessage()) }
+                    updateState { it.copy(avatarError = error.toDisplayMessage()) }
                 }
 
-            _state.update { it.copy(isUploadingAvatar = false) }
+            updateState { it.copy(isUploadingAvatar = false) }
         }
     }
 
     /** Surfaces a failure that happened while reading/compressing a picked image, before upload was even attempted. */
     fun onAvatarPickFailed(reason: String?) {
         Bark.e("Failed to read picked avatar image. ${reason.orEmpty()}", null)
-        _state.update { it.copy(avatarError = "Failed to read selected image") }
+        updateState { it.copy(avatarError = "Failed to read selected image") }
     }
 
     fun clearAvatarError() {
-        _state.update { it.copy(avatarError = null) }
+        updateState { it.copy(avatarError = null) }
     }
 
     /** Opens [sheet], replacing any sheet already open. */
     fun onOpenSheet(sheet: SettingsSheet) {
-        _state.update { it.copy(activeSheet = sheet) }
+        updateState { it.copy(activeSheet = sheet) }
     }
 
     /** Closes the open sheet: Cancel, the close button, swipe down, back, or a tap outside. */
     fun onDismissSheet() {
-        _state.value.activeSheet?.let { closeSheet(ifShowing = it) }
+        currentState.activeSheet?.let { closeSheet(ifShowing = it) }
     }
 
     /** Opens [dialog] on top of the screen. */
     fun onOpenDialog(dialog: SettingsDialog) {
-        _state.update { it.copy(activeDialog = dialog) }
+        updateState { it.copy(activeDialog = dialog) }
     }
 
     /** Closes the open dialog. Confirming a dialog closes it too. */
     fun onDismissDialog() {
-        _state.update { it.copy(activeDialog = null) }
+        updateState { it.copy(activeDialog = null) }
     }
 
     fun onNewPasswordFieldChanged(value: String) {
-        _state.update { it.copy(newPasswordField = value, newPasswordError = null) }
+        updateState { it.copy(newPasswordField = value, newPasswordError = null) }
     }
 
     fun onConfirmPasswordFieldChanged(value: String) {
-        _state.update { it.copy(confirmPasswordField = value, confirmPasswordError = null) }
+        updateState { it.copy(confirmPasswordField = value, confirmPasswordError = null) }
     }
 
     fun onSubmitChangePassword() {
-        val state = _state.value
+        val state = currentState
         if (state.isChangingPassword) return
 
         val newPasswordError = when {
@@ -210,31 +202,31 @@ class SettingsViewModel(
         }
 
         if (newPasswordError != null || confirmPasswordError != null) {
-            _state.update {
+            updateState {
                 it.copy(newPasswordError = newPasswordError, confirmPasswordError = confirmPasswordError)
             }
             return
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isChangingPassword = true, changePasswordGeneralError = null) }
+            updateState { it.copy(isChangingPassword = true, changePasswordGeneralError = null) }
 
             changePasswordUseCase(state.newPasswordField)
                 .onSuccess {
                     Bark.i("Password changed successfully")
-                    _state.update {
+                    updateState {
                         it.copy(
                             isChangingPassword = false,
-                            changePasswordSuccess = true,
                             newPasswordField = "",
                             confirmPasswordField = ""
                         )
                     }
                     closeSheet(ifShowing = SettingsSheet.ChangePassword)
+                    send(ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.PASSWORD_UPDATED)))
                 }
                 .onFailure { error ->
                     Bark.e("Failed to change password.", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isChangingPassword = false,
                             changePasswordGeneralError = (error as? AuthError) ?: AuthError.UnexpectedError
@@ -242,10 +234,6 @@ class SettingsViewModel(
                     }
                 }
         }
-    }
-
-    fun onDismissChangePasswordSuccess() {
-        _state.update { it.copy(changePasswordSuccess = false) }
     }
 
     /**
@@ -258,14 +246,14 @@ class SettingsViewModel(
      * account while the client never signs out.
      */
     fun onDeleteAccountConfirmed() {
-        val state = _state.value
+        val state = currentState
         if (state.isDeletingAccount) return
         val memberId = state.profile?.memberId ?: return
 
         viewModelScope.launch {
             // Close the dialog up front (same as MeViewModel's sign-out) — on iOS the dialog's
             // binding hides itself locally on confirm, so leaving this true would re-present it.
-            _state.update {
+            updateState {
                 it.copy(activeDialog = null, isDeletingAccount = true, deleteAccountError = null)
             }
 
@@ -277,10 +265,10 @@ class SettingsViewModel(
                     withContext(NonCancellable) { signOutUseCase() }.onFailure { error ->
                         Bark.w("Server sign-out after account deletion failed; local session cleared anyway.", error)
                     }
-                    _state.update { it.copy(isDeletingAccount = false) }
+                    updateState { it.copy(isDeletingAccount = false) }
                 }
                 .onFailure { error ->
-                    _state.update {
+                    updateState {
                         it.copy(
                             isDeletingAccount = false,
                             deleteAccountError = error.toDisplayMessage()
@@ -291,7 +279,7 @@ class SettingsViewModel(
     }
 
     fun clearDeleteAccountError() {
-        _state.update { it.copy(deleteAccountError = null) }
+        updateState { it.copy(deleteAccountError = null) }
     }
 
     private fun computeHasChanges(state: SettingsState): Boolean {
@@ -312,7 +300,7 @@ class SettingsViewModel(
      * clears its fields so it opens empty next time.
      */
     private fun closeSheet(ifShowing: SettingsSheet) {
-        _state.update {
+        updateState {
             when {
                 it.activeSheet != ifShowing -> it
                 ifShowing == SettingsSheet.ChangePassword -> it.copy(

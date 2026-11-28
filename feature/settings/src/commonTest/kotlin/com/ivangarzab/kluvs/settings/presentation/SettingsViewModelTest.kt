@@ -20,6 +20,9 @@ import com.ivangarzab.kluvs.database.dao.SessionDao
 import com.ivangarzab.kluvs.database.dao.ShelfDao
 import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.Member
+import com.ivangarzab.kluvs.presentation.effect.NoticeKey
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
+import com.ivangarzab.kluvs.presentation.effect.SnackbarMessage
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
 import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
@@ -34,6 +37,9 @@ import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -301,7 +307,8 @@ class SettingsViewModelTest {
     // ========================================
 
     @Test
-    fun `onSaveProfile with valid data succeeds and sets saveSuccess`() = runTest {
+    fun `onSaveProfile with valid data succeeds and shows the save notice`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded and user makes a change
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
@@ -314,13 +321,14 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isSaving)
-        assertTrue(state.saveSuccess)
+        assertEquals(listOf(saveSuccessNotice), effects)
         assertNull(state.saveError)
         assertFalse(state.hasChanges)
     }
 
     @Test
     fun `onSaveProfile with handle that fails full format validation sets saveError`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded and user enters a handle that passes the inline charset check
         // (letters, digits, hyphens only) but fails the UseCase's full structural/length
         // validation — only the round trip through UpdateUserProfileUseCase catches this.
@@ -334,12 +342,13 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isSaving)
-        assertFalse(state.saveSuccess)
+        assertTrue(effects.isEmpty())
         assertTrue(state.saveError != null)
     }
 
     @Test
     fun `onSaveProfile is a no-op when handleError is set`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded and user enters a handle with an out-of-charset character —
         // the inline validation error should block the save round trip entirely.
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
@@ -353,12 +362,13 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isSaving)
-        assertFalse(state.saveSuccess)
+        assertTrue(effects.isEmpty())
         assertNull(state.saveError)
     }
 
     @Test
     fun `onSaveProfile surfaces a friendly message on 409 conflict`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded and the server rejects the save because the handle is taken
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         everySuspend {
@@ -373,52 +383,24 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isSaving)
-        assertFalse(state.saveSuccess)
+        assertTrue(effects.isEmpty())
         assertEquals("That handle is already taken", state.saveError)
     }
 
     @Test
-    fun `onSaveProfile while saving is a no-op`() = runTest {
-        // Given: state already has isSaving = true
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
-        viewModel.loadProfile(userId)
-
-        // Manually put the ViewModel into saving state by calling onSaveProfile once
-        // with a slow mock — but since UnconfinedTestDispatcher is synchronous, we test
-        // by checking the guard on repeated calls
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
-        viewModel.onSaveProfile()
-
-        // After the first call resolves, saveSuccess should be true
-        assertTrue(viewModel.state.value.saveSuccess)
-
-        // Dismiss success, then call again — should work normally (not blocked)
-        viewModel.onDismissSaveSuccess()
-        viewModel.onSaveProfile()
-
-        // Still succeeds (no deadlock / no-op issue)
-        assertTrue(viewModel.state.value.saveSuccess)
-    }
-
-    // ========================================
-    // DISMISS SAVE SUCCESS
-    // ========================================
-
-    @Test
-    fun `onDismissSaveSuccess resets saveSuccess flag`() = runTest {
-        // Given: profile loaded and save succeeded
+    fun `onSaveProfile can save again after a save finishes`() = runTest {
+        // Given
+        val effects = collectScreenEffects()
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
-        everySuspend { memberRepository.updateMember(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(testMember)
+
+        // When: UnconfinedTestDispatcher finishes each save before the next call
         viewModel.onSaveProfile()
-        assertTrue(viewModel.state.value.saveSuccess)
+        viewModel.onSaveProfile()
 
-        // When
-        viewModel.onDismissSaveSuccess()
-
-        // Then
-        assertFalse(viewModel.state.value.saveSuccess)
+        // Then: neither save was blocked
+        assertEquals(listOf(saveSuccessNotice, saveSuccessNotice), effects)
     }
 
     // ========================================
@@ -514,6 +496,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `onSubmitChangePassword with valid matching passwords succeeds`() = runTest {
+        val effects = collectScreenEffects()
         // Given
         everySuspend { authRepository.changePassword("newSecurePass123") } returns Result.success(Unit)
         viewModel.onOpenSheet(SettingsSheet.ChangePassword)
@@ -526,7 +509,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isChangingPassword)
-        assertTrue(state.changePasswordSuccess)
+        assertEquals(listOf(passwordUpdatedNotice), effects)
         assertNull(state.changePasswordGeneralError)
         assertEquals("", state.newPasswordField)
         assertEquals("", state.confirmPasswordField)
@@ -535,6 +518,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `onSubmitChangePassword with blank password sets newPasswordError and does not call repository`() = runTest {
+        val effects = collectScreenEffects()
         // Given
         viewModel.onNewPasswordFieldChanged("")
         viewModel.onConfirmPasswordFieldChanged("")
@@ -546,7 +530,7 @@ class SettingsViewModelTest {
         val state = viewModel.state.value
         assertTrue(state.newPasswordError != null)
         assertFalse(state.isChangingPassword)
-        assertFalse(state.changePasswordSuccess)
+        assertTrue(effects.isEmpty())
     }
 
     @Test
@@ -577,6 +561,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `onSubmitChangePassword surfaces repository AuthError as changePasswordGeneralError`() = runTest {
+        val effects = collectScreenEffects()
         // Given
         everySuspend { authRepository.changePassword("newSecurePass123") } returns Result.failure(AuthError.WeakPassword)
         viewModel.onNewPasswordFieldChanged("newSecurePass123")
@@ -590,7 +575,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isChangingPassword)
-        assertFalse(state.changePasswordSuccess)
+        assertTrue(effects.isEmpty())
         assertEquals(AuthError.WeakPassword, state.changePasswordGeneralError)
         assertEquals(SettingsSheet.ChangePassword, state.activeSheet, "A failed change leaves the sheet open")
     }
@@ -743,4 +728,14 @@ class SettingsViewModelTest {
         // Then
         assertNull(viewModel.state.value.deleteAccountError)
     }
+
+    /** Collects every screen effect the ViewModel sends from here on. */
+    private fun TestScope.collectScreenEffects(): List<ScreenEffect> {
+        val effects = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
+        return effects
+    }
+
+    private val saveSuccessNotice = ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.SAVE_SUCCESS))
+    private val passwordUpdatedNotice = ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.PASSWORD_UPDATED))
 }

@@ -1,6 +1,5 @@
 package com.ivangarzab.kluvs.clubs.presentation
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
@@ -40,23 +39,18 @@ import com.ivangarzab.kluvs.clubs.domain.UpdateSessionUseCase
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.JoinPolicy
-import com.ivangarzab.kluvs.presentation.effect.EffectChannel
 import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
-import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModel
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlin.time.TimeSource
 
 /**
- * The purpose of this [ViewModel] class is to serve the Club screen.
+ * The purpose of this ViewModel is to serve the Club screen.
  */
 class ClubDetailsViewModel(
     private val getClubDetails: GetClubDetailsUseCase,
@@ -91,14 +85,8 @@ class ClubDetailsViewModel(
     private val getDiscussionNoteUseCase: GetDiscussionNoteUseCase,
     private val createDiscussionNoteUseCase: CreateDiscussionNoteUseCase,
     private val updateDiscussionNoteUseCase: UpdateDiscussionNoteUseCase,
-    private val deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase,
-    platformEffectHandler: PlatformEffectHandler
-) : ViewModel() {
-
-    private val platformEffects = EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }
-
-    private val _state = MutableStateFlow(ClubDetailsState())
-    val state: StateFlow<ClubDetailsState> = _state.asStateFlow()
+    private val deleteDiscussionNoteUseCase: DeleteDiscussionNoteUseCase
+) : BaseViewModel<ClubDetailsState>(ClubDetailsState()) {
 
     private var currentClubId: String? = null
     private var currentUserId: String? = null
@@ -123,16 +111,16 @@ class ClubDetailsViewModel(
             // Only take over the screen with a loader when there's no club selected yet; a
             // background list refresh keeps whatever the user is looking at on screen.
             val hadSelection = currentClubId != null
-            if (!hadSelection) _state.update { it.copy(isLoading = true, error = null) }
+            if (!hadSelection) updateState { it.copy(isLoading = true, error = null) }
 
             getMemberClubsUseCase(userId, forceRefresh)
                 .onSuccess { clubListItems ->
-                    _state.update { it.copy(availableClubs = clubListItems) }
+                    updateState { it.copy(availableClubs = clubListItems) }
 
                     if (clubListItems.isEmpty()) {
                         Bark.i("User has no clubs (ID: $userId)")
                         currentClubId = null
-                        _state.update { it.copy(isLoading = false, selectedClubId = null) }
+                        updateState { it.copy(isLoading = false, selectedClubId = null) }
                         return@onSuccess
                     }
                     Bark.i("Loaded ${clubListItems.size} club(s) for user (ID: $userId)")
@@ -142,17 +130,17 @@ class ClubDetailsViewModel(
                     val selected = currentClubId?.let { id -> clubListItems.find { it.id == id } }
                     if (selected != null) {
                         Bark.d("Keeping selected club (ID: ${selected.id}) across club list reload")
-                        _state.update { it.copy(selectedClubId = selected.id, userRole = selected.role) }
+                        updateState { it.copy(selectedClubId = selected.id, userRole = selected.role) }
                         if (forceRefresh) loadClubData(selected.id, forceRefresh = true)
                     } else {
                         val firstClub = clubListItems.first()
-                        _state.update { it.copy(selectedClubId = firstClub.id, userRole = firstClub.role) }
+                        updateState { it.copy(selectedClubId = firstClub.id, userRole = firstClub.role) }
                         loadClubData(firstClub.id)
                     }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to load member clubs for user (ID: $userId). Please retry.", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isLoading = false,
                             // Don't replace a club that's already on screen with an error page
@@ -164,8 +152,8 @@ class ClubDetailsViewModel(
     }
 
     fun selectClub(clubId: String) {
-        val role = _state.value.availableClubs.find { it.id == clubId }?.role
-        _state.update { it.copy(selectedClubId = clubId, userRole = role, activeSheet = null, activeDialog = null) }
+        val role = currentState.availableClubs.find { it.id == clubId }?.role
+        updateState { it.copy(selectedClubId = clubId, userRole = role, activeSheet = null, activeDialog = null) }
         loadClubData(clubId)
     }
 
@@ -192,9 +180,9 @@ class ClubDetailsViewModel(
             // snackbar instead of an error page.
             // Any other load (first load, switching clubs) starts from a clean slate.
             val keepContent = isReload &&
-                _state.value.currentClubDetails != null &&
-                _state.value.selectedClubId == clubId
-            _state.update {
+                currentState.currentClubDetails != null &&
+                currentState.selectedClubId == clubId
+            updateState {
                 if (keepContent) {
                     it.copy(isLoading = true, error = null)
                 } else {
@@ -258,12 +246,12 @@ class ClubDetailsViewModel(
             // transfer) updates `members` here but wouldn't otherwise be reflected until the user
             // navigated away and back, since `userRole`/`availableClubs` aren't touched elsewhere
             // on refresh.
-            val members = membersResult.getOrNull() ?: if (keepContent) _state.value.members else emptyList()
+            val members = membersResult.getOrNull() ?: if (keepContent) currentState.members else emptyList()
             val refreshedRole = currentMemberId?.let { id -> members.find { it.memberId == id }?.role }
 
             // Update state with all results. When keeping content, each piece only changes if its
             // fetch succeeded (a successful "no active session" is still a change).
-            _state.update {
+            updateState {
                 it.copy(
                     isLoading = false,
                     error = if (keepContent) null else error,
@@ -295,12 +283,12 @@ class ClubDetailsViewModel(
      */
     fun onCreateClub(userId: String, name: String) {
         // The sheet stays open while saving, so ignore a second tap on Create
-        if (_state.value.isOperationInProgress) return
+        if (currentState.isOperationInProgress) return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             createClubUseCase(CreateClubUseCase.Params(userId, name))
                 .onSuccess { newClub ->
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs + newClub,
@@ -312,7 +300,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Create club. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -325,7 +313,7 @@ class ClubDetailsViewModel(
     }
 
     fun onConsumeCreatedClubId() {
-        _state.update { it.copy(createdClubId = null) }
+        updateState { it.copy(createdClubId = null) }
     }
 
     // -------------------------------------------------------------------------
@@ -333,12 +321,12 @@ class ClubDetailsViewModel(
     // -------------------------------------------------------------------------
 
     fun onUpdateClubName(newName: String) {
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Club name updated", closingSheet = ClubDetailsSheet.EditClub) {
             updateClubUseCase(UpdateClubUseCase.Params(clubId, newName), role).onSuccess {
                 // The clubs list is only reloaded on tab entry, so patch the renamed row here
-                _state.update { state ->
+                updateState { state ->
                     state.copy(availableClubs = state.availableClubs.map { club ->
                         if (club.id == clubId) club.copy(name = newName) else club
                     })
@@ -355,14 +343,14 @@ class ClubDetailsViewModel(
      */
     fun onDeleteClub() {
         onDismissDialog()
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             deleteClubUseCase(DeleteClubUseCase.Params(clubId), role)
                 .onSuccess {
                     currentClubId = null
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
@@ -375,7 +363,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Delete club. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -388,11 +376,11 @@ class ClubDetailsViewModel(
     }
 
     fun onConsumeDeletedClubId() {
-        _state.update { it.copy(deletedClubId = null) }
+        updateState { it.copy(deletedClubId = null) }
     }
 
     fun onConsumeLeftClubId() {
-        _state.update { it.copy(leftClubId = null) }
+        updateState { it.copy(leftClubId = null) }
     }
 
     /**
@@ -404,7 +392,7 @@ class ClubDetailsViewModel(
      * to avoid showing stale (absent) invite data from a cache hit.
      */
     fun onUpdateJoinPolicy(joinPolicy: JoinPolicy) {
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Join policy updated") {
             updateJoinPolicyUseCase(UpdateJoinPolicyUseCase.Params(clubId, joinPolicy), role)
@@ -413,7 +401,7 @@ class ClubDetailsViewModel(
 
     /** Rotates the club's active invite token. Owner-only. See [RotateInviteLinkUseCase]. */
     fun onRotateInviteLink() {
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Invite link rotated") {
             rotateInviteLinkUseCase(RotateInviteLinkUseCase.Params(clubId), role)
@@ -423,13 +411,13 @@ class ClubDetailsViewModel(
     /** Copies the club's [inviteUrl] to the clipboard. */
     fun onCopyInviteLink(inviteUrl: String) {
         Bark.i("Copying invite link (Club ID: $currentClubId)")
-        platformEffects.send(PlatformEffect.CopyToClipboard(inviteUrl))
+        send(PlatformEffect.CopyToClipboard(inviteUrl))
     }
 
     /** Opens the system share sheet with the club's [inviteUrl]. */
     fun onShareInviteLink(inviteUrl: String) {
         Bark.i("Sharing invite link (Club ID: $currentClubId)")
-        platformEffects.send(PlatformEffect.ShareText(inviteUrl))
+        send(PlatformEffect.ShareText(inviteUrl))
     }
 
     // -------------------------------------------------------------------------
@@ -437,24 +425,24 @@ class ClubDetailsViewModel(
     // -------------------------------------------------------------------------
 
     fun onBookSearchQueryChange(query: String) {
-        _state.update { it.copy(bookSearchQuery = query) }
+        updateState { it.copy(bookSearchQuery = query) }
     }
 
     /** Searches for books matching [query]; a blank query just clears any prior results. */
     fun onSearchBooks(query: String) {
         if (query.isBlank()) {
-            _state.update { it.copy(bookSearchResults = emptyList(), bookSearchError = null, isSearchingBooks = false) }
+            updateState { it.copy(bookSearchResults = emptyList(), bookSearchError = null, isSearchingBooks = false) }
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(isSearchingBooks = true, bookSearchError = null) }
+            updateState { it.copy(isSearchingBooks = true, bookSearchError = null) }
             searchBooksUseCase(query)
                 .onSuccess { result ->
-                    _state.update { it.copy(isSearchingBooks = false, bookSearchResults = result.books) }
+                    updateState { it.copy(isSearchingBooks = false, bookSearchResults = result.books) }
                 }
                 .onFailure { error ->
                     Bark.e("Book search failed. Please retry.", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isSearchingBooks = false,
                             bookSearchResults = emptyList(),
@@ -472,10 +460,10 @@ class ClubDetailsViewModel(
      */
     fun onSelectBook(book: Book) {
         viewModelScope.launch {
-            _state.update { it.copy(isRegisteringBook = true) }
+            updateState { it.copy(isRegisteringBook = true) }
             registerBookUseCase(book)
                 .onSuccess { registered ->
-                    _state.update {
+                    updateState {
                         it.copy(
                             isRegisteringBook = false,
                             selectedBook = registered,
@@ -486,7 +474,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Book registration failed. Please retry.", error)
-                    _state.update {
+                    updateState {
                         it.copy(isRegisteringBook = false, bookSearchError = error.toDisplayMessage())
                     }
                 }
@@ -495,12 +483,12 @@ class ClubDetailsViewModel(
 
     /** Clears the selected book, returning the Create Session sheet's book field to search mode. */
     fun onClearSelectedBook() {
-        _state.update { it.copy(selectedBook = null, bookSearchQuery = "", bookSearchResults = emptyList()) }
+        updateState { it.copy(selectedBook = null, bookSearchQuery = "", bookSearchResults = emptyList()) }
     }
 
     /** Resets book-search state; call when the Create Session sheet opens and when it closes. */
     fun onResetBookSearch() {
-        _state.update {
+        updateState {
             it.copy(
                 bookSearchQuery = "",
                 bookSearchResults = emptyList(),
@@ -513,7 +501,7 @@ class ClubDetailsViewModel(
     }
 
     fun onCreateSession(book: Book, dueDate: LocalDateTime?) {
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Session created", closingSheet = ClubDetailsSheet.CreateSession) {
             createSessionUseCase(CreateSessionUseCase.Params(clubId, book, dueDate), role)
@@ -521,16 +509,16 @@ class ClubDetailsViewModel(
     }
 
     fun onUpdateSession(book: Book?, dueDate: LocalDateTime?) {
-        val role = _state.value.userRole ?: return
-        val sessionId = _state.value.activeSession?.sessionId ?: return
+        val role = currentState.userRole ?: return
+        val sessionId = currentState.activeSession?.sessionId ?: return
         launchMutation("Session updated", closingSheet = ClubDetailsSheet.EditSession) {
             updateSessionUseCase(UpdateSessionUseCase.Params(sessionId, book, dueDate), role)
         }
     }
 
     fun onDeleteSession() {
-        val role = _state.value.userRole ?: return
-        val sessionId = _state.value.activeSession?.sessionId ?: return
+        val role = currentState.userRole ?: return
+        val sessionId = currentState.activeSession?.sessionId ?: return
         launchMutation("Session deleted") {
             deleteSessionUseCase(DeleteSessionUseCase.Params(sessionId), role)
         }
@@ -549,14 +537,14 @@ class ClubDetailsViewModel(
         percentComplete: Float?,
         markFinished: Boolean
     ) {
-        val session = _state.value.activeSession ?: return
+        val session = currentState.activeSession ?: return
         // The sheet stays open while saving, so ignore a second tap on Save
-        if (_state.value.isOperationInProgress) return
+        if (currentState.isOperationInProgress) return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             saveProgressUseCase(
                 SaveProgressUseCase.Params(
-                    progressId = _state.value.ownProgress?.progressId,
+                    progressId = currentState.ownProgress?.progressId,
                     bookId = session.bookId,
                     sessionId = session.sessionId,
                     pageCount = session.book.pageCount,
@@ -567,7 +555,7 @@ class ClubDetailsViewModel(
                 )
             )
                 .onSuccess { updated ->
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             ownProgress = updated,
@@ -578,7 +566,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -597,10 +585,10 @@ class ClubDetailsViewModel(
      */
     fun onEndSession() {
         onDismissDialog()
-        val role = _state.value.userRole ?: return
-        val sessionId = _state.value.activeSession?.sessionId ?: return
+        val role = currentState.userRole ?: return
+        val sessionId = currentState.activeSession?.sessionId ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             finishSessionUseCase(FinishSessionUseCase.Params(sessionId), role)
                 .onSuccess { credited ->
                     val message = when (credited) {
@@ -608,7 +596,7 @@ class ClubDetailsViewModel(
                         1 -> "Session ended — 1 member credited"
                         else -> "Session ended — $credited members credited"
                     }
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Success(message)
@@ -618,7 +606,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: End session. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -642,16 +630,16 @@ class ClubDetailsViewModel(
      * Instead, the participant list is patched directly, same as [onSaveProgress].
      */
     fun onToggleParticipation(memberId: String, isReading: Boolean) {
-        val session = _state.value.activeSession ?: return
+        val session = currentState.activeSession ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             toggleSessionParticipationUseCase(
                 ToggleSessionParticipationUseCase.Params(session.sessionId, memberId, isReading)
             )
                 .onSuccess {
                     val updatedParticipants = session.participants.filterNot { it.memberId == memberId } +
                         SessionParticipantInfo(memberId, isReading)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             activeSession = it.activeSession?.copy(participants = updatedParticipants),
@@ -663,7 +651,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Toggle participation. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -680,8 +668,8 @@ class ClubDetailsViewModel(
     // -------------------------------------------------------------------------
 
     fun onCreateDiscussion(title: String, location: String, date: LocalDateTime) {
-        val role = _state.value.userRole ?: return
-        val sessionId = _state.value.activeSession?.sessionId ?: return
+        val role = currentState.userRole ?: return
+        val sessionId = currentState.activeSession?.sessionId ?: return
         launchMutation(
             "Discussion created",
             refreshFromCache = true,
@@ -692,8 +680,8 @@ class ClubDetailsViewModel(
     }
 
     fun onUpdateDiscussion(discussionId: String, title: String?, location: String?, date: LocalDateTime?) {
-        val role = _state.value.userRole ?: return
-        _state.value.activeSession ?: return
+        val role = currentState.userRole ?: return
+        currentState.activeSession ?: return
         launchMutation(
             "Discussion updated",
             refreshFromCache = true,
@@ -705,8 +693,8 @@ class ClubDetailsViewModel(
 
     fun onDeleteDiscussion(discussionId: String) {
         onDismissDialog()
-        val role = _state.value.userRole ?: return
-        _state.value.activeSession ?: return
+        val role = currentState.userRole ?: return
+        currentState.activeSession ?: return
         launchMutation("Discussion deleted", refreshFromCache = true) {
             deleteDiscussionUseCase(DeleteDiscussionUseCase.Params(discussionId), role)
         }
@@ -725,11 +713,11 @@ class ClubDetailsViewModel(
      * row and would spam the global progress indicator.
      */
     fun onLoadAttendanceRoster(discussionId: String) {
-        if (_state.value.discussionRosters.containsKey(discussionId)) return
+        if (currentState.discussionRosters.containsKey(discussionId)) return
         viewModelScope.launch {
             getAttendanceRosterUseCase(discussionId)
                 .onSuccess { roster ->
-                    _state.update {
+                    updateState {
                         it.copy(discussionRosters = it.discussionRosters + (discussionId to roster))
                     }
                 }
@@ -751,11 +739,11 @@ class ClubDetailsViewModel(
      * as [onToggleParticipation].
      */
     fun onSetAttendance(discussionId: String, status: AttendanceStatus) {
-        val roster = _state.value.discussionRosters[discussionId] ?: return
+        val roster = currentState.discussionRosters[discussionId] ?: return
         val previousStatus = roster.myStatus
         val isClearing = previousStatus == status
 
-        _state.update {
+        updateState {
             it.copy(
                 discussionRosters = it.discussionRosters + (discussionId to roster.copy(
                     myStatus = if (isClearing) null else status
@@ -773,14 +761,14 @@ class ClubDetailsViewModel(
             result
                 .onSuccess {
                     getAttendanceRosterUseCase(discussionId).onSuccess { refreshedRoster ->
-                        _state.update {
+                        updateState {
                             it.copy(discussionRosters = it.discussionRosters + (discussionId to refreshedRoster))
                         }
                     }
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Set attendance. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             discussionRosters = it.discussionRosters + (discussionId to roster.copy(myStatus = previousStatus)),
                             operationResult = OperationResult.Error(
@@ -804,18 +792,18 @@ class ClubDetailsViewModel(
      * exists yet, so the sheet should open straight into create/edit mode.
      */
     fun onLoadDiscussionNote(discussionId: String) {
-        if (_state.value.discussionNotes.containsKey(discussionId)) return
+        if (currentState.discussionNotes.containsKey(discussionId)) return
         viewModelScope.launch {
             getDiscussionNoteUseCase(discussionId)
                 .onSuccess { note ->
                     val info = DiscussionNoteInfo(noteId = note?.id, content = note?.content ?: "")
-                    _state.update {
+                    updateState {
                         it.copy(discussionNotes = it.discussionNotes + (discussionId to info))
                     }
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Load discussion note. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo(
                                 error = error.toDisplayMessage()
@@ -832,8 +820,8 @@ class ClubDetailsViewModel(
      * entry — mirrors [onSetAttendance]'s reasoning for not using [launchMutation].
      */
     fun onSaveDiscussionNote(discussionId: String, content: String) {
-        val current = _state.value.discussionNotes[discussionId] ?: DiscussionNoteInfo()
-        _state.update {
+        val current = currentState.discussionNotes[discussionId] ?: DiscussionNoteInfo()
+        updateState {
             it.copy(discussionNotes = it.discussionNotes + (discussionId to current.copy(isSaving = true, error = null)))
         }
 
@@ -846,7 +834,7 @@ class ClubDetailsViewModel(
 
             result
                 .onSuccess { note ->
-                    _state.update {
+                    updateState {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo(
                                 noteId = note.id,
@@ -857,7 +845,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Save discussion note. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to current.copy(
                                 isSaving = false,
@@ -872,18 +860,18 @@ class ClubDetailsViewModel(
     /** Deletes the signed-in member's note for a discussion and resets its map entry to empty. */
     fun onDeleteDiscussionNote(discussionId: String) {
         onDismissDialog()
-        val noteId = _state.value.discussionNotes[discussionId]?.noteId ?: return
+        val noteId = currentState.discussionNotes[discussionId]?.noteId ?: return
         viewModelScope.launch {
             deleteDiscussionNoteUseCase(DeleteDiscussionNoteUseCase.Params(noteId))
                 .onSuccess {
-                    _state.update {
+                    updateState {
                         it.copy(discussionNotes = it.discussionNotes + (discussionId to DiscussionNoteInfo()))
                     }
                     closeSheet(ifShowing = ClubDetailsSheet.DiscussionNote(discussionId))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Delete discussion note. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             discussionNotes = it.discussionNotes + (discussionId to it.discussionNotes.getValue(discussionId).copy(
                                 error = error.toDisplayMessage()
@@ -899,7 +887,7 @@ class ClubDetailsViewModel(
     // -------------------------------------------------------------------------
 
     fun onUpdateMemberRole(memberId: String, currentMemberId: String, newRole: Role) {
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Member role updated", closingSheet = ClubDetailsSheet.ChangeRole(memberId)) {
             updateMemberRoleUseCase(UpdateMemberRoleUseCase.Params(memberId, clubId, currentMemberId, newRole), role)
@@ -908,7 +896,7 @@ class ClubDetailsViewModel(
 
     fun onRemoveMember(memberId: String, currentMemberId: String) {
         onDismissDialog()
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
         launchMutation("Member removed") {
             removeMemberUseCase(RemoveMemberUseCase.Params(memberId, clubId, currentMemberId), role)
@@ -923,15 +911,15 @@ class ClubDetailsViewModel(
      */
     fun onLeaveClub() {
         onDismissDialog()
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
-        val memberId = _state.value.currentMemberId ?: return
+        val memberId = currentState.currentMemberId ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             leaveClubUseCase(LeaveClubUseCase.Params(memberId, clubId), role)
                 .onSuccess {
                     currentClubId = null
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
@@ -944,7 +932,7 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Leave club. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -958,9 +946,9 @@ class ClubDetailsViewModel(
 
     fun onTransferOwnership(newOwnerId: String) {
         onDismissDialog()
-        val role = _state.value.userRole ?: return
+        val role = currentState.userRole ?: return
         val clubId = currentClubId ?: return
-        val currentMemberId = _state.value.currentMemberId ?: return
+        val currentMemberId = currentState.currentMemberId ?: return
         launchMutation("Ownership transferred") {
             transferOwnershipUseCase(TransferOwnershipUseCase.Params(currentMemberId, newOwnerId, clubId), role)
         }
@@ -973,23 +961,23 @@ class ClubDetailsViewModel(
     /** Opens [sheet], replacing any sheet already open. Create Session always opens with a fresh book search. */
     fun onOpenSheet(sheet: ClubDetailsSheet) {
         if (sheet == ClubDetailsSheet.CreateSession) onResetBookSearch()
-        _state.update { it.copy(activeSheet = sheet) }
+        updateState { it.copy(activeSheet = sheet) }
     }
 
     /** Closes the open sheet: Cancel, the close button, swipe down, back, or a tap outside. */
     fun onDismissSheet() {
-        if (_state.value.activeSheet == ClubDetailsSheet.CreateSession) onResetBookSearch()
-        _state.update { it.copy(activeSheet = null) }
+        if (currentState.activeSheet == ClubDetailsSheet.CreateSession) onResetBookSearch()
+        updateState { it.copy(activeSheet = null) }
     }
 
     /** Opens [dialog] on top of the screen, or on top of the open sheet. */
     fun onOpenDialog(dialog: ClubDetailsDialog) {
-        _state.update { it.copy(activeDialog = dialog) }
+        updateState { it.copy(activeDialog = dialog) }
     }
 
     /** Closes the open dialog. Confirming a dialog closes it too. */
     fun onDismissDialog() {
-        _state.update { it.copy(activeDialog = null) }
+        updateState { it.copy(activeDialog = null) }
     }
 
     // -------------------------------------------------------------------------
@@ -997,7 +985,7 @@ class ClubDetailsViewModel(
     // -------------------------------------------------------------------------
 
     fun onConsumeOperationResult() {
-        _state.update { it.copy(operationResult = null) }
+        updateState { it.copy(operationResult = null) }
     }
 
     // -------------------------------------------------------------------------
@@ -1022,24 +1010,24 @@ class ClubDetailsViewModel(
         closingSheet: ClubDetailsSheet? = null,
         block: suspend () -> Result<*>
     ) {
-        if (closingSheet != null && _state.value.isOperationInProgress) return
+        if (closingSheet != null && currentState.isOperationInProgress) return
         viewModelScope.launch {
-            _state.update { it.copy(isOperationInProgress = true) }
+            updateState { it.copy(isOperationInProgress = true) }
             val result = block()
             result
                 .onSuccess {
                     // The success message shows right away, but the in-progress indicator stays
                     // on until the follow-up refetch lands; otherwise the screen sits unchanged
                     // (and looks like nothing happened) while the club reloads.
-                    _state.update { it.copy(operationResult = OperationResult.Success(successMessage)) }
+                    updateState { it.copy(operationResult = OperationResult.Success(successMessage)) }
                     closingSheet?.let { closeSheet(ifShowing = it) }
                     refresh(forceRefresh = !refreshFromCache)
                     loadClubDataJob?.join()
-                    _state.update { it.copy(isOperationInProgress = false) }
+                    updateState { it.copy(isOperationInProgress = false) }
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: $successMessage. ${error.message}", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isOperationInProgress = false,
                             operationResult = OperationResult.Error(
@@ -1056,8 +1044,8 @@ class ClubDetailsViewModel(
      * may have dismissed it mid-save and opened another one, which must stay open.
      */
     private fun closeSheet(ifShowing: ClubDetailsSheet) {
-        if (_state.value.activeSheet != ifShowing) return
+        if (currentState.activeSheet != ifShowing) return
         if (ifShowing == ClubDetailsSheet.CreateSession) onResetBookSearch()
-        _state.update { it.copy(activeSheet = null) }
+        updateState { it.copy(activeSheet = null) }
     }
 }

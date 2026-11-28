@@ -27,19 +27,24 @@ paths:
 - UI: the only way a failure becomes text is `Throwable.toDisplayMessage()` (`core:presentation`). Log the raw throwable with Bark separately. Don't call `toAppError().toUserMessage()` directly from a ViewModel.
 
 ## ViewModel state
-- One `StateFlow<{Screen}State>` per screen. User intents are `on<Event>()` functions.
+- Every screen ViewModel extends `BaseViewModel<{Screen}State>` (`core/presentation/.../presentation/viewmodel/`), which owns the screen's one `state: StateFlow<S>`. Subclasses read it with `currentState` and change it with `updateState { it.copy(...) }`, never their own `MutableStateFlow`. User intents are `on<Event>()` functions.
+  - Not every ViewModel has moved yet; `AuthViewModel` (three `StateFlow`s) and `AppCoordinator` (not a screen) still own their flows and their `EffectChannel`.
+  - `S` is bound to `Any` so Kotlin/Native exports it to Swift as a typed generic (checked in the KT-363 spike). Keep the base's generics at class level: generic *functions* lose their types in Swift.
 - **Side effects** are one-shot things a ViewModel wants to happen. There are three categories, named after who handles them. To pick one: could it run with no screen on top? It's a platform effect. Does it need this screen and disappear once it happens? It's a screen effect. Does it stay on screen? It's state.
 
-  | | Platform effect | Screen effect (planned) | State |
+  | | Platform effect | Screen effect | State |
   |---|---|---|---|
   | What | Something only the phone can do | A one-shot event the visible screen reacts to | Anything that stays visible |
-  | Examples | Open a link or the store listing, copy, share | Show a toast or snackbar | Sheets, dialogs, banners, loading |
+  | Examples | Open a link or the store listing, copy, share | Show a snackbar | Sheets, dialogs, banners, loading |
   | Handled by | One Kotlin handler per platform | One shared listener per platform, in the screen scaffold | The screen, from `StateFlow` |
 
-- **Platform effects** are cases of the sealed `PlatformEffect` class in `core/presentation/.../presentation/effect/`. A ViewModel takes a `PlatformEffectHandler`, owns an `EffectChannel<PlatformEffect>` wired to it (`EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }`), and calls `platformEffects.send(...)`. Each platform runs every case in its own Kotlin handler (`AndroidPlatformEffectHandler`, `IosPlatformEffectHandler`), so screens on either platform never open URLs, the clipboard or the share sheet themselves.
+- **Platform effects** are cases of the sealed `PlatformEffect` class in `core/presentation/.../presentation/effect/`. A ViewModel calls the base's `protected send(PlatformEffect)`. `BaseViewModel` gets the `PlatformEffectHandler` from Koin (`by inject()`), so no ViewModel takes it as a constructor parameter or wires a channel; ViewModel tests get a mock handler from the shared test fixture. Each platform runs every case in its own Kotlin handler (`AndroidPlatformEffectHandler`, `IosPlatformEffectHandler`), so screens on either platform never open URLs, the clipboard or the share sheet themselves.
   - Add a new kind as a case on `PlatformEffect`, never per screen, and handle it in both platform handlers.
   - Name a case after what the phone does, never why the screen wants it: `ShareText(text)`, not `ShareClubInvite`; `OpenUrl(url)`, not `OpenPrivacyPolicy`. The screen-specific part (which text, which link, when) stays in the ViewModel. The list should grow with the phone's capabilities, not with the number of screens.
-- **Screen effects** (`ScreenEffect`) aren't built yet; a planned base ViewModel adds them. Their shape (one shared type, per-screen types, or a mix) is still open and gets decided with that work. Until then, success notices and transient errors are state flags cleared by an `onDismiss<X>()` intent (e.g. `onDismissSaveSuccess`).
+- **Screen effects** are cases of one shared sealed `ScreenEffect` class next to `PlatformEffect`, never per-screen types. A ViewModel calls the base's `protected send(ScreenEffect)`. One shared listener per platform shows them: each screen attaches it once, with no per-screen handling code. Same naming rule as platform effects: name a case after what the screen does (`ShowSnackbar`), not why.
+  - Snackbars follow `design-system/docs/states.md` § Snackbar: the tone (success or danger) is the only style choice; duration and dismissal come from the design system, not from parameters. There are no toasts.
+  - A snackbar's message is either text from Kotlin (`toDisplayMessage()` errors) or a shared key that each listener maps to its own string resource (success notices).
+  - Screens that haven't migrated yet still use state flags cleared by an `onDismiss<X>()` intent. Don't add new ones.
 - **Sheets and dialogs are ViewModel state**, never `remember` / `@State` flags, so the same tap opens the same sheet on both platforms and it survives rotation.
   - Each screen's state has `activeSheet: {Screen}Sheet?` and `activeDialog: {Screen}Dialog?`. Both are sealed classes with one case per sheet or dialog; a case carries the ID it's about (`EditDiscussion(discussionId)`). See `ClubDetailsState`.
   - Intents are always `onOpenSheet(sheet)`, `onDismissSheet()`, `onOpenDialog(dialog)` and `onDismissDialog()`, with these exact names (KT-363 moves them into the base ViewModel). Every way of closing calls the dismiss intent: Cancel, the close button, swipe down, back, a tap outside.
@@ -51,7 +56,7 @@ paths:
 - When a refresh fails, keep the content already on screen and report the failure via a snackbar, not an error page (see `ClubDetailsViewModel`, `MeViewModel`).
 
 ## iOS bridge
-- Each shared ViewModel gets a `{Name}ViewModelHelper` in `feature/{name}/src/iosMain/.../presentation/`. It's a `KoinComponent` exposing `observeState(callback): Closeable` plus 1:1 action passthroughs.
+- Each shared ViewModel gets a `{Name}ViewModelHelper` in `feature/{name}/src/iosMain/.../presentation/`. It extends `BaseViewModelHelper<{Screen}State>` (`core/presentation/src/iosMain/`), which provides `observeState(callback): Closeable`, and adds only 1:1 action passthroughs. Swift sees the concrete state type through the generic base.
 - SwiftUI consumes it through `iosApp/iosApp/Helpers/{Name}ViewModelWrapper.swift`, which mirrors state into `@Published` properties and closes its `Closeable`s in `deinit`.
 - A new ViewModel needs a Helper, a Wrapper, and a `{Name}ViewModelHelperTest` in `iosTest`.
 
