@@ -22,8 +22,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbar
-import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbarVisuals
-import com.ivangarzab.kluvs.designsystem.components.SnackbarVariant
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -48,7 +46,6 @@ import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsDialog
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsSheet
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsState
 import com.ivangarzab.kluvs.clubs.presentation.ClubDetailsViewModel
-import com.ivangarzab.kluvs.clubs.presentation.OperationResult
 import com.ivangarzab.kluvs.model.AttendanceStatus
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.JoinPolicy
@@ -66,6 +63,7 @@ import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
 import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.ui.components.RoleEyebrow
+import com.ivangarzab.kluvs.ui.components.ScreenEffectHost
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -107,17 +105,7 @@ fun ClubsScreen(
         viewModel.loadUserClubs(userId)
     }
 
-    // Show snackbar whenever operationResult is set, then consume it
-    LaunchedEffect(state.operationResult) {
-        state.operationResult?.let { result ->
-            val (message, variant) = when (result) {
-                is OperationResult.Success -> result.message to SnackbarVariant.SUCCESS
-                is OperationResult.Error -> result.message to SnackbarVariant.DANGER
-            }
-            snackbarHostState.showSnackbar(KluvsSnackbarVisuals(message = message, variant = variant))
-            viewModel.onConsumeOperationResult()
-        }
-    }
+    ScreenEffectHost(viewModel.screenEffects, snackbarHostState)
 
     // Navigate into a just-created club, then consume the signal
     LaunchedEffect(state.createdClubId) {

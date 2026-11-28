@@ -14,9 +14,10 @@ class BookDetailsViewModelWrapper: ObservableObject {
     @Published var shelfSource: Shared.ShelfSource? = nil
     @Published var isLiked: Bool = false
     @Published var isMutationInProgress: Bool = false
-    @Published var operationError: String? = nil
 
     private let helper: BookDetailsViewModelHelper
+    /// What `.screenEffects(_:)` listens to: this screen's snackbars.
+    var screenEffectSource: ScreenEffectSource { helper }
     private var cancellables: [Shared.Closeable] = []
 
     var isRegistered: Bool { helper.isRegistered }
@@ -37,7 +38,6 @@ class BookDetailsViewModelWrapper: ObservableObject {
                 self.shelfSource = state.shelfSource
                 self.isLiked = state.isLiked
                 self.isMutationInProgress = state.isMutationInProgress
-                self.operationError = state.operationError
             }
         }
         cancellables.append(stateCancellable)
@@ -49,7 +49,6 @@ class BookDetailsViewModelWrapper: ObservableObject {
     func onAssignShelf(_ shelf: Shared.ShelfStatus) { helper.onAssignShelf(shelf: shelf) }
     func onRemoveFromShelf() { helper.onRemoveFromShelf() }
     func onToggleLike() { helper.onToggleLike() }
-    func onConsumeOperationError() { helper.onConsumeOperationError() }
 
     deinit {
         cancellables.forEach { $0.close() }

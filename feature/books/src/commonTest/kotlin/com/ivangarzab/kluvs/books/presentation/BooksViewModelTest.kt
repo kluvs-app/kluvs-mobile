@@ -13,6 +13,7 @@ import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.BookSearchResult
 import com.ivangarzab.kluvs.model.ShelfEntry
 import com.ivangarzab.kluvs.model.ShelfStatus
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -20,6 +21,9 @@ import dev.mokkery.mock
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -237,14 +241,15 @@ class BooksViewModelTest {
     }
 
     @Test
-    fun `onAssignShelf sets operationError on failure`() = runTest {
+    fun `onAssignShelf shows an error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
         everySuspend { shelfRepository.assignShelf(any(), any()) } returns Result.failure(AppError.NoConnection)
 
         viewModel.onAssignShelf("42", ShelfStatus.READ)
 
         val state = viewModel.state.value
         assertTrue(!state.isMutationInProgress)
-        assertEquals("Check your connection and try again.", state.operationError)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Check your connection and try again."), effects.single())
     }
 
     @Test
@@ -260,13 +265,13 @@ class BooksViewModelTest {
     }
 
     @Test
-    fun `onRemoveFromShelf sets operationError on failure`() = runTest {
+    fun `onRemoveFromShelf shows an error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
         everySuspend { shelfRepository.removeFromShelf(any()) } returns Result.failure(AppError.NoConnection)
 
         viewModel.onRemoveFromShelf("42")
 
-        val state = viewModel.state.value
-        assertEquals("Check your connection and try again.", state.operationError)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Check your connection and try again."), effects.single())
     }
 
     // ---- like ----
@@ -298,15 +303,10 @@ class BooksViewModelTest {
         assertTrue(viewModel.state.value.likedBookIds.isEmpty())
     }
 
-    // ---- UI event consumption ----
-
-    @Test
-    fun `onConsumeOperationError clears operationError`() = runTest {
-        everySuspend { shelfRepository.assignShelf(any(), any()) } returns Result.failure(AppError.NoConnection)
-        viewModel.onAssignShelf("42", ShelfStatus.READ)
-
-        viewModel.onConsumeOperationError()
-
-        assertNull(viewModel.state.value.operationError)
+    /** Collects every screen effect the ViewModel sends from here on. */
+    private fun TestScope.collectScreenEffects(): List<ScreenEffect> {
+        val effects = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
+        return effects
     }
 }

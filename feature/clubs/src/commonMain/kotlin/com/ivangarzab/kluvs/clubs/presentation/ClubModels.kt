@@ -132,15 +132,6 @@ data class MemberListItemInfo(
 )
 
 /**
- * Represents the outcome of a mutation operation (create/update/delete).
- * The ViewModel maps UseCase Result<T> into this for the UI layer.
- */
-sealed interface OperationResult {
-    data class Success(val message: String) : OperationResult
-    data class Error(val message: String) : OperationResult
-}
-
-/**
  * UI model for the signed-in member's note on a discussion, keyed by discussion ID
  * in [ClubDetailsState.discussionNotes].
  *

@@ -9,9 +9,9 @@ import kotlinx.coroutines.launch
  * Delivers each effect of type [E] exactly once, in the order sent. Effects sent before
  * [handleWith] starts are buffered, not dropped.
  *
- * A ViewModel owns one per effect type and sends effects into it. For [PlatformEffect]s it wires
- * the channel to the platform handler:
- * `EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }`.
+ * `BaseViewModel` uses one for [PlatformEffect]s, wired to the platform handler. Platform effects
+ * need no screen, so buffering them until the handler runs is always right. Screen effects don't
+ * use this: they're dropped when no screen is listening (see `BaseViewModel.screenEffects`).
  */
 class EffectChannel<E : Any> {
 

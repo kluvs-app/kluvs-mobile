@@ -36,6 +36,8 @@ import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
 import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
 import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
+import com.ivangarzab.kluvs.presentation.effect.SnackbarTone
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
 import com.ivangarzab.kluvs.presentation.util.FormatDateTimeUseCase
@@ -48,6 +50,9 @@ import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import dev.mokkery.answering.calls
@@ -435,6 +440,7 @@ class MeViewModelTest {
 
     @Test
     fun `a failed progress save leaves the sheet open`() = runTest {
+        val effects = collectScreenEffects()
         val userId = "user-123"
         val member = Member(id = "member-1", userId = userId, name = "Alice", booksRead = 5, clubs = listOf(Club(id = "club-1", name = "Club")))
         val book = Book("book-1", "Test Book", "Author", null, 2024, null, pageCount = 200)
@@ -449,7 +455,7 @@ class MeViewModelTest {
         viewModel.onSaveProgress("s1", ProgressType.PAGE, 100, null, false)
 
         assertEquals(MeSheet.UpdateProgress("s1"), viewModel.state.value.activeSheet)
-        assertNotNull(viewModel.state.value.snackbarError)
+        assertEquals(SnackbarTone.DANGER, effects.singleSnackbar().tone)
     }
 
     @Test
@@ -508,18 +514,16 @@ class MeViewModelTest {
     }
 
     @Test
-    fun `clearSnackbarError clears the error state`() = runTest {
-        // Given: a reading log failure sets snackbarError
-        val exception = AppError.Timeout
-        everySuspend { sessionRepository.getReadingLog() } returns Result.failure(exception)
-        viewModel.onOpenSheet(MeSheet.ReadingLog)
-        assertEquals("That took too long. Please try again.", viewModel.state.value.snackbarError)
+    fun `a failed reading log load shows an error snackbar`() = runTest {
+        // Given
+        val effects = collectScreenEffects()
+        everySuspend { sessionRepository.getReadingLog() } returns Result.failure(AppError.Timeout)
 
         // When
-        viewModel.clearSnackbarError()
+        viewModel.onOpenSheet(MeSheet.ReadingLog)
 
         // Then
-        assertNull(viewModel.state.value.snackbarError)
+        assertEquals(ScreenEffect.ShowSnackbar.error("That took too long. Please try again."), effects.single())
     }
 
     // -------------------------------------------------------------------------
@@ -549,6 +553,7 @@ class MeViewModelTest {
 
     @Test
     fun `a failed refresh keeps the profile on screen and reports via snackbar`() = runTest {
+        val effects = collectScreenEffects()
         val member = Member(id = "member-1", userId = "u1", name = "Alice", clubs = emptyList())
         everySuspend { memberRepository.getMemberByUserId("u1", any()) } returns Result.success(member)
         viewModel.loadUserData("u1")
@@ -560,7 +565,16 @@ class MeViewModelTest {
         val state = viewModel.state.value
         assertEquals("Alice", state.profile?.name)
         assertNull(state.error)
-        assertNotNull(state.snackbarError)
+        assertEquals(SnackbarTone.DANGER, effects.singleSnackbar().tone)
         assertFalse(state.isLoading)
     }
+
+    /** Collects every screen effect the ViewModel sends from here on. */
+    private fun TestScope.collectScreenEffects(): List<ScreenEffect> {
+        val effects = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
+        return effects
+    }
+
+    private fun List<ScreenEffect>.singleSnackbar() = single() as ScreenEffect.ShowSnackbar
 }

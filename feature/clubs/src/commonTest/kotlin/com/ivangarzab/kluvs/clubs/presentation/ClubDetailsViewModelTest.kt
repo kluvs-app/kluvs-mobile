@@ -18,6 +18,8 @@ import com.ivangarzab.kluvs.clubs.domain.GetCurrentMemberIdUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetDiscussionNoteUseCase
 import com.ivangarzab.kluvs.clubs.domain.GetMemberClubsUseCase
 import com.ivangarzab.kluvs.clubs.domain.LeaveClubUseCase
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
+import com.ivangarzab.kluvs.presentation.effect.SnackbarTone
 import com.ivangarzab.kluvs.presentation.progress.GetSessionProgressUseCase
 import com.ivangarzab.kluvs.data.domain.RegisterBookUseCase
 import com.ivangarzab.kluvs.clubs.domain.RemoveMemberUseCase
@@ -74,6 +76,8 @@ import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import dev.mokkery.answering.calls
@@ -83,6 +87,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -147,6 +154,8 @@ class ClubDetailsViewModelTest {
     @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        // BaseViewModel gets its PlatformEffectHandler from Koin
+        startKoin { modules(module { single<PlatformEffectHandler> { platformEffectHandler } }) }
         clubRepository = mock<ClubRepository>()
         memberRepository = mock<MemberRepository>()
         sessionRepository = mock<SessionRepository>()
@@ -206,8 +215,7 @@ class ClubDetailsViewModelTest {
             toggleSessionParticipationUseCase,
             getAttendanceRosterUseCase, setAttendanceUseCase, clearAttendanceUseCase,
             getDiscussionNoteUseCase, createDiscussionNoteUseCase,
-            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase,
-            platformEffectHandler
+            updateDiscussionNoteUseCase, deleteDiscussionNoteUseCase
         )
 
         every { avatarRepository.getAvatarUrl(null) } returns null
@@ -225,6 +233,7 @@ class ClubDetailsViewModelTest {
 
     @AfterTest
     fun tearDown() {
+        stopKoin()
         Dispatchers.resetMain()
     }
 
@@ -582,6 +591,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onDeleteClub sets deletedClubId and removes the club from availableClubs on success`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Doomed Club", serverId = null, discordChannel = null,
@@ -599,7 +609,7 @@ class ClubDetailsViewModelTest {
         val state = viewModel.state.value
         assertEquals(clubId, state.deletedClubId)
         assertTrue(state.availableClubs.none { it.id == clubId })
-        assertIs<OperationResult.Success>(state.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
     }
 
     @Test
@@ -624,6 +634,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onLeaveClub sets leftClubId and removes the club from availableClubs on success`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Some Club", serverId = null, discordChannel = null,
@@ -647,11 +658,12 @@ class ClubDetailsViewModelTest {
         val state = viewModel.state.value
         assertEquals(clubId, state.leftClubId)
         assertTrue(state.availableClubs.none { it.id == clubId })
-        assertIs<OperationResult.Success>(state.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
     }
 
     @Test
-    fun `onLeaveClub sets operationResult Error on failure`() = runTest {
+    fun `onLeaveClub shows a error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Some Club", serverId = null, discordChannel = null,
@@ -669,7 +681,7 @@ class ClubDetailsViewModelTest {
 
         val state = viewModel.state.value
         assertEquals(null, state.leftClubId)
-        assertIs<OperationResult.Error>(state.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
@@ -697,7 +709,8 @@ class ClubDetailsViewModelTest {
     }
 
     @Test
-    fun `onTransferOwnership sets operationResult Success on success`() = runTest {
+    fun `onTransferOwnership shows a success snackbar on success`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Some Club", serverId = null, discordChannel = null,
@@ -720,11 +733,12 @@ class ClubDetailsViewModelTest {
 
         viewModel.onTransferOwnership("m2")
 
-        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
     }
 
     @Test
-    fun `onTransferOwnership sets operationResult Error on failure`() = runTest {
+    fun `onTransferOwnership shows a error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Some Club", serverId = null, discordChannel = null,
@@ -741,11 +755,12 @@ class ClubDetailsViewModelTest {
 
         viewModel.onTransferOwnership("m2")
 
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
     fun `failed mutation with an unexpected exception shows generic copy not raw text`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Some Club", serverId = null, discordChannel = null,
@@ -762,13 +777,12 @@ class ClubDetailsViewModelTest {
 
         viewModel.onTransferOwnership("m2")
 
-        val result = viewModel.state.value.operationResult
-        assertIs<OperationResult.Error>(result)
-        assertEquals("Something went wrong. Please try again.", result.message)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Something went wrong. Please try again."), effects.last())
     }
 
     @Test
     fun `failed mutation with a user facing exception keeps its message`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Some Club", serverId = null, discordChannel = null,
@@ -785,13 +799,12 @@ class ClubDetailsViewModelTest {
 
         viewModel.onTransferOwnership("m2")
 
-        val result = viewModel.state.value.operationResult
-        assertIs<OperationResult.Error>(result)
-        assertEquals("Cannot remove yourself from the club", result.message)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Cannot remove yourself from the club"), effects.last())
     }
 
     @Test
-    fun `onUpdateClubName sets operationResult Success on success`() = runTest {
+    fun `onUpdateClubName shows a success snackbar on success`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val updatedClub = Club(
             id = clubId, name = "New Name", serverId = null, discordChannel = null,
@@ -813,11 +826,12 @@ class ClubDetailsViewModelTest {
 
         viewModel.onUpdateClubName("New Name")
 
-        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
     }
 
     @Test
-    fun `onUpdateClubName sets operationResult Error on failure`() = runTest {
+    fun `onUpdateClubName shows a error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Old Name", serverId = null, discordChannel = null,
@@ -834,31 +848,7 @@ class ClubDetailsViewModelTest {
 
         viewModel.onUpdateClubName("New Name")
 
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
-    }
-
-    @Test
-    fun `onConsumeOperationResult clears operationResult`() = runTest {
-        val clubId = "club-1"
-        val club = Club(
-            id = clubId, name = "Old Name", serverId = null, discordChannel = null,
-            members = emptyList(), activeSession = null, pastSessions = emptyList(),
-            shameList = emptyList(), role = Role.OWNER
-        )
-        val updatedClub = club.copy(name = "New Name")
-        val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
-        everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(member)
-        everySuspend { clubRepository.getClub(clubId) } returns Result.success(updatedClub)
-        everySuspend { clubRepository.getClub(clubId, forceRefresh = true) } returns Result.success(updatedClub)
-        everySuspend { clubRepository.updateClub(clubId = clubId, name = "New Name") } returns Result.success(updatedClub)
-        viewModel.loadUserClubs("u1")
-
-        viewModel.onUpdateClubName("New Name")
-        assertNotNull(viewModel.state.value.operationResult)
-
-        viewModel.onConsumeOperationResult()
-
-        assertNull(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
@@ -960,6 +950,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onDeleteSession does nothing when no active session`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Test Club", serverId = null, discordChannel = null,
@@ -974,19 +965,21 @@ class ClubDetailsViewModelTest {
         // No active session — deleteSession should be a no-op
         viewModel.onDeleteSession()
 
-        assertNull(viewModel.state.value.operationResult)
+        assertTrue(effects.isEmpty())
     }
 
     @Test
     fun `onUpdateClubName does nothing when userRole is null`() = runTest {
+        val effects = collectScreenEffects()
         // No loadUserClubs — userRole is null
         viewModel.onUpdateClubName("New Name")
 
-        assertNull(viewModel.state.value.operationResult)
+        assertTrue(effects.isEmpty())
     }
 
     @Test
-    fun `onUpdateJoinPolicy sets operationResult Success on success`() = runTest {
+    fun `onUpdateJoinPolicy shows a success snackbar on success`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Club", serverId = null, discordChannel = null,
@@ -1005,13 +998,14 @@ class ClubDetailsViewModelTest {
 
         viewModel.onUpdateJoinPolicy(JoinPolicy.INVITE_LINK)
 
-        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
         assertEquals(JoinPolicy.INVITE_LINK, viewModel.state.value.currentClubDetails?.joinPolicy)
         assertEquals("tok-1", viewModel.state.value.currentClubDetails?.inviteToken)
     }
 
     @Test
-    fun `onUpdateJoinPolicy sets operationResult Error on failure`() = runTest {
+    fun `onUpdateJoinPolicy shows a error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Club", serverId = null, discordChannel = null,
@@ -1029,18 +1023,20 @@ class ClubDetailsViewModelTest {
 
         viewModel.onUpdateJoinPolicy(JoinPolicy.PRIVATE)
 
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
     fun `onUpdateJoinPolicy does nothing when userRole is null`() = runTest {
+        val effects = collectScreenEffects()
         viewModel.onUpdateJoinPolicy(JoinPolicy.INVITE_LINK)
 
-        assertNull(viewModel.state.value.operationResult)
+        assertTrue(effects.isEmpty())
     }
 
     @Test
-    fun `onRotateInviteLink sets operationResult Success on success`() = runTest {
+    fun `onRotateInviteLink shows a success snackbar on success`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Club", serverId = null, discordChannel = null,
@@ -1062,12 +1058,13 @@ class ClubDetailsViewModelTest {
 
         viewModel.onRotateInviteLink()
 
-        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
         assertEquals("tok-new", viewModel.state.value.currentClubDetails?.inviteToken)
     }
 
     @Test
     fun `onRotateInviteLink sets a distinct error when reactivation fails after deactivation succeeds`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = Club(
             id = clubId, name = "Club", serverId = null, discordChannel = null,
@@ -1087,16 +1084,15 @@ class ClubDetailsViewModelTest {
 
         viewModel.onRotateInviteLink()
 
-        val result = viewModel.state.value.operationResult
-        assertIs<OperationResult.Error>(result)
-        assertEquals("Invite link deactivated but rotation failed — try again", result.message)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Invite link deactivated but rotation failed — try again"), effects.last())
     }
 
     @Test
     fun `onRotateInviteLink does nothing when userRole is null`() = runTest {
+        val effects = collectScreenEffects()
         viewModel.onRotateInviteLink()
 
-        assertNull(viewModel.state.value.operationResult)
+        assertTrue(effects.isEmpty())
     }
 
     @Test
@@ -1193,6 +1189,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onSaveProgress updates own progress in state immediately`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithActiveSession()
         everySuspend {
             progressRepository.createProgress(any(), any(), any(), any(), any())
@@ -1202,7 +1199,7 @@ class ClubDetailsViewModelTest {
 
         val state = viewModel.state.value
         assertEquals("progress-1", state.ownProgress?.progressId)
-        assertIs<OperationResult.Success>(state.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
         assertFalse(state.isOperationInProgress)
     }
 
@@ -1222,6 +1219,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onSaveProgress failure surfaces error result`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithActiveSession()
         everySuspend {
             progressRepository.createProgress(any(), any(), any(), any(), any())
@@ -1229,51 +1227,51 @@ class ClubDetailsViewModelTest {
 
         viewModel.onSaveProgress(ProgressType.PAGE, currentPage = 50, percentComplete = null, markFinished = false)
 
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
     fun `onEndSession surfaces credited count and refreshes`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithActiveSession(role = Role.OWNER)
         everySuspend { sessionRepository.finishSession("session-1") } returns Result.success(2)
 
         viewModel.onEndSession()
 
-        val result = viewModel.state.value.operationResult
-        assertIs<OperationResult.Success>(result)
-        assertEquals("Session ended — 2 members credited", result.message)
+        assertEquals(ScreenEffect.ShowSnackbar.success("Session ended — 2 members credited"), effects.last())
     }
 
     @Test
     fun `onEndSession as ADMIN succeeds`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithActiveSession(role = Role.ADMIN)
         everySuspend { sessionRepository.finishSession("session-1") } returns Result.success(1)
 
         viewModel.onEndSession()
 
-        val result = viewModel.state.value.operationResult
-        assertIs<OperationResult.Success>(result)
-        assertEquals("Session ended — 1 member credited", result.message)
+        assertEquals(ScreenEffect.ShowSnackbar.success("Session ended — 1 member credited"), effects.last())
     }
 
     @Test
     fun `onEndSession as MEMBER is rejected`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithActiveSession(role = Role.MEMBER)
 
         viewModel.onEndSession()
 
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
     fun `onEndSession failure surfaces error result`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithActiveSession(role = Role.OWNER)
         everySuspend { sessionRepository.finishSession("session-1") } returns
             Result.failure(RuntimeException("Session already finished"))
 
         viewModel.onEndSession()
 
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     // -------------------------------------------------------------------------
@@ -1365,6 +1363,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onSetAttendance rolls back myStatus on failure`() = runTest {
+        val effects = collectScreenEffects()
         loadClubWithDiscussion()
         everySuspend { discussionAttendanceRepository.getRoster("d1") } returns Result.success(roster(null))
         viewModel.onLoadAttendanceRoster("d1")
@@ -1374,7 +1373,7 @@ class ClubDetailsViewModelTest {
         viewModel.onSetAttendance("d1", AttendanceStatus.NO)
 
         assertNull(viewModel.state.value.discussionRosters["d1"]?.myStatus)
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     // -------------------------------------------------------------------------
@@ -1612,6 +1611,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `a failed forced refresh keeps the club on screen and reports via snackbar`() = runTest {
+        val effects = collectScreenEffects()
         everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns Result.success(twoClubsMember())
         viewModel.loadUserClubs("u1")
         viewModel.selectClub("club-b")
@@ -1624,7 +1624,7 @@ class ClubDetailsViewModelTest {
         assertEquals("Club B", state.currentClubDetails?.clubName)
         assertEquals(null, state.error)
         assertEquals(false, state.isLoading)
-        assertIs<OperationResult.Error>(state.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
@@ -1666,6 +1666,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `the in-progress indicator stays on until the post-mutation refetch finishes`() = runTest {
+        val effects = collectScreenEffects()
         val old = ownedClub("club-1", "Old Name")
         val renamed = ownedClub("club-1", "New Name")
         everySuspend { memberRepository.getMemberByUserId("u1", forceRefresh = true) } returns
@@ -1681,7 +1682,7 @@ class ClubDetailsViewModelTest {
         viewModel.onUpdateClubName("New Name")
 
         // The success message is already visible, but the refetch is still running
-        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
         assertEquals(true, viewModel.state.value.isOperationInProgress)
 
         advanceUntilIdle()
@@ -1709,6 +1710,7 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `onCreateDiscussion reloads the club from cache instead of forcing a refetch`() = runTest {
+        val effects = collectScreenEffects()
         val clubId = "club-1"
         val club = clubWithActiveSession(clubId)
         val member = Member(id = "m1", userId = "u1", name = "Alice", booksRead = 0, clubs = listOf(club))
@@ -1721,7 +1723,7 @@ class ClubDetailsViewModelTest {
 
         viewModel.onCreateDiscussion("Ch. 1", "Discord", LocalDateTime(2026, 12, 1, 19, 0))
 
-        assertIs<OperationResult.Success>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.SUCCESS, effects.lastSnackbar().tone)
         assertEquals(false, viewModel.state.value.isOperationInProgress)
         verifySuspend(VerifyMode.not) { clubRepository.getClub(clubId, forceRefresh = true) }
     }
@@ -1822,13 +1824,14 @@ class ClubDetailsViewModelTest {
 
     @Test
     fun `a failed save leaves the sheet open`() = runTest {
+        val effects = collectScreenEffects()
         stubRename(Result.failure(RuntimeException("Network error")))
         viewModel.onOpenSheet(ClubDetailsSheet.EditClub)
 
         viewModel.onUpdateClubName("New Name")
 
         assertEquals(ClubDetailsSheet.EditClub, viewModel.state.value.activeSheet)
-        assertIs<OperationResult.Error>(viewModel.state.value.operationResult)
+        assertEquals(SnackbarTone.DANGER, effects.lastSnackbar().tone)
     }
 
     @Test
@@ -1924,4 +1927,13 @@ class ClubDetailsViewModelTest {
     private companion object {
         const val INVITE_URL = "https://app.kluvs.com/join/abc123"
     }
+
+    /** Collects every screen effect the ViewModel sends from here on. */
+    private fun TestScope.collectScreenEffects(): List<ScreenEffect> {
+        val effects = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
+        return effects
+    }
+
+    private fun List<ScreenEffect>.lastSnackbar() = last() as ScreenEffect.ShowSnackbar
 }

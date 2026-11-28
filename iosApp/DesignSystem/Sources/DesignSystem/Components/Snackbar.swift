@@ -83,8 +83,8 @@ public struct Snackbar: View {
 /// Shows `data` as a bottom-anchored snackbar, then clears the binding after `duration` — the
 /// standalone-View equivalent of Android's `SnackbarHostState` for screens that aren't already
 /// wrapped in a Scaffold-like container. A message that arrives while one is already showing
-/// restarts the timer rather than queuing (matches design-system/docs/states.md § Snackbar),
-/// via `.id(data)` forcing the timed dismissal to re-run for the new content.
+/// restarts the timer rather than queuing (matches design-system/docs/states.md § Snackbar):
+/// `.task(id: data)` cancels the previous message's timer, so it can't cut the new one short.
 private struct SnackbarModifier: ViewModifier {
     @Binding var data: SnackbarData?
     var duration: TimeInterval = 4.0
@@ -97,10 +97,10 @@ private struct SnackbarModifier: ViewModifier {
                     .padding(.bottom, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .id(data)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                            withAnimation { self.data = nil }
-                        }
+                    .task(id: data) {
+                        try? await Task.sleep(for: .seconds(duration))
+                        guard !Task.isCancelled else { return }
+                        withAnimation { self.data = nil }
                     }
             }
         }

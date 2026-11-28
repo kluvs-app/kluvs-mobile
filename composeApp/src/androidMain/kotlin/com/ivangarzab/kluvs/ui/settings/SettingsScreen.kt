@@ -17,8 +17,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbar
-import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbarVisuals
-import com.ivangarzab.kluvs.designsystem.components.SnackbarVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,6 +37,7 @@ import com.ivangarzab.kluvs.settings.presentation.SettingsViewModel
 import com.ivangarzab.kluvs.designsystem.components.appbars.TopAppBar
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
+import com.ivangarzab.kluvs.ui.components.ScreenEffectHost
 import com.ivangarzab.kluvs.ui.utils.readAndCompressAvatar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -70,40 +69,7 @@ fun SettingsScreen(
         viewModel.loadProfile(userId)
     }
 
-    LaunchedEffect(state.saveSuccess) {
-        if (state.saveSuccess) {
-            snackbarHostState.showSnackbar(context.getString(R.string.save_success))
-            viewModel.onDismissSaveSuccess()
-        }
-    }
-
-    LaunchedEffect(state.avatarError) {
-        state.avatarError?.let { error ->
-            snackbarHostState.showSnackbar(
-                KluvsSnackbarVisuals(message = error, variant = SnackbarVariant.DANGER)
-            )
-            viewModel.clearAvatarError()
-        }
-    }
-
-    LaunchedEffect(state.deleteAccountError) {
-        state.deleteAccountError?.let { error ->
-            snackbarHostState.showSnackbar(
-                KluvsSnackbarVisuals(message = error, variant = SnackbarVariant.DANGER)
-            )
-            viewModel.clearDeleteAccountError()
-        }
-    }
-
-    LaunchedEffect(state.changePasswordSuccess) {
-        if (state.changePasswordSuccess) {
-            // The ViewModel already closed the sheet. changePasswordSuccess is this effect's key,
-            // so it must stay untouched until showSnackbar returns, or the recomposition it
-            // triggers would cancel the in-flight snackbar before it's shown.
-            snackbarHostState.showSnackbar(context.getString(R.string.password_updated))
-            viewModel.onDismissChangePasswordSuccess()
-        }
-    }
+    ScreenEffectHost(viewModel.screenEffects, snackbarHostState)
 
     SettingsScreenContent(
         state = state,

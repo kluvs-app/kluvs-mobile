@@ -1,10 +1,6 @@
 package com.ivangarzab.kluvs.join.presentation
 
-import com.ivangarzab.kluvs.presentation.Closeable
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import org.koin.core.component.KoinComponent
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
 import org.koin.core.component.inject
 
 /**
@@ -12,20 +8,9 @@ import org.koin.core.component.inject
  * use and access on the iOS side.
  */
 @Suppress("unused")
-class JoinViewModelHelper : KoinComponent {
+class JoinViewModelHelper : BaseViewModelHelper<JoinState>() {
 
-    private val viewModel: JoinViewModel by inject()
-    private val coroutineScope: CoroutineScope by inject()
-
-    /**
-     * iOS-friendly observation method.
-     *
-     * Returns a [Closeable] that can be used to cancel the observation.
-     */
-    fun observeState(callback: (JoinState) -> Unit): Closeable {
-        val job = viewModel.state.onEach { callback(it) }.launchIn(coroutineScope)
-        return Closeable { job.cancel() }
-    }
+    override val viewModel: JoinViewModel by inject()
 
     fun onTokenChanged(token: String) = viewModel.onTokenChanged(token)
     fun previewInvite() = viewModel.previewInvite()

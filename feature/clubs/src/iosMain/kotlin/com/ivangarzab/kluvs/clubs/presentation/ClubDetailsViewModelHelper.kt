@@ -6,14 +6,10 @@ import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
-import com.ivangarzab.kluvs.presentation.Closeable
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
@@ -25,20 +21,9 @@ import org.koin.core.component.inject
  * where kotlinx.datetime types do not bridge cleanly.
  */
 @Suppress("unused")
-class ClubDetailsViewModelHelper : KoinComponent {
+class ClubDetailsViewModelHelper : BaseViewModelHelper<ClubDetailsState>() {
 
-    private val viewModel: ClubDetailsViewModel by inject()
-    private val coroutineScope: CoroutineScope by inject()
-
-    /**
-     * iOS-friendly observation method.
-     *
-     * Returns a [com.ivangarzab.kluvs.presentation.viewmodels.Closeable] that can be used to cancel the observation.
-     */
-    fun observeState(callback: (ClubDetailsState) -> Unit): Closeable {
-        val job = viewModel.state.onEach { callback(it) }.launchIn(coroutineScope)
-        return Closeable { job.cancel() }
-    }
+    override val viewModel: ClubDetailsViewModel by inject()
 
     fun loadUserClubs(userId: String, forceRefresh: Boolean = false) = viewModel.loadUserClubs(userId, forceRefresh)
     fun loadClubData(clubId: String) = viewModel.loadClubData(clubId)
@@ -108,25 +93,12 @@ class ClubDetailsViewModelHelper : KoinComponent {
     fun onConsumeLeftClubId() = viewModel.onConsumeLeftClubId()
     fun onTransferOwnership(newOwnerId: String) = viewModel.onTransferOwnership(newOwnerId)
 
-    // UI event consumption
-    fun onConsumeOperationResult() = viewModel.onConsumeOperationResult()
-
     // ── Sheets and dialogs ────────────────────────────────────────────────────
 
     fun onOpenSheet(sheet: ClubDetailsSheet) = viewModel.onOpenSheet(sheet)
     fun onDismissSheet() = viewModel.onDismissSheet()
     fun onOpenDialog(dialog: ClubDetailsDialog) = viewModel.onOpenDialog(dialog)
     fun onDismissDialog() = viewModel.onDismissDialog()
-
-    /** Safely unwraps a sealed [OperationResult] to a plain message string for iOS. */
-    fun operationResultMessage(result: OperationResult?): String? = when (result) {
-        is OperationResult.Success -> result.message
-        is OperationResult.Error -> result.message
-        null -> null
-    }
-
-    /** Whether [result] is the failure case — Swift can't pattern-match the sealed class directly. */
-    fun isOperationError(result: OperationResult?): Boolean = result is OperationResult.Error
 
     // ── Date helpers ──────────────────────────────────────────────────────────
 

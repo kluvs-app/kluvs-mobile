@@ -1,9 +1,9 @@
 package com.ivangarzab.kluvs.member.presentation
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivangarzab.bark.Bark
 import com.ivangarzab.kluvs.auth.domain.SignOutUseCase
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
 import com.ivangarzab.kluvs.member.domain.GetCurrentUserProfileUseCase
 import com.ivangarzab.kluvs.member.domain.GetOnYourShelfUseCase
@@ -11,17 +11,14 @@ import com.ivangarzab.kluvs.member.domain.GetReadingLogUseCase
 import com.ivangarzab.kluvs.member.domain.GetUserStatisticsUseCase
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.progress.SaveProgressUseCase
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.TimeSource
 
 /**
- * The purpose of this [ViewModel] class is to serve the Me screen.
+ * The purpose of this ViewModel is to serve the Me screen.
  */
 class MeViewModel(
     private val getCurrentUserProfile: GetCurrentUserProfileUseCase,
@@ -30,10 +27,7 @@ class MeViewModel(
     private val getReadingLog: GetReadingLogUseCase,
     private val saveProgressUseCase: SaveProgressUseCase,
     private val signOutUseCase: SignOutUseCase,
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(MeState())
-    val state: StateFlow<MeState> = _state.asStateFlow()
+) : BaseViewModel<MeState>(MeState()) {
 
     private var currentUserId: String? = null
     private var loadUserDataJob: Job? = null
@@ -45,7 +39,7 @@ class MeViewModel(
         // can't finish out of order and let an older, staler result land last.
         loadUserDataJob?.cancel()
         loadUserDataJob = viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            updateState { it.copy(isLoading = true, error = null) }
             val loadStart = TimeSource.Monotonic.markNow()
 
             // Launch all 3 UseCase calls in parallel
@@ -71,7 +65,7 @@ class MeViewModel(
             }
             // A profile that's already on screen is never replaced by an error page: a failed
             // (re)load keeps the existing content and reports the failure through the snackbar.
-            val hadContent = _state.value.profile != null
+            val hadContent = currentState.profile != null
             error?.let { e ->
                 Bark.e("Failed to fetch member details (ID: $userId). ${if (hadContent) "Keeping what's on screen." else "Showing error."}", Exception(e))
             } ?: Bark.i("Successfully loaded member details (ID: $userId)")
@@ -80,17 +74,17 @@ class MeViewModel(
             // Update state with all results. When keeping content, each piece only changes if
             // its fetch succeeded.
             val onYourShelf = shelfResult.getOrNull()
-            _state.update {
+            updateState {
                 it.copy(
                     isLoading = false,
                     error = if (hadContent) null else error,
-                    snackbarError = if (hadContent && error != null) error else it.snackbarError,
                     profile = profileResult.getOrNull() ?: if (hadContent) it.profile else null,
                     statistics = statsResult.getOrNull() ?: if (hadContent) it.statistics else null,
                     shelf = onYourShelf?.shelf ?: if (hadContent) it.shelf else emptyList(),
                     upNext = if (onYourShelf != null) onYourShelf.upNext else if (hadContent) it.upNext else null
                 )
             }
+            if (hadContent && error != null) send(ScreenEffect.ShowSnackbar.error(error))
         }
     }
 
@@ -111,7 +105,7 @@ class MeViewModel(
         percentComplete: Float?,
         markFinished: Boolean
     ) {
-        val item = _state.value.shelf.find { it.sessionId == sessionId } ?: return
+        val item = currentState.shelf.find { it.sessionId == sessionId } ?: return
         viewModelScope.launch {
             saveProgressUseCase(
                 SaveProgressUseCase.Params(
@@ -126,37 +120,37 @@ class MeViewModel(
                 )
             )
                 .onSuccess { updated ->
-                    _state.update { s ->
+                    updateState { s ->
                         s.copy(shelf = s.shelf.map { if (it.sessionId == sessionId) it.copy(ownProgress = updated) else it })
                     }
                     closeSheet(ifShowing = MeSheet.UpdateProgress(sessionId))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update (Session ID: $sessionId). ${error.message}", error)
-                    _state.update { it.copy(snackbarError = error.toDisplayMessage()) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
 
     /** Opens [sheet], replacing any sheet already open. The reading log loads the first time it opens. */
     fun onOpenSheet(sheet: MeSheet) {
-        _state.update { it.copy(activeSheet = sheet) }
+        updateState { it.copy(activeSheet = sheet) }
         if (sheet == MeSheet.ReadingLog) loadReadingLog()
     }
 
     /** Closes the open sheet: Cancel, the close button, swipe down, back, or a tap outside. */
     fun onDismissSheet() {
-        _state.update { it.copy(activeSheet = null) }
+        updateState { it.copy(activeSheet = null) }
     }
 
     /** Opens [dialog] on top of the screen. */
     fun onOpenDialog(dialog: MeDialog) {
-        _state.update { it.copy(activeDialog = dialog) }
+        updateState { it.copy(activeDialog = dialog) }
     }
 
     /** Closes the open dialog. Confirming a dialog closes it too. */
     fun onDismissDialog() {
-        _state.update { it.copy(activeDialog = null) }
+        updateState { it.copy(activeDialog = null) }
     }
 
     fun onSignOutDialogConfirmed() = viewModelScope.launch {
@@ -165,19 +159,16 @@ class MeViewModel(
         signOutUseCase()
     }
 
-    fun clearSnackbarError() {
-        _state.update { it.copy(snackbarError = null) }
-    }
-
     private fun loadReadingLog() {
-        if (_state.value.readingLog != null) return
+        if (currentState.readingLog != null) return
         viewModelScope.launch {
-            _state.update { it.copy(isReadingLogLoading = true) }
+            updateState { it.copy(isReadingLogLoading = true) }
             getReadingLog()
-                .onSuccess { log -> _state.update { it.copy(readingLog = log, isReadingLogLoading = false) } }
+                .onSuccess { log -> updateState { it.copy(readingLog = log, isReadingLogLoading = false) } }
                 .onFailure { error ->
                     Bark.e("Failed to load reading log. ${error.message}", error)
-                    _state.update { it.copy(isReadingLogLoading = false, snackbarError = error.toDisplayMessage()) }
+                    updateState { it.copy(isReadingLogLoading = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -187,6 +178,6 @@ class MeViewModel(
      * may have dismissed it mid-save and opened another one, which must stay open.
      */
     private fun closeSheet(ifShowing: MeSheet) {
-        _state.update { if (it.activeSheet == ifShowing) it.copy(activeSheet = null) else it }
+        updateState { if (it.activeSheet == ifShowing) it.copy(activeSheet = null) else it }
     }
 }

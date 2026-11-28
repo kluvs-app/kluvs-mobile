@@ -15,6 +15,5 @@ data class BookDetailsState(
     val shelfStatus: ShelfStatus? = null,
     val shelfSource: ShelfSource? = null,
     val isLiked: Boolean = false,
-    val isMutationInProgress: Boolean = false,
-    val operationError: String? = null
+    val isMutationInProgress: Boolean = false
 )

@@ -25,9 +25,10 @@ class BooksViewModelWrapper: ObservableObject {
     @Published var isLoadingMore: Bool = false
     @Published var hasMoreSearchResults: Bool = false
     @Published var isMutationInProgress: Bool = false
-    @Published var operationError: String? = nil
 
     private let helper: BooksViewModelHelper
+    /// What `.screenEffects(_:)` listens to: this screen's snackbars.
+    var screenEffectSource: ScreenEffectSource { helper }
     private var cancellables: [Shared.Closeable] = []
 
     init() {
@@ -55,7 +56,6 @@ class BooksViewModelWrapper: ObservableObject {
                 self.isLoadingMore = state.isLoadingMore
                 self.hasMoreSearchResults = state.hasMoreSearchResults
                 self.isMutationInProgress = state.isMutationInProgress
-                self.operationError = state.operationError
             }
         }
         cancellables.append(stateCancellable)
@@ -70,7 +70,6 @@ class BooksViewModelWrapper: ObservableObject {
     }
     func onRemoveFromShelf(bookId: String) { helper.onRemoveFromShelf(bookId: bookId) }
     func onToggleLike(bookId: String) { helper.onToggleLike(bookId: bookId) }
-    func onConsumeOperationError() { helper.onConsumeOperationError() }
 
     deinit {
         cancellables.forEach { $0.close() }

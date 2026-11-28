@@ -374,16 +374,7 @@ private struct ClubDetailView: View {
         .background(Color.kluvsBackground)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        // Operation result message — transient snackbar, not a blocking alert (a tap-to-dismiss
-        // dialog on every read-toggle was obnoxious)
-        .snackbar(Binding(
-            get: {
-                viewModel.operationMessage.map {
-                    SnackbarData(message: $0, variant: viewModel.operationIsError ? .danger : .success)
-                }
-            },
-            set: { if $0 == nil { viewModel.onConsumeOperationResult() } }
-        ))
+        .screenEffects(viewModel.screenEffectSource)
         // Share club invite link
         .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.ShareClub.shared), header: "Share Club") {
             ShareClubFields(
