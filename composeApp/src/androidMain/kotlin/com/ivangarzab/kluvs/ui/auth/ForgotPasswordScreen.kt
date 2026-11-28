@@ -1,5 +1,9 @@
 package com.ivangarzab.kluvs.ui.auth
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -94,55 +98,64 @@ private fun ForgotPasswordContent(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
-            AuthMasthead(
-                voicePhrase = stringResource(
-                    if (state.isEmailSent) R.string.check_your_inbox else R.string.forgot_it
-                ),
-                subhead = if (state.isEmailSent) null else stringResource(R.string.reset_password_subhead),
-            )
+            // Fade between the form and the sent state, like the tab screens' content swaps
+            AnimatedContent(
+                targetState = state.isEmailSent,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "ForgotPasswordTransition",
+            ) { isEmailSent ->
+                Column {
+                    AuthMasthead(
+                        voicePhrase = stringResource(
+                            if (isEmailSent) R.string.check_your_inbox else R.string.forgot_it
+                        ),
+                        subhead = if (isEmailSent) null else stringResource(R.string.reset_password_subhead),
+                    )
 
-            Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
 
-            if (state.isEmailSent) {
-                ResetLinkSentCard(email = state.emailField)
+                    if (isEmailSent) {
+                        ResetLinkSentCard(email = state.emailField)
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                TextButton(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = stringResource(R.string.back_to_sign_in),
-                    onClick = onNavigateBack,
-                    emphasized = true,
-                )
-            } else {
-                InputField(
-                    modifier = Modifier.fillMaxWidth(),
-                    label = stringResource(R.string.email),
-                    value = state.emailField,
-                    onValueChange = onEmailFieldChange,
-                    error = state.emailError,
-                    helperText = if (state.emailError == null) {
-                        stringResource(R.string.enter_valid_email_address)
+                        TextButton(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            text = stringResource(R.string.back_to_sign_in),
+                            onClick = onNavigateBack,
+                            emphasized = true,
+                        )
                     } else {
-                        null
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Go
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onGo = { onSubmit() },
-                    ),
-                )
+                        InputField(
+                            modifier = Modifier.fillMaxWidth(),
+                            label = stringResource(R.string.email),
+                            value = state.emailField,
+                            onValueChange = onEmailFieldChange,
+                            error = state.emailError,
+                            helperText = if (state.emailError == null) {
+                                stringResource(R.string.enter_valid_email_address)
+                            } else {
+                                null
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Go
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onGo = { onSubmit() },
+                            ),
+                        )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                PrimaryButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(if (state.isLoading) R.string.sending else R.string.send_reset_link),
-                    onClick = onSubmit,
-                    enabled = !state.isLoading,
-                )
+                        PrimaryButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = stringResource(if (state.isLoading) R.string.sending else R.string.send_reset_link),
+                            onClick = onSubmit,
+                            enabled = !state.isLoading,
+                        )
+                    }
+                }
             }
         }
     }
