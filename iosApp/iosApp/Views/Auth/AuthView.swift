@@ -20,7 +20,7 @@ struct AuthView: View {
                 LoadingView()
             case .authenticated:
                 EmptyView() // Navigation handled by AppCoordinator
-            case .unauthenticated, .error, .emailConfirmationPending:
+            case .unauthenticated, .emailConfirmationPending:
                 AuthFormView(
                     mode: authMode,
                     viewModel: viewModel,
@@ -41,6 +41,9 @@ struct AuthView: View {
                 )
             }
         }
+        // Listens outside the loading switch: a failure arrives right as the form comes back,
+        // and an effect sent with no listener is dropped.
+        .screenEffects(viewModel.screenEffectSource)
         .onChange(of: oauthHandler.callbackUrl) { _, newUrl in
             if let url = newUrl {
                 viewModel.handleOAuthCallback(callbackUrl: url.absoluteString)

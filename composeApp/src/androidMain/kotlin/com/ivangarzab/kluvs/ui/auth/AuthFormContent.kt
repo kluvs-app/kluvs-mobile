@@ -20,7 +20,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +30,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
 import com.ivangarzab.kluvs.auth.presentation.AuthMode
-import com.ivangarzab.kluvs.auth.presentation.AuthUiState
+import com.ivangarzab.kluvs.auth.presentation.AuthScreenState
 import com.ivangarzab.kluvs.auth.presentation.LoginNavigation
 import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
@@ -40,8 +39,6 @@ import com.ivangarzab.kluvs.designsystem.theme.providerDiscordBg
 import com.ivangarzab.kluvs.designsystem.theme.providerGoogleBg
 import com.ivangarzab.kluvs.designsystem.theme.providerGoogleText
 import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbar
-import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbarVisuals
-import com.ivangarzab.kluvs.designsystem.components.SnackbarVariant
 import com.ivangarzab.kluvs.designsystem.components.fields.InputField
 import com.ivangarzab.kluvs.designsystem.components.fields.PasswordField
 import com.ivangarzab.kluvs.designsystem.components.icons.IconType
@@ -54,8 +51,8 @@ import com.ivangarzab.kluvs.ui.components.TextDivider
 fun AuthFormContent(
     modifier: Modifier = Modifier,
     mode: AuthMode,
-    state: AuthUiState,
-    errorMessage: String? = null,
+    state: AuthScreenState,
+    snackbarHostState: SnackbarHostState,
     onEmailFieldChange: (String) -> Unit,
     onPasswordFieldChange: (String) -> Unit,
     onConfirmPasswordFieldChange: (String) -> Unit,
@@ -63,16 +60,6 @@ fun AuthFormContent(
     onOAuthSignIn: (AuthProvider) -> Unit,
     onNavigate: (LoginNavigation) -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(
-                KluvsSnackbarVisuals(message = it, variant = SnackbarVariant.DANGER)
-            )
-        }
-    }
-
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState, snackbar = { KluvsSnackbar(it) }) },
@@ -270,26 +257,8 @@ fun Preview_LoginScreen() = KluvsTheme {
             .background(color = KluvsTheme.colors.card)
             .fillMaxSize(),
         mode = AuthMode.LOGIN,
-        state = AuthUiState(),
-        onEmailFieldChange = { _ -> },
-        onPasswordFieldChange = { _ -> },
-        onConfirmPasswordFieldChange = { _ -> },
-        onOAuthSignIn = { _ -> },
-        onSubmit = { },
-        onNavigate = { _ -> },
-    )
-}
-
-@PreviewLightDark
-@Composable
-fun Preview_LoginScreen_Error() = KluvsTheme {
-    AuthFormContent(
-        modifier = Modifier
-            .background(color = KluvsTheme.colors.card)
-            .fillMaxSize(),
-        mode = AuthMode.LOGIN,
-        state = AuthUiState(),
-        errorMessage = "Invalid email or password",
+        state = AuthScreenState(),
+        snackbarHostState = remember { SnackbarHostState() },
         onEmailFieldChange = { _ -> },
         onPasswordFieldChange = { _ -> },
         onConfirmPasswordFieldChange = { _ -> },
@@ -307,7 +276,8 @@ fun Preview_SignupScreen() = KluvsTheme {
             .background(color = KluvsTheme.colors.card)
             .fillMaxSize(),
         mode = AuthMode.SIGNUP,
-        state = AuthUiState(),
+        state = AuthScreenState(),
+        snackbarHostState = remember { SnackbarHostState() },
         onEmailFieldChange = { _ -> },
         onPasswordFieldChange = { _ -> },
         onConfirmPasswordFieldChange = { _ -> },

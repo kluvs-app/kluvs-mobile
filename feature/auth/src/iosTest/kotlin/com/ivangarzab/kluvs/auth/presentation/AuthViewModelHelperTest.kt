@@ -80,7 +80,7 @@ class AuthViewModelHelperTest {
     fun `observeState immediately calls callback with current state`() = runTest {
         // Given
         var callbackInvoked = false
-        var receivedState: AuthState? = null
+        var receivedState: AuthScreenState? = null
 
         // When
         val closeable = helper.observeState { state ->
@@ -91,19 +91,19 @@ class AuthViewModelHelperTest {
         // Then
         assertTrue(callbackInvoked, "Callback should be invoked immediately")
         assertNotNull(receivedState)
-        assertIs<AuthState.Unauthenticated>(receivedState!!)
+        assertIs<AuthState.Unauthenticated>(receivedState!!.authState)
 
         closeable.close()
     }
 
     @Test
-    fun `observeUiState immediately calls callback with current UI state`() = runTest {
+    fun `observeState starts with an empty form`() = runTest {
         // Given
         var callbackInvoked = false
-        var receivedUiState: AuthUiState? = null
+        var receivedUiState: AuthScreenState? = null
 
         // When
-        val closeable = helper.observeUiState { uiState ->
+        val closeable = helper.observeState { uiState ->
             callbackInvoked = true
             receivedUiState = uiState
         }
@@ -121,8 +121,8 @@ class AuthViewModelHelperTest {
     @Test
     fun `onEmailFieldChanged updates UI state`() = runTest {
         // Given
-        val receivedStates = mutableListOf<AuthUiState>()
-        val closeable = helper.observeUiState { state ->
+        val receivedStates = mutableListOf<AuthScreenState>()
+        val closeable = helper.observeState { state ->
             receivedStates.add(state)
         }
 
@@ -139,8 +139,8 @@ class AuthViewModelHelperTest {
     @Test
     fun `onPasswordFieldChanged updates UI state`() = runTest {
         // Given
-        val receivedStates = mutableListOf<AuthUiState>()
-        val closeable = helper.observeUiState { state ->
+        val receivedStates = mutableListOf<AuthScreenState>()
+        val closeable = helper.observeState { state ->
             receivedStates.add(state)
         }
 
@@ -157,8 +157,8 @@ class AuthViewModelHelperTest {
     @Test
     fun `onConfirmPasswordFieldChanged updates UI state`() = runTest {
         // Given
-        val receivedStates = mutableListOf<AuthUiState>()
-        val closeable = helper.observeUiState { state ->
+        val receivedStates = mutableListOf<AuthScreenState>()
+        val closeable = helper.observeState { state ->
             receivedStates.add(state)
         }
 
@@ -175,8 +175,8 @@ class AuthViewModelHelperTest {
     @Test
     fun `validateAndSignIn with invalid email sets error in UI state`() = runTest {
         // Given
-        val receivedStates = mutableListOf<AuthUiState>()
-        val closeable = helper.observeUiState { state ->
+        val receivedStates = mutableListOf<AuthScreenState>()
+        val closeable = helper.observeState { state ->
             receivedStates.add(state)
         }
 
@@ -196,7 +196,7 @@ class AuthViewModelHelperTest {
     @Test
     fun `closeable stops receiving state updates when closed`() = runTest {
         // Given
-        val receivedStates = mutableListOf<AuthState>()
+        val receivedStates = mutableListOf<AuthScreenState>()
         val closeable = helper.observeState { state ->
             receivedStates.add(state)
         }
@@ -228,13 +228,13 @@ class AuthViewModelHelperTest {
     @Test
     fun `multiple observers can observe simultaneously`() = runTest {
         // Given
-        val observer1States = mutableListOf<AuthUiState>()
-        val observer2States = mutableListOf<AuthUiState>()
+        val observer1States = mutableListOf<AuthScreenState>()
+        val observer2States = mutableListOf<AuthScreenState>()
 
-        val closeable1 = helper.observeUiState { state ->
+        val closeable1 = helper.observeState { state ->
             observer1States.add(state)
         }
-        val closeable2 = helper.observeUiState { state ->
+        val closeable2 = helper.observeState { state ->
             observer2States.add(state)
         }
 
