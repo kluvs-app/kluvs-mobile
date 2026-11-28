@@ -1,7 +1,6 @@
 package com.ivangarzab.kluvs.settings.presentation
 
 import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
-import org.koin.core.component.inject
 
 /**
  * iOS bridge for [SettingsViewModel].
@@ -11,7 +10,7 @@ import org.koin.core.component.inject
 @Suppress("unused")
 class SettingsViewModelHelper : BaseViewModelHelper<SettingsState>() {
 
-    override val viewModel: SettingsViewModel by inject()
+    override val viewModel: SettingsViewModel by viewModel()
 
     fun loadProfile(userId: String) = viewModel.loadProfile(userId)
 

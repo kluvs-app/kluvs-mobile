@@ -2,7 +2,6 @@ package com.ivangarzab.kluvs.books.presentation
 
 import com.ivangarzab.kluvs.model.ShelfStatus
 import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
-import org.koin.core.component.inject
 
 /**
  * The purpose of this class is to wrap the [BooksViewModel] for easier
@@ -11,7 +10,7 @@ import org.koin.core.component.inject
 @Suppress("unused")
 class BooksViewModelHelper : BaseViewModelHelper<BooksState>() {
 
-    override val viewModel: BooksViewModel by inject()
+    override val viewModel: BooksViewModel by viewModel()
 
     fun loadShelf(forceRefresh: Boolean) = viewModel.loadShelf(forceRefresh)
     fun onQueryChange(query: String) = viewModel.onQueryChange(query)

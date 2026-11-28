@@ -10,7 +10,6 @@ import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import org.koin.core.component.inject
 
 /**
  * The purpose of this class is to wrap the [ClubDetailsViewModel] for easier
@@ -23,7 +22,7 @@ import org.koin.core.component.inject
 @Suppress("unused")
 class ClubDetailsViewModelHelper : BaseViewModelHelper<ClubDetailsState>() {
 
-    override val viewModel: ClubDetailsViewModel by inject()
+    override val viewModel: ClubDetailsViewModel by viewModel()
 
     fun loadUserClubs(userId: String, forceRefresh: Boolean = false) = viewModel.loadUserClubs(userId, forceRefresh)
     fun loadClubData(clubId: String) = viewModel.loadClubData(clubId)

@@ -1,10 +1,14 @@
 package com.ivangarzab.kluvs.presentation.viewmodel
 
+import androidx.lifecycle.viewModelScope
 import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -15,6 +19,8 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BaseViewModelHelperTest {
@@ -24,9 +30,16 @@ class BaseViewModelHelperTest {
     private class TestViewModel : BaseViewModel<TestState>(TestState()) {
         fun increment() = updateState { it.copy(count = it.count + 1) }
         fun notify(effect: ScreenEffect) = send(effect)
+        fun startWork(): Job = viewModelScope.launch { awaitCancellation() }
+        var cleared = false
+        override fun onCleared() {
+            cleared = true
+        }
     }
 
-    private class TestHelper(override val viewModel: TestViewModel) : BaseViewModelHelper<TestState>()
+    private class TestHelper : BaseViewModelHelper<TestState>() {
+        public override val viewModel: TestViewModel by viewModel()
+    }
 
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var scope: CoroutineScope
@@ -37,9 +50,14 @@ class BaseViewModelHelperTest {
     fun setup() {
         Dispatchers.setMain(dispatcher)
         scope = CoroutineScope(dispatcher)
-        startKoin { modules(module { single<CoroutineScope> { scope } }) }
-        viewModel = TestViewModel()
-        helper = TestHelper(viewModel)
+        startKoin {
+            modules(module {
+                single<CoroutineScope> { scope }
+                factory { TestViewModel() }
+            })
+        }
+        helper = TestHelper()
+        viewModel = helper.viewModel
     }
 
     @AfterTest
@@ -70,5 +88,23 @@ class BaseViewModelHelperTest {
         viewModel.notify(ScreenEffect.ShowSnackbar.success("after close"))
 
         assertEquals(listOf<ScreenEffect>(first), received)
+    }
+
+    @Test
+    fun `close cancels viewModelScope and clears the ViewModel`() {
+        val work = viewModel.startWork()
+
+        helper.close()
+
+        assertTrue(work.isCancelled)
+        assertTrue(viewModel.cleared)
+    }
+
+    @Test
+    fun `the ViewModel stays alive until close`() {
+        val work = viewModel.startWork()
+
+        assertTrue(work.isActive)
+        assertFalse(viewModel.cleared)
     }
 }

@@ -2,7 +2,6 @@ package com.ivangarzab.kluvs.member.presentation
 
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
-import org.koin.core.component.inject
 
 /**
  * The purpose of this class is to wrap the [MeViewModelHelper] for easier
@@ -11,7 +10,7 @@ import org.koin.core.component.inject
 @Suppress("unused")
 class MeViewModelHelper : BaseViewModelHelper<MeState>() {
 
-    override val viewModel: MeViewModel by inject()
+    override val viewModel: MeViewModel by viewModel()
 
     fun loadUserData(userId: String) = viewModel.loadUserData(userId)
 
