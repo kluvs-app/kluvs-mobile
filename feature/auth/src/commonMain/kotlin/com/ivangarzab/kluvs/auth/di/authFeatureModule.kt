@@ -11,6 +11,7 @@ import com.ivangarzab.kluvs.auth.domain.SignInWithGoogleUseCase
 import com.ivangarzab.kluvs.auth.domain.SignUpWithEmailUseCase
 import com.ivangarzab.kluvs.auth.domain.ValidateCredentialsUseCase
 import com.ivangarzab.kluvs.auth.presentation.AuthViewModel
+import com.ivangarzab.kluvs.auth.presentation.ForgotPasswordViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
 
@@ -29,4 +30,5 @@ val authFeatureModule = module {
 
     // ViewModels
     factoryOf(::AuthViewModel)
+    factoryOf(::ForgotPasswordViewModel)
 }

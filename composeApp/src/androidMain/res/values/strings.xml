@@ -85,6 +85,7 @@
     <string name="send_reset_link">Send reset link</string>
     <string name="sending">Sending…</string>
     <string name="reset_link_sent_to">Reset link sent to</string>
+    <string name="back_to_sign_in">Back to sign in</string>
     <string name="reset_link_sent_body">Open the link from your email to choose a new password.</string>
 
     <!-- Sign Up Confirmation Sheet -->

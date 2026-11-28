@@ -6,7 +6,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ivangarzab.kluvs.auth.presentation.AuthMode
-import com.ivangarzab.kluvs.auth.presentation.AuthSheet
 import com.ivangarzab.kluvs.auth.presentation.AuthState
 import com.ivangarzab.kluvs.auth.presentation.AuthViewModel
 import com.ivangarzab.kluvs.auth.presentation.LoginNavigation
@@ -24,9 +23,6 @@ fun SignupScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    if (uiState.activeSheet == AuthSheet.ForgotPassword) {
-        AuthForgotSheet(viewModel = viewModel)
-    }
 
     if (state is AuthState.EmailConfirmationPending) {
         AuthSignUpConfirmationSheet(
@@ -67,7 +63,8 @@ fun SignupScreen(
                 onNavigate = {
                     when (it) {
                         LoginNavigation.SignIn -> onNavigateToLogIn()
-                        else -> viewModel.onOpenSheet(AuthSheet.ForgotPassword)
+                        // Sign up shows no "Forgot password?" link
+                        else -> {}
                     }
                 }
             )

@@ -7,7 +7,6 @@ import com.ivangarzab.kluvs.auth.domain.AuthError
 import com.ivangarzab.kluvs.auth.domain.HandleOAuthCallbackUseCase
 import com.ivangarzab.kluvs.auth.domain.InitializeAuthUseCase
 import com.ivangarzab.kluvs.auth.domain.ObserveCurrentUserUseCase
-import com.ivangarzab.kluvs.auth.domain.ResetPasswordUseCase
 import com.ivangarzab.kluvs.auth.domain.SignInWithAppleUseCase
 import com.ivangarzab.kluvs.auth.domain.SignInWithDiscordUseCase
 import com.ivangarzab.kluvs.auth.domain.SignInWithEmailUseCase
@@ -34,7 +33,6 @@ class AuthViewModel(
     private val validateCredentials: ValidateCredentialsUseCase,
     private val signUpWithEmail: SignUpWithEmailUseCase,
     private val signInWithEmail: SignInWithEmailUseCase,
-    private val resetPassword: ResetPasswordUseCase,
     private val signInWithDiscordOAuth: SignInWithDiscordUseCase,
     private val signInWithGoogleOAuth: SignInWithGoogleUseCase,
     private val signInWithAppleIdToken: SignInWithAppleUseCase,
@@ -49,9 +47,6 @@ class AuthViewModel(
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
-
-    private val _forgotPasswordState = MutableStateFlow(ForgotPasswordUiState())
-    val forgotPasswordState: StateFlow<ForgotPasswordUiState> = _forgotPasswordState.asStateFlow()
 
     init {
         Bark.d("AuthViewModel initializing")
@@ -155,53 +150,6 @@ class AuthViewModel(
                 AuthState.Error(error as? AuthError ?: AuthError.UnexpectedError)
             }
         }
-    }
-
-    fun onForgotPasswordEmailChanged(value: String) {
-        _forgotPasswordState.update { it.copy(emailField = value, emailError = null, generalError = null) }
-    }
-
-    fun sendPasswordResetEmail() {
-        val emailError = validateCredentials(email = _forgotPasswordState.value.emailField).email
-        if (emailError != null) {
-            _forgotPasswordState.update { it.copy(emailError = emailError) }
-            return
-        }
-
-        viewModelScope.launch {
-            Bark.d("Password reset email requested")
-            _forgotPasswordState.update { it.copy(isLoading = true, generalError = null) }
-            resetPassword(_forgotPasswordState.value.emailField)
-                .onSuccess {
-                    Bark.i("Password reset email sent")
-                    _forgotPasswordState.update { it.copy(isLoading = false, isEmailSent = true) }
-                }
-                .onFailure { error ->
-                    Bark.e("Password reset email failed to send. User may need to retry.", error)
-                    _forgotPasswordState.update {
-                        it.copy(
-                            isLoading = false,
-                            generalError = error as? AuthError ?: AuthError.UnexpectedError
-                        )
-                    }
-                }
-        }
-    }
-
-    /** Opens [sheet], replacing any sheet already open. */
-    fun onOpenSheet(sheet: AuthSheet) {
-        _uiState.update { it.copy(activeSheet = sheet) }
-    }
-
-    /**
-     * Closes the open sheet: Done, Cancel, the close button, swipe down, back, or a tap outside.
-     * Closing Forgot Password clears it so it opens empty next time.
-     */
-    fun onDismissSheet() {
-        if (_uiState.value.activeSheet == AuthSheet.ForgotPassword) {
-            _forgotPasswordState.update { ForgotPasswordUiState() }
-        }
-        _uiState.update { it.copy(activeSheet = null) }
     }
 
     /**

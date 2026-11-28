@@ -9,8 +9,10 @@ Discord/Google OAuth, native Apple sign-in, and forgot-password.
 
 ## Key Components
 
-- **`AuthViewModel`**: exposes `state: StateFlow<AuthState>`, `uiState: StateFlow<AuthUiState>`
-  (form fields and field errors), and `forgotPasswordState: StateFlow<ForgotPasswordUiState>`.
+- **`AuthViewModel`**: exposes `state: StateFlow<AuthState>` and `uiState: StateFlow<AuthUiState>`
+  (form fields and field errors).
+- **`ForgotPasswordViewModel`**: the Forgot Password screen, on `BaseViewModel<ForgotPasswordState>`.
+  Failures are danger snackbars keyed by `NoticeKey.AUTH_*` (`AuthErrorNotice.kt`).
 - **`AuthState`**: `Unauthenticated`, `Loading`, `Authenticated(user)`, `Error(AuthError)`,
   `OAuthPending(url)`, `EmailConfirmationPending(email)`.
 - **`LoginNavigation`**: `SignIn`, `SignUp`, `ForgetPassword`.

@@ -46,6 +46,15 @@ private struct ScreenEffectsModifier: ViewModifier {
             switch message.key {
             case .saveSuccess: return String(localized: "save_success")
             case .passwordUpdated: return String(localized: "password_updated")
+            case .authInvalidCredentials: return String(localized: "error_invalid_credentials")
+            case .authEmailNotConfirmed: return String(localized: "error_email_not_confirmed")
+            case .authNoConnection: return String(localized: "error_no_connection")
+            case .authRateLimitExceeded: return String(localized: "error_rate_limit_exceeded")
+            case .authUserNotFound: return String(localized: "error_user_not_found")
+            case .authWeakPassword: return String(localized: "error_weak_password")
+            case .authUserAlreadyExists: return String(localized: "error_user_already_exists")
+            case .authAuthenticationFailed: return String(localized: "error_authentication_failed")
+            case .authUnexpectedError: return String(localized: "error_unexpected")
             default: return ""
             }
         default:

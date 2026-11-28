@@ -340,6 +340,17 @@
         }
       }
     },
+    "button_back_to_sign_in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to sign in"
+          }
+        }
+      }
+    },
     "button_send_reset_link" : {
       "extractionState" : "manual",
       "localizations" : {
