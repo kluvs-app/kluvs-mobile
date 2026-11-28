@@ -19,8 +19,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbar
-import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbarVisuals
-import com.ivangarzab.kluvs.designsystem.components.SnackbarVariant
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +53,7 @@ import com.ivangarzab.kluvs.designsystem.components.avatars.Avatar
 import com.ivangarzab.kluvs.designsystem.components.ProgressTrackingMode
 import com.ivangarzab.kluvs.designsystem.components.ReadingProgressBottomSheet
 import com.ivangarzab.kluvs.designsystem.components.modals.ConfirmationDialog
+import com.ivangarzab.kluvs.ui.components.ScreenEffectHost
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Translation at the boundary into the hollow [ReadingProgressBottomSheet] — see its call site below. */
@@ -82,15 +81,7 @@ fun MeScreen(
         viewModel.loadUserData(userId)
     }
 
-    // Show snackbar for errors
-    LaunchedEffect(state.snackbarError) {
-        state.snackbarError?.let { error ->
-            snackbarHostState.showSnackbar(
-                KluvsSnackbarVisuals(message = error, variant = SnackbarVariant.DANGER)
-            )
-            viewModel.clearSnackbarError()
-        }
-    }
+    ScreenEffectHost(viewModel.screenEffects, snackbarHostState)
 
     if (state.activeDialog == MeDialog.SignOut) {
         LogoutConfirmationDialog(

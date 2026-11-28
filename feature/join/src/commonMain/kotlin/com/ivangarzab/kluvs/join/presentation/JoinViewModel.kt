@@ -7,14 +7,11 @@ import com.ivangarzab.kluvs.join.domain.JoinClubUseCase
 import com.ivangarzab.kluvs.join.domain.ObserveIsAuthenticatedUseCase
 import com.ivangarzab.kluvs.join.domain.PreviewInviteUseCase
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.launch
 
 /**
- * The purpose of this [ViewModel] class is to serve the join-by-invite-token screen:
+ * The purpose of this ViewModel is to serve the join-by-invite-token screen:
  * previewing the club behind a token and joining it.
  *
  * When [onJoinClicked] is called while signed out, this ViewModel does NOT attempt to join —
@@ -27,39 +24,36 @@ class JoinViewModel(
     private val previewInvite: PreviewInviteUseCase,
     private val joinClub: JoinClubUseCase,
     private val observeIsAuthenticated: ObserveIsAuthenticatedUseCase
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(JoinState())
-    val state: StateFlow<JoinState> = _state.asStateFlow()
+) : BaseViewModel<JoinState>(JoinState()) {
 
     init {
         val isAuthenticatedFlow = observeIsAuthenticated()
-        _state.update { it.copy(isAuthenticated = isAuthenticatedFlow.value) }
+        updateState { it.copy(isAuthenticated = isAuthenticatedFlow.value) }
         viewModelScope.launch {
             isAuthenticatedFlow.collect { isAuthenticated ->
-                _state.update { it.copy(isAuthenticated = isAuthenticated) }
+                updateState { it.copy(isAuthenticated = isAuthenticated) }
             }
         }
     }
 
     fun onTokenChanged(token: String) {
-        _state.update { it.copy(tokenInput = token, preview = null, previewError = null) }
+        updateState { it.copy(tokenInput = token, preview = null, previewError = null) }
     }
 
     fun previewInvite() {
-        val token = _state.value.tokenInput.trim()
+        val token = currentState.tokenInput.trim()
         if (token.isEmpty()) return
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoadingPreview = true, previewError = null) }
+            updateState { it.copy(isLoadingPreview = true, previewError = null) }
             previewInvite(token)
                 .onSuccess { preview ->
                     Bark.i("Loaded invite preview (club ID: ${preview.id})")
-                    _state.update { it.copy(isLoadingPreview = false, preview = preview) }
+                    updateState { it.copy(isLoadingPreview = false, preview = preview) }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to load invite preview", error)
-                    _state.update {
+                    updateState {
                         it.copy(
                             isLoadingPreview = false,
                             preview = null,
@@ -71,25 +65,25 @@ class JoinViewModel(
     }
 
     fun onJoinClicked() {
-        val token = _state.value.tokenInput.trim()
+        val token = currentState.tokenInput.trim()
         if (token.isEmpty()) return
 
-        if (!_state.value.isAuthenticated) {
+        if (!currentState.isAuthenticated) {
             Bark.d("Join requested while signed out — deferring to sign-in flow")
-            _state.update { it.copy(needsSignIn = true) }
+            updateState { it.copy(needsSignIn = true) }
             return
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isJoining = true, joinError = null) }
+            updateState { it.copy(isJoining = true, joinError = null) }
             joinClub(token)
                 .onSuccess { clubId ->
                     Bark.i("Joined club (ID: $clubId)")
-                    _state.update { it.copy(isJoining = false, joinedClubId = clubId) }
+                    updateState { it.copy(isJoining = false, joinedClubId = clubId) }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to join club", error)
-                    _state.update {
+                    updateState {
                         it.copy(isJoining = false, joinError = error.toDisplayMessage())
                     }
                 }
@@ -97,14 +91,14 @@ class JoinViewModel(
     }
 
     fun onConsumeNeedsSignIn() {
-        _state.update { it.copy(needsSignIn = false) }
+        updateState { it.copy(needsSignIn = false) }
     }
 
     fun onConsumeJoinedClubId() {
-        _state.update { it.copy(joinedClubId = null) }
+        updateState { it.copy(joinedClubId = null) }
     }
 
     fun onConsumeJoinError() {
-        _state.update { it.copy(joinError = null) }
+        updateState { it.copy(joinError = null) }
     }
 }

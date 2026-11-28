@@ -82,16 +82,27 @@ class BaseViewModelTest {
     }
 
     @Test
-    fun `screen effects reach the collector including ones sent before it started`() = runTest {
+    fun `screen effects reach the collector`() = runTest {
         val viewModel = TestViewModel()
-        val early = ScreenEffect.ShowSnackbar(SnackbarMessage.Text("early"))
-        val late = ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.SAVE_SUCCESS))
-        viewModel.notify(early)
+        val collected = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(collected) }
+        val first = ScreenEffect.ShowSnackbar(SnackbarMessage.Text("first"))
+        val second = ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.SAVE_SUCCESS))
+
+        viewModel.notify(first)
+        viewModel.notify(second)
+
+        assertEquals(listOf<ScreenEffect>(first, second), collected)
+    }
+
+    @Test
+    fun `screen effects sent while nobody listens are dropped`() = runTest {
+        val viewModel = TestViewModel()
+        viewModel.notify(ScreenEffect.ShowSnackbar(SnackbarMessage.Text("missed")))
 
         val collected = mutableListOf<ScreenEffect>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(collected) }
-        viewModel.notify(late)
 
-        assertEquals(listOf<ScreenEffect>(early, late), collected)
+        assertEquals(emptyList(), collected)
     }
 }

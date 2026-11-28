@@ -93,25 +93,12 @@ class ClubDetailsViewModelHelper : BaseViewModelHelper<ClubDetailsState>() {
     fun onConsumeLeftClubId() = viewModel.onConsumeLeftClubId()
     fun onTransferOwnership(newOwnerId: String) = viewModel.onTransferOwnership(newOwnerId)
 
-    // UI event consumption
-    fun onConsumeOperationResult() = viewModel.onConsumeOperationResult()
-
     // ── Sheets and dialogs ────────────────────────────────────────────────────
 
     fun onOpenSheet(sheet: ClubDetailsSheet) = viewModel.onOpenSheet(sheet)
     fun onDismissSheet() = viewModel.onDismissSheet()
     fun onOpenDialog(dialog: ClubDetailsDialog) = viewModel.onOpenDialog(dialog)
     fun onDismissDialog() = viewModel.onDismissDialog()
-
-    /** Safely unwraps a sealed [OperationResult] to a plain message string for iOS. */
-    fun operationResultMessage(result: OperationResult?): String? = when (result) {
-        is OperationResult.Success -> result.message
-        is OperationResult.Error -> result.message
-        null -> null
-    }
-
-    /** Whether [result] is the failure case — Swift can't pattern-match the sealed class directly. */
-    fun isOperationError(result: OperationResult?): Boolean = result is OperationResult.Error
 
     // ── Date helpers ──────────────────────────────────────────────────────────
 

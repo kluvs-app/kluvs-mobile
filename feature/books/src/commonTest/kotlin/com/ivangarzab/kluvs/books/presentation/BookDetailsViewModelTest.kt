@@ -11,7 +11,9 @@ import com.ivangarzab.kluvs.data.repositories.BookRepository
 import com.ivangarzab.kluvs.data.repositories.LikeRepository
 import com.ivangarzab.kluvs.data.repositories.ShelfRepository
 import com.ivangarzab.kluvs.model.Book
+import com.ivangarzab.kluvs.model.AppError
 import com.ivangarzab.kluvs.model.BookEnrichment
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -20,6 +22,9 @@ import dev.mokkery.verifySuspend
 import dev.mokkery.verify.VerifyMode.Companion.not
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -119,5 +124,25 @@ class BookDetailsViewModelTest {
         assertFalse(viewModel.isRegistered)
         assertEquals(unregisteredBook.id, viewModel.state.value.book?.id)
         verifySuspend(mode = not) { likeRepository.isBookLiked(any()) }
+    }
+
+    @Test
+    fun `onToggleLike shows an error snackbar on failure`() = runTest {
+        val effects = collectScreenEffects()
+        everySuspend { likeRepository.isBookLiked("42") } returns Result.success(false)
+        everySuspend { likeRepository.toggleLike("42") } returns Result.failure(AppError.NoConnection)
+        viewModel.load(registeredBook)
+
+        viewModel.onToggleLike()
+
+        assertFalse(viewModel.state.value.isLiked)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Check your connection and try again."), effects.single())
+    }
+
+    /** Collects every screen effect the ViewModel sends from here on. */
+    private fun TestScope.collectScreenEffects(): List<ScreenEffect> {
+        val effects = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
+        return effects
     }
 }

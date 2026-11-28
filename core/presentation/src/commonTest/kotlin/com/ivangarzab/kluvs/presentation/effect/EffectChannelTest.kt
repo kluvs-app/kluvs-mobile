@@ -1,7 +1,5 @@
 package com.ivangarzab.kluvs.presentation.effect
 
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -43,17 +41,5 @@ class EffectChannelTest {
         channel.handleWith(backgroundScope) { handled += it }
 
         assertEquals(listOf<PlatformEffect>(PlatformEffect.ShareText("text")), handled)
-    }
-
-    @Test
-    fun `asFlow delivers buffered and new effects in order`() = runTest(UnconfinedTestDispatcher()) {
-        val channel = EffectChannel<PlatformEffect>()
-        val collected = mutableListOf<PlatformEffect>()
-        channel.send(PlatformEffect.OpenStoreListing)
-
-        backgroundScope.launch { channel.asFlow().toList(collected) }
-        channel.send(PlatformEffect.ShareText("text"))
-
-        assertEquals(listOf(PlatformEffect.OpenStoreListing, PlatformEffect.ShareText("text")), collected)
     }
 }

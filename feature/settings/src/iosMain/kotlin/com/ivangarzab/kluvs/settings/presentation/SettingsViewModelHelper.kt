@@ -25,8 +25,6 @@ class SettingsViewModelHelper : BaseViewModelHelper<SettingsState>() {
 
     fun onAvatarPickFailed(reason: String?) = viewModel.onAvatarPickFailed(reason)
 
-    fun clearAvatarError() = viewModel.clearAvatarError()
-
     fun onOpenSheet(sheet: SettingsSheet) = viewModel.onOpenSheet(sheet)
 
     fun onDismissSheet() = viewModel.onDismissSheet()
@@ -42,6 +40,4 @@ class SettingsViewModelHelper : BaseViewModelHelper<SettingsState>() {
     fun onSubmitChangePassword() = viewModel.onSubmitChangePassword()
 
     fun onDeleteAccountConfirmed() = viewModel.onDeleteAccountConfirmed()
-
-    fun clearDeleteAccountError() = viewModel.clearDeleteAccountError()
 }

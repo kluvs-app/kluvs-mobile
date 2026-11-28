@@ -23,6 +23,7 @@ import com.ivangarzab.kluvs.model.Member
 import com.ivangarzab.kluvs.presentation.effect.NoticeKey
 import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import com.ivangarzab.kluvs.presentation.effect.SnackbarMessage
+import com.ivangarzab.kluvs.presentation.effect.SnackbarTone
 import com.ivangarzab.kluvs.settings.domain.ChangePasswordUseCase
 import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
@@ -409,6 +410,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `uploadAvatar succeeds and updates avatar URL in state`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded (no avatar)
         val imageData = ByteArray(100) { it.toByte() }
         val storagePath = "$memberId/avatar.png"
@@ -430,12 +432,13 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isUploadingAvatar)
-        assertNull(state.avatarError)
+        assertTrue(effects.isEmpty())
         assertEquals(avatarUrl, state.profile?.avatarUrl)
     }
 
     @Test
     fun `uploadAvatar fails when no member ID available`() = runTest {
+        val effects = collectScreenEffects()
         // Given: no profile loaded, so memberId is null
         val imageData = ByteArray(100)
 
@@ -445,11 +448,12 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isUploadingAvatar)
-        assertTrue(state.avatarError != null)
+        assertEquals(SnackbarTone.DANGER, effects.singleSnackbar().tone)
     }
 
     @Test
     fun `uploadAvatar handles upload failure`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded
         val imageData = ByteArray(100)
         val exception = AppError.NoConnection
@@ -466,28 +470,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isUploadingAvatar)
-        assertEquals("Check your connection and try again.", state.avatarError)
-    }
-
-    @Test
-    fun `clearAvatarError clears the error state`() = runTest {
-        // Given: profile loaded and an upload failed
-        val imageData = ByteArray(100)
-        val exception = Exception("Upload failed")
-
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
-        viewModel.loadProfile(userId)
-
-        everySuspend { memberRepository.getMember(memberId) } returns Result.success(testMember)
-        everySuspend { avatarRepository.uploadAvatar(memberId, imageData) } returns Result.failure(exception)
-        viewModel.uploadAvatar(imageData)
-        assertTrue(viewModel.state.value.avatarError != null)
-
-        // When
-        viewModel.clearAvatarError()
-
-        // Then
-        assertNull(viewModel.state.value.avatarError)
+        assertEquals(ScreenEffect.ShowSnackbar.error("Check your connection and try again."), effects.single())
     }
 
     // ========================================
@@ -648,6 +631,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `onDeleteAccountConfirmed success signs out and clears dialog state`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded and deletion succeeds
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
@@ -662,13 +646,14 @@ class SettingsViewModelTest {
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
         assertNull(state.activeDialog)
-        assertNull(state.deleteAccountError)
+        assertTrue(effects.isEmpty())
         verifySuspend { memberRepository.deleteMember(memberId) }
         verifySuspend { authRepository.signOut() }
     }
 
     @Test
     fun `onDeleteAccountConfirmed failure surfaces inline error and closes dialog without signing out`() = runTest {
+        val effects = collectScreenEffects()
         // Given: profile loaded, deletion fails, and the account still exists
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
@@ -685,12 +670,13 @@ class SettingsViewModelTest {
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
         assertNull(state.activeDialog)
-        assertTrue(state.deleteAccountError != null)
+        assertEquals(SnackbarTone.DANGER, effects.singleSnackbar().tone)
         verifySuspend(mode = VerifyMode.not) { authRepository.signOut() }
     }
 
     @Test
     fun `onDeleteAccountConfirmed failure still signs out when the account no longer exists`() = runTest {
+        val effects = collectScreenEffects()
         // Given: the backend deleted the account, but the delete response never made it back
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
@@ -706,27 +692,8 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
-        assertNull(state.deleteAccountError)
+        assertTrue(effects.isEmpty())
         verifySuspend { authRepository.signOut() }
-    }
-
-    @Test
-    fun `clearDeleteAccountError clears the error state`() = runTest {
-        // Given: profile loaded and a failed deletion
-        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
-        viewModel.loadProfile(userId)
-        everySuspend {
-            memberRepository.deleteMember(memberId)
-        } returns Result.failure(Exception("Deletion failed"))
-        everySuspend { authRepository.currentUserExists() } returns Result.success(true)
-        viewModel.onDeleteAccountConfirmed()
-        assertTrue(viewModel.state.value.deleteAccountError != null)
-
-        // When
-        viewModel.clearDeleteAccountError()
-
-        // Then
-        assertNull(viewModel.state.value.deleteAccountError)
     }
 
     /** Collects every screen effect the ViewModel sends from here on. */
@@ -735,6 +702,8 @@ class SettingsViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
         return effects
     }
+
+    private fun List<ScreenEffect>.singleSnackbar() = single() as ScreenEffect.ShowSnackbar
 
     private val saveSuccessNotice = ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.SAVE_SUCCESS))
     private val passwordUpdatedNotice = ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(NoticeKey.PASSWORD_UPDATED))

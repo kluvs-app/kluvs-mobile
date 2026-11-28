@@ -30,8 +30,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbar
-import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbarVisuals
-import com.ivangarzab.kluvs.designsystem.components.SnackbarVariant
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +70,7 @@ import com.ivangarzab.kluvs.designsystem.components.buttons.SecondaryButton
 import com.ivangarzab.kluvs.designsystem.components.loading.LoadingSpinner
 import com.ivangarzab.kluvs.designsystem.components.loading.PullToRefreshContainer
 import com.ivangarzab.kluvs.ui.components.LoadingScreen
+import com.ivangarzab.kluvs.ui.components.ScreenEffectHost
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -104,14 +103,7 @@ fun BooksScreen(
         viewModel.loadShelf()
     }
 
-    LaunchedEffect(state.operationError) {
-        state.operationError?.let { message ->
-            snackbarHostState.showSnackbar(
-                KluvsSnackbarVisuals(message = message, variant = SnackbarVariant.DANGER)
-            )
-            viewModel.onConsumeOperationError()
-        }
-    }
+    ScreenEffectHost(viewModel.screenEffects, snackbarHostState)
 
     Box(modifier = modifier) {
         NavHost(

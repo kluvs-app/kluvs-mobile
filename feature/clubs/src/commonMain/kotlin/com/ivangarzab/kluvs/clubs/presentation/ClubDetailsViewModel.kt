@@ -41,6 +41,7 @@ import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.JoinPolicy
 import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
 import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModel
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import com.ivangarzab.kluvs.model.ProgressType
 import com.ivangarzab.kluvs.model.Role
 import kotlinx.coroutines.Job
@@ -255,7 +256,6 @@ class ClubDetailsViewModel(
                 it.copy(
                     isLoading = false,
                     error = if (keepContent) null else error,
-                    operationResult = if (keepContent && error != null) OperationResult.Error(error) else it.operationResult,
                     selectedClubId = clubId,
                     currentClubDetails = detailsResult.getOrNull() ?: if (keepContent) it.currentClubDetails else null,
                     activeSession = if (sessionResult.isSuccess) sessionResult.getOrNull() else if (keepContent) it.activeSession else null,
@@ -268,6 +268,7 @@ class ClubDetailsViewModel(
                     } ?: it.availableClubs
                 )
             }
+            if (keepContent && error != null) send(ScreenEffect.ShowSnackbar.error(error))
         }
     }
 
@@ -292,22 +293,16 @@ class ClubDetailsViewModel(
                         it.copy(
                             isOperationInProgress = false,
                             availableClubs = it.availableClubs + newClub,
-                            createdClubId = newClub.id,
-                            operationResult = OperationResult.Success("Club created")
+                            createdClubId = newClub.id
                         )
                     }
+                    send(ScreenEffect.ShowSnackbar.success("Club created"))
                     closeSheet(ifShowing = ClubDetailsSheet.CreateClub)
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Create club. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -356,21 +351,15 @@ class ClubDetailsViewModel(
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             deletedClubId = clubId,
                             selectedClubId = null,
-                            activeSheet = null,
-                            operationResult = OperationResult.Success("Club deleted")
+                            activeSheet = null
                         )
                     }
+                    send(ScreenEffect.ShowSnackbar.success("Club deleted"))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Delete club. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -558,22 +547,16 @@ class ClubDetailsViewModel(
                     updateState {
                         it.copy(
                             isOperationInProgress = false,
-                            ownProgress = updated,
-                            operationResult = OperationResult.Success("Progress updated")
+                            ownProgress = updated
                         )
                     }
+                    send(ScreenEffect.ShowSnackbar.success("Progress updated"))
                     closeSheet(ifShowing = ClubDetailsSheet.UpdateProgress)
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -596,24 +579,14 @@ class ClubDetailsViewModel(
                         1 -> "Session ended — 1 member credited"
                         else -> "Session ended — $credited members credited"
                     }
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Success(message)
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.success(message))
                     refresh(forceRefresh = true)
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: End session. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -642,23 +615,15 @@ class ClubDetailsViewModel(
                     updateState {
                         it.copy(
                             isOperationInProgress = false,
-                            activeSession = it.activeSession?.copy(participants = updatedParticipants),
-                            operationResult = OperationResult.Success(
-                                if (isReading) "Joined this read" else "Opted out"
-                            )
+                            activeSession = it.activeSession?.copy(participants = updatedParticipants)
                         )
                     }
+                    send(ScreenEffect.ShowSnackbar.success(if (isReading) "Joined this read" else "Opted out"))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Toggle participation. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -768,14 +733,8 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Set attendance. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            discussionRosters = it.discussionRosters + (discussionId to roster.copy(myStatus = previousStatus)),
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(discussionRosters = it.discussionRosters + (discussionId to roster.copy(myStatus = previousStatus))) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -925,21 +884,15 @@ class ClubDetailsViewModel(
                             availableClubs = it.availableClubs.filterNot { club -> club.id == clubId },
                             leftClubId = clubId,
                             selectedClubId = null,
-                            activeSheet = null,
-                            operationResult = OperationResult.Success("Left club")
+                            activeSheet = null
                         )
                     }
+                    send(ScreenEffect.ShowSnackbar.success("Left club"))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Leave club. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
@@ -984,9 +937,6 @@ class ClubDetailsViewModel(
     // UI event consumption
     // -------------------------------------------------------------------------
 
-    fun onConsumeOperationResult() {
-        updateState { it.copy(operationResult = null) }
-    }
 
     // -------------------------------------------------------------------------
     // Private helpers
@@ -994,7 +944,7 @@ class ClubDetailsViewModel(
 
     /**
      * Shared mutation runner: sets loading flags, invokes [block], and handles
-     * success/failure by updating [operationResult] and triggering a refresh.
+     * success/failure with a snackbar and triggering a refresh.
      *
      * [refreshFromCache] is for mutations whose repository writes the result into the cache
      * (discussions): the reload reads the cache instead of forcing a full refetch. Every other
@@ -1019,7 +969,7 @@ class ClubDetailsViewModel(
                     // The success message shows right away, but the in-progress indicator stays
                     // on until the follow-up refetch lands; otherwise the screen sits unchanged
                     // (and looks like nothing happened) while the club reloads.
-                    updateState { it.copy(operationResult = OperationResult.Success(successMessage)) }
+                    send(ScreenEffect.ShowSnackbar.success(successMessage))
                     closingSheet?.let { closeSheet(ifShowing = it) }
                     refresh(forceRefresh = !refreshFromCache)
                     loadClubDataJob?.join()
@@ -1027,14 +977,8 @@ class ClubDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: $successMessage. ${error.message}", error)
-                    updateState {
-                        it.copy(
-                            isOperationInProgress = false,
-                            operationResult = OperationResult.Error(
-                                error.toDisplayMessage()
-                            )
-                        )
-                    }
+                    updateState { it.copy(isOperationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }

@@ -119,17 +119,13 @@ class SettingsViewModel(
 
     fun uploadAvatar(imageData: ByteArray) {
         viewModelScope.launch {
-            updateState { it.copy(isUploadingAvatar = true, avatarError = null) }
+            updateState { it.copy(isUploadingAvatar = true) }
 
             val memberId = currentState.profile?.memberId
             if (memberId == null) {
                 Bark.e("No member ID available to update avatar. Please retry.", null)
-                updateState {
-                    it.copy(
-                        isUploadingAvatar = false,
-                        avatarError = "No member ID available"
-                    )
-                }
+                updateState { it.copy(isUploadingAvatar = false) }
+                send(ScreenEffect.ShowSnackbar.error("No member ID available"))
                 return@launch
             }
 
@@ -142,7 +138,7 @@ class SettingsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Failed to upload avatar (ID: $memberId). Please retry.", error)
-                    updateState { it.copy(avatarError = error.toDisplayMessage()) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
 
             updateState { it.copy(isUploadingAvatar = false) }
@@ -152,11 +148,7 @@ class SettingsViewModel(
     /** Surfaces a failure that happened while reading/compressing a picked image, before upload was even attempted. */
     fun onAvatarPickFailed(reason: String?) {
         Bark.e("Failed to read picked avatar image. ${reason.orEmpty()}", null)
-        updateState { it.copy(avatarError = "Failed to read selected image") }
-    }
-
-    fun clearAvatarError() {
-        updateState { it.copy(avatarError = null) }
+        send(ScreenEffect.ShowSnackbar.error("Failed to read selected image"))
     }
 
     /** Opens [sheet], replacing any sheet already open. */
@@ -254,7 +246,7 @@ class SettingsViewModel(
             // Close the dialog up front (same as MeViewModel's sign-out) — on iOS the dialog's
             // binding hides itself locally on confirm, so leaving this true would re-present it.
             updateState {
-                it.copy(activeDialog = null, isDeletingAccount = true, deleteAccountError = null)
+                it.copy(activeDialog = null, isDeletingAccount = true)
             }
 
             withContext(NonCancellable) { deleteAccountUseCase(memberId) }
@@ -268,18 +260,10 @@ class SettingsViewModel(
                     updateState { it.copy(isDeletingAccount = false) }
                 }
                 .onFailure { error ->
-                    updateState {
-                        it.copy(
-                            isDeletingAccount = false,
-                            deleteAccountError = error.toDisplayMessage()
-                        )
-                    }
+                    updateState { it.copy(isDeletingAccount = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
-    }
-
-    fun clearDeleteAccountError() {
-        updateState { it.copy(deleteAccountError = null) }
     }
 
     private fun computeHasChanges(state: SettingsState): Boolean {

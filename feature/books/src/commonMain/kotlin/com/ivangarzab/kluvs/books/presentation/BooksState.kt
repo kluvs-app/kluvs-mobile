@@ -17,8 +17,7 @@ data class BooksState(
     val searchResults: List<Book> = emptyList(),
     val searchTotal: Int = 0,
     val isLoadingMore: Boolean = false,
-    val isMutationInProgress: Boolean = false,
-    val operationError: String? = null
+    val isMutationInProgress: Boolean = false
 ) {
     /** Whether more search results exist beyond what's currently loaded. */
     val hasMoreSearchResults: Boolean get() = searchResults.size < searchTotal

@@ -26,8 +26,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbar
-import com.ivangarzab.kluvs.designsystem.components.KluvsSnackbarVisuals
-import com.ivangarzab.kluvs.designsystem.components.SnackbarVariant
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +54,7 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 import com.ivangarzab.kluvs.designsystem.theme.feature
 import com.ivangarzab.kluvs.presentation.util.formatBookYear
 import com.ivangarzab.kluvs.ui.components.CreditText
+import com.ivangarzab.kluvs.ui.components.ScreenEffectHost
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -80,14 +79,7 @@ fun BookDetailScreen(
         viewModel.load(book, initialShelfStatus, initialShelfSource)
     }
 
-    LaunchedEffect(state.operationError) {
-        state.operationError?.let { message ->
-            snackbarHostState.showSnackbar(
-                KluvsSnackbarVisuals(message = message, variant = SnackbarVariant.DANGER)
-            )
-            viewModel.onConsumeOperationError()
-        }
-    }
+    ScreenEffectHost(viewModel.screenEffects, snackbarHostState)
 
     Box(modifier = modifier) {
         BookDetailScreenContent(

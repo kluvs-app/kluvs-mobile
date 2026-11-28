@@ -18,7 +18,6 @@ data class SettingsState(
     val hasChanges: Boolean = false,
     // Avatar upload state
     val isUploadingAvatar: Boolean = false,
-    val avatarError: String? = null,
     // Change password sheet state
     val newPasswordField: String = "",
     val confirmPasswordField: String = "",
@@ -28,7 +27,6 @@ data class SettingsState(
     val changePasswordGeneralError: AuthError? = null,
     // Delete account state
     val isDeletingAccount: Boolean = false,
-    val deleteAccountError: String? = null,
     /** The bottom sheet on screen, if any. Opened with `onOpenSheet`, closed by `onDismissSheet` or a successful save. */
     val activeSheet: SettingsSheet? = null,
     /** The confirmation dialog on screen, if any. */

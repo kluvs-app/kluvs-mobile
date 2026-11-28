@@ -15,7 +15,15 @@ sealed class ScreenEffect {
     data class ShowSnackbar(
         val message: SnackbarMessage,
         val tone: SnackbarTone = SnackbarTone.SUCCESS
-    ) : ScreenEffect()
+    ) : ScreenEffect() {
+        companion object {
+            /** A success snackbar with text built in Kotlin. */
+            fun success(text: String) = ShowSnackbar(SnackbarMessage.Text(text), SnackbarTone.SUCCESS)
+
+            /** A danger snackbar with text built in Kotlin, usually from `toDisplayMessage()`. */
+            fun error(text: String) = ShowSnackbar(SnackbarMessage.Text(text), SnackbarTone.DANGER)
+        }
+    }
 }
 
 /** What a snackbar says. */

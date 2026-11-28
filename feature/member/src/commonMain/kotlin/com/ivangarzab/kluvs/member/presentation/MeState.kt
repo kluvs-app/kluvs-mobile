@@ -9,7 +9,6 @@ data class MeState(
     val statistics: UserStatistics? = null,
     val shelf: List<ShelfItem> = emptyList(),
     val upNext: UpNextItem? = null,
-    val snackbarError: String? = null,
     val readingLog: ReadingLog? = null,
     val isReadingLogLoading: Boolean = false,
     /** The bottom sheet on screen, if any. Opened with `onOpenSheet`, closed by `onDismissSheet` or a successful save. */

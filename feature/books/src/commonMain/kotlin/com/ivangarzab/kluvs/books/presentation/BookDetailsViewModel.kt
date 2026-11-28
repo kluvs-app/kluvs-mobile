@@ -12,15 +12,13 @@ import com.ivangarzab.kluvs.books.domain.ToggleLikeUseCase
 import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
 import com.ivangarzab.kluvs.presentation.error.toDisplayMessage
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModel
 import kotlinx.coroutines.launch
 
 /**
- * The purpose of this [ViewModel] class is to serve the book detail screen: volume info,
+ * The purpose of this ViewModel is to serve the book detail screen: volume info,
  * author enrichment, "more by this author", and shelf/like controls for a single [Book].
  *
  * Dedicated from [BooksViewModel] since detail can be entered from the shelf, search, or
@@ -34,17 +32,14 @@ class BookDetailsViewModel(
     private val removeFromShelf: RemoveFromShelfUseCase,
     private val toggleLike: ToggleLikeUseCase,
     private val registerBook: RegisterBookUseCase
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(BookDetailsState())
-    val state: StateFlow<BookDetailsState> = _state.asStateFlow()
+) : BaseViewModel<BookDetailsState>(BookDetailsState()) {
 
     /** Registered books have a server-assigned numeric [Book.id]; others can't be shelved/liked yet. */
     val isRegistered: Boolean
-        get() = _state.value.book?.id?.toIntOrNull() != null
+        get() = currentState.book?.id?.toIntOrNull() != null
 
     fun load(book: Book, shelfStatus: ShelfStatus? = null, shelfSource: ShelfSource? = null) {
-        _state.update {
+        updateState {
             BookDetailsState(
                 book = book,
                 isLoadingEnrichment = true,
@@ -57,11 +52,11 @@ class BookDetailsViewModel(
             getBookEnrichment(book)
                 .onSuccess { enrichment ->
                     Bark.i("Loaded book enrichment (book ID: ${book.id})")
-                    _state.update { it.copy(isLoadingEnrichment = false, enrichment = enrichment) }
+                    updateState { it.copy(isLoadingEnrichment = false, enrichment = enrichment) }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to load book enrichment (book ID: ${book.id}). Degrading gracefully.", error)
-                    _state.update { it.copy(isLoadingEnrichment = false, enrichment = null) }
+                    updateState { it.copy(isLoadingEnrichment = false, enrichment = null) }
                 }
         }
 
@@ -72,7 +67,7 @@ class BookDetailsViewModel(
                 registerBook(book)
                     .onSuccess { registered ->
                         Bark.i("Registered book from detail screen (ID: ${registered.id})")
-                        _state.update { it.copy(book = registered) }
+                        updateState { it.copy(book = registered) }
                         loadLikeStatus(registered.id)
                     }
                     .onFailure { error ->
@@ -87,7 +82,7 @@ class BookDetailsViewModel(
             getLikeStatus(bookId)
                 .onSuccess { liked ->
                     Bark.i("Loaded like status (book ID: $bookId, liked: $liked)")
-                    _state.update { it.copy(isLiked = liked) }
+                    updateState { it.copy(isLiked = liked) }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to load like status (book ID: $bookId). Defaulting to unliked.", error)
@@ -96,14 +91,14 @@ class BookDetailsViewModel(
     }
 
     fun onAssignShelf(shelf: ShelfStatus) {
-        val bookId = _state.value.book?.id ?: return
+        val bookId = currentState.book?.id ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isMutationInProgress = true) }
+            updateState { it.copy(isMutationInProgress = true) }
 
             assignShelf(bookId, shelf)
                 .onSuccess { newShelf ->
                     Bark.i("Assigned book (ID: $bookId) to shelf: $newShelf")
-                    _state.update {
+                    updateState {
                         it.copy(
                             isMutationInProgress = false,
                             shelfStatus = newShelf,
@@ -113,58 +108,44 @@ class BookDetailsViewModel(
                 }
                 .onFailure { error ->
                     Bark.e("Failed to assign shelf (book ID: $bookId). ${error.message}", error)
-                    _state.update {
-                        it.copy(
-                            isMutationInProgress = false,
-                            operationError = error.toDisplayMessage()
-                        )
-                    }
+                    updateState { it.copy(isMutationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
 
     fun onRemoveFromShelf() {
-        val bookId = _state.value.book?.id ?: return
+        val bookId = currentState.book?.id ?: return
         viewModelScope.launch {
-            _state.update { it.copy(isMutationInProgress = true) }
+            updateState { it.copy(isMutationInProgress = true) }
 
             removeFromShelf(bookId)
                 .onSuccess {
                     Bark.i("Removed book (ID: $bookId) from shelf")
-                    _state.update {
+                    updateState {
                         it.copy(isMutationInProgress = false, shelfStatus = null, shelfSource = null)
                     }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to remove book from shelf (book ID: $bookId). ${error.message}", error)
-                    _state.update {
-                        it.copy(
-                            isMutationInProgress = false,
-                            operationError = error.toDisplayMessage()
-                        )
-                    }
+                    updateState { it.copy(isMutationInProgress = false) }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
     }
 
     fun onToggleLike() {
-        val bookId = _state.value.book?.id ?: return
+        val bookId = currentState.book?.id ?: return
         viewModelScope.launch {
             toggleLike(bookId)
                 .onSuccess { liked ->
                     Bark.i("Toggled like (book ID: $bookId, liked: $liked)")
-                    _state.update { it.copy(isLiked = liked) }
+                    updateState { it.copy(isLiked = liked) }
                 }
                 .onFailure { error ->
                     Bark.e("Failed to toggle like (book ID: $bookId). ${error.message}", error)
-                    _state.update {
-                        it.copy(operationError = error.toDisplayMessage())
-                    }
+                    send(ScreenEffect.ShowSnackbar.error(error.toDisplayMessage()))
                 }
         }
-    }
-
-    fun onConsumeOperationError() {
-        _state.update { it.copy(operationError = null) }
     }
 }
