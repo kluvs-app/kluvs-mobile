@@ -44,6 +44,8 @@ import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
+import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -419,6 +421,8 @@ class MeViewModelTest {
         )
         everySuspend { progressRepository.createProgress(any(), any(), any(), any(), any()) } returns Result.success(updatedProgress)
 
+        viewModel.onOpenSheet(MeSheet.UpdateProgress("s1"))
+
         // When
         viewModel.onSaveProgress("s1", ProgressType.PAGE, 100, null, false)
 
@@ -426,6 +430,26 @@ class MeViewModelTest {
         val item = viewModel.state.value.shelf.first { it.sessionId == "s1" }
         assertEquals("p1", item.ownProgress?.progressId)
         assertEquals("100 of 200 pages", item.ownProgress?.label)
+        assertNull(viewModel.state.value.activeSheet, "A successful save closes the progress sheet")
+    }
+
+    @Test
+    fun `a failed progress save leaves the sheet open`() = runTest {
+        val userId = "user-123"
+        val member = Member(id = "member-1", userId = userId, name = "Alice", booksRead = 5, clubs = listOf(Club(id = "club-1", name = "Club")))
+        val book = Book("book-1", "Test Book", "Author", null, 2024, null, pageCount = 200)
+        val session = Session(id = "s1", clubId = "club-1", book = book, dueDate = null, discussions = emptyList())
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(member)
+        everySuspend { clubRepository.getClub("club-1") } returns Result.success(Club(id = "club-1", name = "Club", activeSession = session))
+        viewModel.loadUserData(userId)
+        everySuspend { progressRepository.createProgress(any(), any(), any(), any(), any()) } returns
+            Result.failure(AppError.Timeout)
+        viewModel.onOpenSheet(MeSheet.UpdateProgress("s1"))
+
+        viewModel.onSaveProgress("s1", ProgressType.PAGE, 100, null, false)
+
+        assertEquals(MeSheet.UpdateProgress("s1"), viewModel.state.value.activeSheet)
+        assertNotNull(viewModel.state.value.snackbarError)
     }
 
     @Test
@@ -438,7 +462,7 @@ class MeViewModelTest {
     }
 
     @Test
-    fun `onReadingLogClicked shows the sheet and loads the log once`() = runTest {
+    fun `opening the reading log shows the sheet and loads the log once`() = runTest {
         // Given
         val log = ReadingLog(
             active = listOf(ReadingLogEntry(sessionId = "s1", book = BookSummary(id = "b1", title = "Dune", author = "Herbert"), club = ClubPreview(id = "c1", name = "Club"))),
@@ -447,23 +471,40 @@ class MeViewModelTest {
         everySuspend { sessionRepository.getReadingLog() } returns Result.success(log)
 
         // When
-        viewModel.onReadingLogClicked()
+        viewModel.onOpenSheet(MeSheet.ReadingLog)
 
         // Then
         val state = viewModel.state.value
-        assertTrue(state.showReadingLog)
+        assertEquals(MeSheet.ReadingLog, state.activeSheet)
         assertEquals(log, state.readingLog)
         assertFalse(state.isReadingLogLoading)
     }
 
     @Test
-    fun `onReadingLogDismissed hides the sheet`() = runTest {
+    fun `onDismissSheet hides the reading log`() = runTest {
         everySuspend { sessionRepository.getReadingLog() } returns Result.success(ReadingLog(emptyList(), emptyList()))
-        viewModel.onReadingLogClicked()
+        viewModel.onOpenSheet(MeSheet.ReadingLog)
 
-        viewModel.onReadingLogDismissed()
+        viewModel.onDismissSheet()
 
-        assertFalse(viewModel.state.value.showReadingLog)
+        assertNull(viewModel.state.value.activeSheet)
+    }
+
+    @Test
+    fun `opening the progress sheet does not load the reading log`() = runTest {
+        viewModel.onOpenSheet(MeSheet.UpdateProgress("s1"))
+
+        assertEquals(MeSheet.UpdateProgress("s1"), viewModel.state.value.activeSheet)
+        verifySuspend(VerifyMode.not) { sessionRepository.getReadingLog() }
+    }
+
+    @Test
+    fun `onOpenDialog shows the sign-out confirmation and onDismissDialog hides it`() = runTest {
+        viewModel.onOpenDialog(MeDialog.SignOut)
+        assertEquals(MeDialog.SignOut, viewModel.state.value.activeDialog)
+
+        viewModel.onDismissDialog()
+        assertNull(viewModel.state.value.activeDialog)
     }
 
     @Test
@@ -471,7 +512,7 @@ class MeViewModelTest {
         // Given: a reading log failure sets snackbarError
         val exception = AppError.Timeout
         everySuspend { sessionRepository.getReadingLog() } returns Result.failure(exception)
-        viewModel.onReadingLogClicked()
+        viewModel.onOpenSheet(MeSheet.ReadingLog)
         assertEquals("That took too long. Please try again.", viewModel.state.value.snackbarError)
 
         // When

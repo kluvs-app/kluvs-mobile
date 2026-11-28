@@ -30,7 +30,6 @@ import com.ivangarzab.kluvs.designsystem.components.buttons.PrimaryButton
 import com.ivangarzab.kluvs.designsystem.components.buttons.TextButton
 import com.ivangarzab.kluvs.designsystem.components.loading.LoadingSpinner
 import com.ivangarzab.kluvs.designsystem.components.modals.BottomSheet
-import com.ivangarzab.kluvs.designsystem.components.modals.ConfirmationDialog
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 private const val NOTE_MAX_LENGTH = 4000
@@ -42,6 +41,8 @@ private const val NOTE_MAX_LENGTH = 4000
  * A null [note] means it hasn't finished loading yet. A non-null [note] with
  * [DiscussionNoteInfo.noteId] null means no note exists yet, so the sheet
  * opens straight into an editable/create state.
+ *
+ * [onDelete] fires when Delete is tapped; the caller asks for confirmation before deleting.
  *
  * Mobile-only feature, no web equivalent to check. Renders its own Edit/Delete or Cancel/Save
  * button row as content rather than using BottomSheetFooter's slot — same reasoning as iOS's
@@ -61,7 +62,6 @@ fun DiscussionNoteSheet(
 ) {
     var isEditing by remember(note?.noteId) { mutableStateOf(note?.noteId == null) }
     var content by remember(note?.content) { mutableStateOf(note?.content ?: "") }
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     BottomSheet(
         header = stringResource(R.string.discussion_notes_title),
@@ -153,25 +153,11 @@ fun DiscussionNoteSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         TextButton(text = "Edit", onClick = { isEditing = true })
-                        TextButton(text = "Delete", onClick = { showDeleteConfirmation = true })
+                        TextButton(text = "Delete", onClick = onDelete)
                     }
                 }
             }
         }
-    }
-
-    if (showDeleteConfirmation) {
-        ConfirmationDialog(
-            title = "Delete Note",
-            message = "Are you sure you want to delete this note?",
-            confirmLabel = "Delete",
-            isDestructive = true,
-            onConfirm = {
-                showDeleteConfirmation = false
-                onDelete()
-            },
-            onDismiss = { showDeleteConfirmation = false }
-        )
     }
 }
 

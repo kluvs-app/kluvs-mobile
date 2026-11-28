@@ -57,7 +57,9 @@ class AuthViewModelHelper : KoinComponent {
 
     fun sendPasswordResetEmail() = viewModel.sendPasswordResetEmail()
 
-    fun resetForgotPasswordState() = viewModel.resetForgotPasswordState()
+    fun onOpenSheet(sheet: AuthSheet) = viewModel.onOpenSheet(sheet)
+
+    fun onDismissSheet() = viewModel.onDismissSheet()
 
     fun validateAndSignIn() = viewModel.validateAndSignIn()
 

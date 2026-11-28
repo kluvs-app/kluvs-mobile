@@ -320,4 +320,17 @@ class MeViewModelHelperTest {
 
         closeable2.close()
     }
+
+    @Test
+    fun `sheet and dialog intents pass through to the ViewModel`() = runTest {
+        helper.onOpenSheet(MeSheet.UpdateProgress("s1"))
+        assertEquals(MeSheet.UpdateProgress("s1"), viewModel.state.value.activeSheet)
+        helper.onDismissSheet()
+        assertNull(viewModel.state.value.activeSheet)
+
+        helper.onOpenDialog(MeDialog.SignOut)
+        assertEquals(MeDialog.SignOut, viewModel.state.value.activeDialog)
+        helper.onDismissDialog()
+        assertNull(viewModel.state.value.activeDialog)
+    }
 }

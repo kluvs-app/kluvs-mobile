@@ -44,9 +44,13 @@ class SettingsViewModelHelper : KoinComponent {
 
     fun clearAvatarError() = viewModel.clearAvatarError()
 
-    fun onChangePasswordSheetOpened() = viewModel.onChangePasswordSheetOpened()
+    fun onOpenSheet(sheet: SettingsSheet) = viewModel.onOpenSheet(sheet)
 
-    fun onChangePasswordSheetDismissed() = viewModel.onChangePasswordSheetDismissed()
+    fun onDismissSheet() = viewModel.onDismissSheet()
+
+    fun onOpenDialog(dialog: SettingsDialog) = viewModel.onOpenDialog(dialog)
+
+    fun onDismissDialog() = viewModel.onDismissDialog()
 
     fun onNewPasswordFieldChanged(value: String) = viewModel.onNewPasswordFieldChanged(value)
 
@@ -55,10 +59,6 @@ class SettingsViewModelHelper : KoinComponent {
     fun onSubmitChangePassword() = viewModel.onSubmitChangePassword()
 
     fun onDismissChangePasswordSuccess() = viewModel.onDismissChangePasswordSuccess()
-
-    fun onDeleteAccountClicked() = viewModel.onDeleteAccountClicked()
-
-    fun onDeleteAccountDialogDismissed() = viewModel.onDeleteAccountDialogDismissed()
 
     fun onDeleteAccountConfirmed() = viewModel.onDeleteAccountConfirmed()
 

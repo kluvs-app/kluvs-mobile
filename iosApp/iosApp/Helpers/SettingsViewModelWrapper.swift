@@ -20,7 +20,6 @@ class SettingsViewModelWrapper: ObservableObject {
     @Published var hasChanges: Bool = false
     @Published var isUploadingAvatar: Bool = false
     @Published var avatarError: String? = nil
-    @Published var isChangePasswordSheetOpen: Bool = false
     @Published var newPasswordField: String = ""
     @Published var confirmPasswordField: String = ""
     @Published var newPasswordError: String? = nil
@@ -28,7 +27,9 @@ class SettingsViewModelWrapper: ObservableObject {
     @Published var isChangingPassword: Bool = false
     @Published var changePasswordGeneralError: Shared.AuthError? = nil
     @Published var changePasswordSuccess: Bool = false
-    @Published var isDeleteAccountDialogOpen: Bool = false
+    // Sheets and dialogs — owned by the shared ViewModel, see SettingsState.activeSheet
+    @Published var activeSheet: Shared.SettingsSheet? = nil
+    @Published var activeDialog: Shared.SettingsDialog? = nil
     @Published var isDeletingAccount: Bool = false
     @Published var deleteAccountError: String? = nil
 
@@ -56,7 +57,6 @@ class SettingsViewModelWrapper: ObservableObject {
                 self.hasChanges = state.hasChanges
                 self.isUploadingAvatar = state.isUploadingAvatar
                 self.avatarError = state.avatarError
-                self.isChangePasswordSheetOpen = state.isChangePasswordSheetOpen
                 self.newPasswordField = state.newPasswordField
                 self.confirmPasswordField = state.confirmPasswordField
                 self.newPasswordError = state.newPasswordError
@@ -64,7 +64,8 @@ class SettingsViewModelWrapper: ObservableObject {
                 self.isChangingPassword = state.isChangingPassword
                 self.changePasswordGeneralError = state.changePasswordGeneralError
                 self.changePasswordSuccess = state.changePasswordSuccess
-                self.isDeleteAccountDialogOpen = state.isDeleteAccountDialogOpen
+                self.activeSheet = state.activeSheet
+                self.activeDialog = state.activeDialog
                 self.isDeletingAccount = state.isDeletingAccount
                 self.deleteAccountError = state.deleteAccountError
             }
@@ -112,13 +113,11 @@ class SettingsViewModelWrapper: ObservableObject {
         helper.clearAvatarError()
     }
 
-    func onChangePasswordSheetOpened() {
-        helper.onChangePasswordSheetOpened()
-    }
-
-    func onChangePasswordSheetDismissed() {
-        helper.onChangePasswordSheetDismissed()
-    }
+    // Sheets and dialogs
+    func onOpenSheet(_ sheet: Shared.SettingsSheet) { helper.onOpenSheet(sheet: sheet) }
+    func onDismissSheet() { helper.onDismissSheet() }
+    func onOpenDialog(_ dialog: Shared.SettingsDialog) { helper.onOpenDialog(dialog: dialog) }
+    func onDismissDialog() { helper.onDismissDialog() }
 
     func onNewPasswordFieldChanged(_ value: String) {
         helper.onNewPasswordFieldChanged(value: value)
@@ -134,14 +133,6 @@ class SettingsViewModelWrapper: ObservableObject {
 
     func onDismissChangePasswordSuccess() {
         helper.onDismissChangePasswordSuccess()
-    }
-
-    func onDeleteAccountClicked() {
-        helper.onDeleteAccountClicked()
-    }
-
-    func onDeleteAccountDialogDismissed() {
-        helper.onDeleteAccountDialogDismissed()
     }
 
     func onDeleteAccountConfirmed() {

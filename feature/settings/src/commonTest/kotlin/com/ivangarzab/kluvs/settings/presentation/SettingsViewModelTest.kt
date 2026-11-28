@@ -516,6 +516,7 @@ class SettingsViewModelTest {
     fun `onSubmitChangePassword with valid matching passwords succeeds`() = runTest {
         // Given
         everySuspend { authRepository.changePassword("newSecurePass123") } returns Result.success(Unit)
+        viewModel.onOpenSheet(SettingsSheet.ChangePassword)
         viewModel.onNewPasswordFieldChanged("newSecurePass123")
         viewModel.onConfirmPasswordFieldChanged("newSecurePass123")
 
@@ -529,6 +530,7 @@ class SettingsViewModelTest {
         assertNull(state.changePasswordGeneralError)
         assertEquals("", state.newPasswordField)
         assertEquals("", state.confirmPasswordField)
+        assertNull(state.activeSheet, "A successful change closes the sheet")
     }
 
     @Test
@@ -580,6 +582,8 @@ class SettingsViewModelTest {
         viewModel.onNewPasswordFieldChanged("newSecurePass123")
         viewModel.onConfirmPasswordFieldChanged("newSecurePass123")
 
+        viewModel.onOpenSheet(SettingsSheet.ChangePassword)
+
         // When
         viewModel.onSubmitChangePassword()
 
@@ -588,23 +592,24 @@ class SettingsViewModelTest {
         assertFalse(state.isChangingPassword)
         assertFalse(state.changePasswordSuccess)
         assertEquals(AuthError.WeakPassword, state.changePasswordGeneralError)
+        assertEquals(SettingsSheet.ChangePassword, state.activeSheet, "A failed change leaves the sheet open")
     }
 
     @Test
-    fun `onChangePasswordSheetDismissed resets change password fields and errors`() = runTest {
+    fun `dismissing Change Password resets its fields and errors`() = runTest {
         // Given
-        viewModel.onChangePasswordSheetOpened()
+        viewModel.onOpenSheet(SettingsSheet.ChangePassword)
         viewModel.onNewPasswordFieldChanged("abc")
         viewModel.onConfirmPasswordFieldChanged("abc")
         viewModel.onSubmitChangePassword()
         assertTrue(viewModel.state.value.newPasswordError != null)
 
         // When
-        viewModel.onChangePasswordSheetDismissed()
+        viewModel.onDismissSheet()
 
         // Then
         val state = viewModel.state.value
-        assertFalse(state.isChangePasswordSheetOpen)
+        assertNull(state.activeSheet)
         assertEquals("", state.newPasswordField)
         assertEquals("", state.confirmPasswordField)
         assertNull(state.newPasswordError)
@@ -617,25 +622,33 @@ class SettingsViewModelTest {
     // ========================================
 
     @Test
-    fun `onDeleteAccountClicked opens the confirmation dialog`() = runTest {
+    fun `onOpenDialog opens the delete account confirmation`() = runTest {
         // When
-        viewModel.onDeleteAccountClicked()
+        viewModel.onOpenDialog(SettingsDialog.DeleteAccount)
 
         // Then
-        assertTrue(viewModel.state.value.isDeleteAccountDialogOpen)
+        assertEquals(SettingsDialog.DeleteAccount, viewModel.state.value.activeDialog)
     }
 
     @Test
-    fun `onDeleteAccountDialogDismissed closes the confirmation dialog`() = runTest {
+    fun `onDismissDialog closes the delete account confirmation`() = runTest {
         // Given
-        viewModel.onDeleteAccountClicked()
-        assertTrue(viewModel.state.value.isDeleteAccountDialogOpen)
+        viewModel.onOpenDialog(SettingsDialog.DeleteAccount)
 
         // When
-        viewModel.onDeleteAccountDialogDismissed()
+        viewModel.onDismissDialog()
 
         // Then
-        assertFalse(viewModel.state.value.isDeleteAccountDialogOpen)
+        assertNull(viewModel.state.value.activeDialog)
+    }
+
+    @Test
+    fun `the credits sheet opens and dismisses`() = runTest {
+        viewModel.onOpenSheet(SettingsSheet.Credits)
+        assertEquals(SettingsSheet.Credits, viewModel.state.value.activeSheet)
+
+        viewModel.onDismissSheet()
+        assertNull(viewModel.state.value.activeSheet)
     }
 
     @Test
@@ -653,7 +666,7 @@ class SettingsViewModelTest {
         // Given: profile loaded and deletion succeeds
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
-        viewModel.onDeleteAccountClicked()
+        viewModel.onOpenDialog(SettingsDialog.DeleteAccount)
         everySuspend { memberRepository.deleteMember(memberId) } returns Result.success("Account deleted")
         everySuspend { authRepository.signOut() } returns Result.success(Unit)
 
@@ -663,7 +676,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
-        assertFalse(state.isDeleteAccountDialogOpen)
+        assertNull(state.activeDialog)
         assertNull(state.deleteAccountError)
         verifySuspend { memberRepository.deleteMember(memberId) }
         verifySuspend { authRepository.signOut() }
@@ -674,7 +687,7 @@ class SettingsViewModelTest {
         // Given: profile loaded, deletion fails, and the account still exists
         everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
         viewModel.loadProfile(userId)
-        viewModel.onDeleteAccountClicked()
+        viewModel.onOpenDialog(SettingsDialog.DeleteAccount)
         everySuspend {
             memberRepository.deleteMember(memberId)
         } returns Result.failure(Exception("Deletion failed"))
@@ -686,7 +699,7 @@ class SettingsViewModelTest {
         // Then
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
-        assertFalse(state.isDeleteAccountDialogOpen)
+        assertNull(state.activeDialog)
         assertTrue(state.deleteAccountError != null)
         verifySuspend(mode = VerifyMode.not) { authRepository.signOut() }
     }

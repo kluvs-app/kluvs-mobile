@@ -45,6 +45,10 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     @Published var selectedBook: Shared.Book? = nil
     @Published var isRegisteringBook: Bool = false
 
+    // Sheets and dialogs — owned by the shared ViewModel, see ClubDetailsState.activeSheet
+    @Published var activeSheet: Shared.ClubDetailsSheet? = nil
+    @Published var activeDialog: Shared.ClubDetailsDialog? = nil
+
     private let helper: ClubDetailsViewModelHelper
     private var cancellables: [Shared.Closeable] = []
 
@@ -87,6 +91,8 @@ class ClubDetailsViewModelWrapper: ObservableObject {
                 self.bookSearchError = state.bookSearchError
                 self.selectedBook = state.selectedBook
                 self.isRegisteringBook = state.isRegisteringBook
+                self.activeSheet = state.activeSheet
+                self.activeDialog = state.activeDialog
             }
         }
         cancellables.append(stateCancellable)
@@ -183,6 +189,12 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     func onTransferOwnership(newOwnerId: String) { helper.onTransferOwnership(newOwnerId: newOwnerId) }
 
     func onConsumeOperationResult() { helper.onConsumeOperationResult() }
+
+    // Sheets and dialogs
+    func onOpenSheet(_ sheet: Shared.ClubDetailsSheet) { helper.onOpenSheet(sheet: sheet) }
+    func onDismissSheet() { helper.onDismissSheet() }
+    func onOpenDialog(_ dialog: Shared.ClubDetailsDialog) { helper.onOpenDialog(dialog: dialog) }
+    func onDismissDialog() { helper.onDismissDialog() }
 
     deinit {
         cancellables.forEach { $0.close() }

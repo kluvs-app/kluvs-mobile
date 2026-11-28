@@ -188,8 +188,20 @@ class AuthViewModel(
         }
     }
 
-    fun resetForgotPasswordState() {
-        _forgotPasswordState.update { ForgotPasswordUiState() }
+    /** Opens [sheet], replacing any sheet already open. */
+    fun onOpenSheet(sheet: AuthSheet) {
+        _uiState.update { it.copy(activeSheet = sheet) }
+    }
+
+    /**
+     * Closes the open sheet: Done, Cancel, the close button, swipe down, back, or a tap outside.
+     * Closing Forgot Password clears it so it opens empty next time.
+     */
+    fun onDismissSheet() {
+        if (_uiState.value.activeSheet == AuthSheet.ForgotPassword) {
+            _forgotPasswordState.update { ForgotPasswordUiState() }
+        }
+        _uiState.update { it.copy(activeSheet = null) }
     }
 
     /**

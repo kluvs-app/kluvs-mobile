@@ -167,21 +167,24 @@ class SettingsViewModel(
         _state.update { it.copy(avatarError = null) }
     }
 
-    fun onChangePasswordSheetOpened() {
-        _state.update { it.copy(isChangePasswordSheetOpen = true) }
+    /** Opens [sheet], replacing any sheet already open. */
+    fun onOpenSheet(sheet: SettingsSheet) {
+        _state.update { it.copy(activeSheet = sheet) }
     }
 
-    fun onChangePasswordSheetDismissed() {
-        _state.update {
-            it.copy(
-                isChangePasswordSheetOpen = false,
-                newPasswordField = "",
-                confirmPasswordField = "",
-                newPasswordError = null,
-                confirmPasswordError = null,
-                changePasswordGeneralError = null
-            )
-        }
+    /** Closes the open sheet: Cancel, the close button, swipe down, back, or a tap outside. */
+    fun onDismissSheet() {
+        _state.value.activeSheet?.let { closeSheet(ifShowing = it) }
+    }
+
+    /** Opens [dialog] on top of the screen. */
+    fun onOpenDialog(dialog: SettingsDialog) {
+        _state.update { it.copy(activeDialog = dialog) }
+    }
+
+    /** Closes the open dialog. Confirming a dialog closes it too. */
+    fun onDismissDialog() {
+        _state.update { it.copy(activeDialog = null) }
     }
 
     fun onNewPasswordFieldChanged(value: String) {
@@ -227,6 +230,7 @@ class SettingsViewModel(
                             confirmPasswordField = ""
                         )
                     }
+                    closeSheet(ifShowing = SettingsSheet.ChangePassword)
                 }
                 .onFailure { error ->
                     Bark.e("Failed to change password.", error)
@@ -242,14 +246,6 @@ class SettingsViewModel(
 
     fun onDismissChangePasswordSuccess() {
         _state.update { it.copy(changePasswordSuccess = false) }
-    }
-
-    fun onDeleteAccountClicked() {
-        _state.update { it.copy(isDeleteAccountDialogOpen = true) }
-    }
-
-    fun onDeleteAccountDialogDismissed() {
-        _state.update { it.copy(isDeleteAccountDialogOpen = false) }
     }
 
     /**
@@ -270,7 +266,7 @@ class SettingsViewModel(
             // Close the dialog up front (same as MeViewModel's sign-out) — on iOS the dialog's
             // binding hides itself locally on confirm, so leaving this true would re-present it.
             _state.update {
-                it.copy(isDeleteAccountDialogOpen = false, isDeletingAccount = true, deleteAccountError = null)
+                it.copy(activeDialog = null, isDeletingAccount = true, deleteAccountError = null)
             }
 
             withContext(NonCancellable) { deleteAccountUseCase(memberId) }
@@ -308,5 +304,27 @@ class SettingsViewModel(
         // Full structural validation (segment/hyphen placement, length) is enforced at save time
         // by UpdateUserProfileUseCase's HANDLE_REGEX, which matches the backend exactly.
         private val HANDLE_CHARSET_REGEX = Regex("^[a-z0-9-]*$")
+    }
+
+    /**
+     * Closes the open sheet if it's still [ifShowing]: after a successful save the user may have
+     * dismissed it mid-save and opened another one, which must stay open. Closing Change Password
+     * clears its fields so it opens empty next time.
+     */
+    private fun closeSheet(ifShowing: SettingsSheet) {
+        _state.update {
+            when {
+                it.activeSheet != ifShowing -> it
+                ifShowing == SettingsSheet.ChangePassword -> it.copy(
+                    activeSheet = null,
+                    newPasswordField = "",
+                    confirmPasswordField = "",
+                    newPasswordError = null,
+                    confirmPasswordError = null,
+                    changePasswordGeneralError = null
+                )
+                else -> it.copy(activeSheet = null)
+            }
+        }
     }
 }

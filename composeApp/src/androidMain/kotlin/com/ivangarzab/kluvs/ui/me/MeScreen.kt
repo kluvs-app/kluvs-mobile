@@ -26,9 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ivangarzab.kluvs.R
+import com.ivangarzab.kluvs.member.presentation.MeDialog
+import com.ivangarzab.kluvs.member.presentation.MeSheet
 import com.ivangarzab.kluvs.member.presentation.MeState
 import com.ivangarzab.kluvs.member.presentation.MeViewModel
 import com.ivangarzab.kluvs.member.presentation.ShelfItem
@@ -77,7 +77,6 @@ fun MeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var editingShelfItem by remember { mutableStateOf<ShelfItem?>(null) }
 
     LaunchedEffect(userId) {
         viewModel.loadUserData(userId)
@@ -93,10 +92,10 @@ fun MeScreen(
         }
     }
 
-    if (state.showLogoutConfirmation) {
+    if (state.activeDialog == MeDialog.SignOut) {
         LogoutConfirmationDialog(
             onConfirm = viewModel::onSignOutDialogConfirmed,
-            onDismiss = viewModel::onSignOutDialogDismissed
+            onDismiss = viewModel::onDismissDialog
         )
     }
 
@@ -106,9 +105,9 @@ fun MeScreen(
             action = {
                 ActionMenu(
                     items = listOf(
-                        ActionMenuItem(label = stringResource(R.string.reading_log), onClick = viewModel::onReadingLogClicked),
+                        ActionMenuItem(label = stringResource(R.string.reading_log), onClick = { viewModel.onOpenSheet(MeSheet.ReadingLog) }),
                         ActionMenuItem(label = stringResource(R.string.settings), onClick = onNavigateToSettings),
-                        ActionMenuItem(label = stringResource(R.string.sign_out), onClick = viewModel::onSignOutClicked, isDestructive = true),
+                        ActionMenuItem(label = stringResource(R.string.sign_out), onClick = { viewModel.onOpenDialog(MeDialog.SignOut) }, isDestructive = true),
                     ),
                     contentDescription = stringResource(R.string.profile_menu)
                 )
@@ -121,9 +120,7 @@ fun MeScreen(
                 state = state,
                 onRetry = viewModel::refresh,
                 onRefresh = { viewModel.refresh(forceRefresh = true) },
-                onUpdateProgress = { sessionId ->
-                    editingShelfItem = state.shelf.find { it.sessionId == sessionId }
-                },
+                onUpdateProgress = { sessionId -> viewModel.onOpenSheet(MeSheet.UpdateProgress(sessionId)) },
             )
 
             SnackbarHost(
@@ -132,30 +129,31 @@ fun MeScreen(
                 snackbar = { KluvsSnackbar(it) }
             )
 
-            editingShelfItem?.let { item ->
-                // ReadingProgressBottomSheet is hollow (design-system primitives migration) — it
-                // reports back in ProgressTrackingMode, translated to the domain ProgressType here.
-                ReadingProgressBottomSheet(
-                    bookTitle = item.bookTitle,
-                    pageCount = item.bookPageCount,
-                    initialType = (item.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
-                    initialCurrentPage = item.ownProgress?.currentPage,
-                    initialPercentComplete = item.ownProgress?.percentComplete,
-                    initialMarkFinished = item.ownProgress?.isCompleted ?: false,
-                    onSave = { type, currentPage, percentComplete, markFinished ->
-                        viewModel.onSaveProgress(item.sessionId, type.toDomain(), currentPage, percentComplete, markFinished)
-                        editingShelfItem = null
-                    },
-                    onDismiss = { editingShelfItem = null }
-                )
-            }
+            when (val sheet = state.activeSheet) {
+                is MeSheet.UpdateProgress -> state.shelf.find { it.sessionId == sheet.sessionId }?.let { item ->
+                    // ReadingProgressBottomSheet is hollow (design-system primitives migration) — it
+                    // reports back in ProgressTrackingMode, translated to the domain ProgressType here.
+                    ReadingProgressBottomSheet(
+                        bookTitle = item.bookTitle,
+                        pageCount = item.bookPageCount,
+                        initialType = (item.ownProgress?.type ?: ProgressType.PAGE).toTrackingMode(),
+                        initialCurrentPage = item.ownProgress?.currentPage,
+                        initialPercentComplete = item.ownProgress?.percentComplete,
+                        initialMarkFinished = item.ownProgress?.isCompleted ?: false,
+                        onSave = { type, currentPage, percentComplete, markFinished ->
+                            viewModel.onSaveProgress(item.sessionId, type.toDomain(), currentPage, percentComplete, markFinished)
+                        },
+                        onDismiss = viewModel::onDismissSheet
+                    )
+                }
 
-            if (state.showReadingLog) {
-                ReadingLogBottomSheet(
+                MeSheet.ReadingLog -> ReadingLogBottomSheet(
                     log = state.readingLog,
                     isLoading = state.isReadingLogLoading,
-                    onDismiss = viewModel::onReadingLogDismissed
+                    onDismiss = viewModel::onDismissSheet
                 )
+
+                null -> Unit
             }
         }
     }

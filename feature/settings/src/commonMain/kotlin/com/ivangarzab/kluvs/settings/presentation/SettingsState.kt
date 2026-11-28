@@ -21,7 +21,6 @@ data class SettingsState(
     val isUploadingAvatar: Boolean = false,
     val avatarError: String? = null,
     // Change password sheet state
-    val isChangePasswordSheetOpen: Boolean = false,
     val newPasswordField: String = "",
     val confirmPasswordField: String = "",
     val newPasswordError: String? = null,
@@ -30,7 +29,21 @@ data class SettingsState(
     val changePasswordGeneralError: AuthError? = null,
     val changePasswordSuccess: Boolean = false,
     // Delete account state
-    val isDeleteAccountDialogOpen: Boolean = false,
     val isDeletingAccount: Boolean = false,
-    val deleteAccountError: String? = null
+    val deleteAccountError: String? = null,
+    /** The bottom sheet on screen, if any. Opened with `onOpenSheet`, closed by `onDismissSheet` or a successful save. */
+    val activeSheet: SettingsSheet? = null,
+    /** The confirmation dialog on screen, if any. */
+    val activeDialog: SettingsDialog? = null
 )
+
+/** Bottom sheets on the Settings screen. At most one is open at a time. */
+sealed class SettingsSheet {
+    data object ChangePassword : SettingsSheet()
+    data object Credits : SettingsSheet()
+}
+
+/** Confirmation dialogs on the Settings screen. */
+sealed class SettingsDialog {
+    data object DeleteAccount : SettingsDialog()
+}

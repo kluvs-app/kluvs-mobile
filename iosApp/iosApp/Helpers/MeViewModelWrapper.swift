@@ -16,11 +16,12 @@ class MeViewModelWrapper: ObservableObject {
     @Published var statistics: Shared.UserStatistics? = nil
     @Published var shelf: [Shared.ShelfItem] = []
     @Published var upNext: Shared.UpNextItem? = nil
-    @Published var showLogoutConfirmation: Bool = false
     @Published var snackbarError: String? = nil
     @Published var readingLog: Shared.ReadingLog? = nil
     @Published var isReadingLogLoading: Bool = false
-    @Published var showReadingLog: Bool = false
+    // Sheets and dialogs — owned by the shared ViewModel, see MeState.activeSheet
+    @Published var activeSheet: Shared.MeSheet? = nil
+    @Published var activeDialog: Shared.MeDialog? = nil
 
     private let helper: MeViewModelHelper
     private var cancellables: [Shared.Closeable] = []
@@ -40,11 +41,11 @@ class MeViewModelWrapper: ObservableObject {
                 self.statistics = state.statistics
                 self.shelf = state.shelf
                 self.upNext = state.upNext
-                self.showLogoutConfirmation = state.showLogoutConfirmation
                 self.snackbarError = state.snackbarError
                 self.readingLog = state.readingLog
                 self.isReadingLogLoading = state.isReadingLogLoading
-                self.showReadingLog = state.showReadingLog
+                self.activeSheet = state.activeSheet
+                self.activeDialog = state.activeDialog
             }
         }
         cancellables.append(stateCancellable)
@@ -56,14 +57,6 @@ class MeViewModelWrapper: ObservableObject {
 
     func refresh(forceRefresh: Bool = false) {
         helper.refresh(forceRefresh: forceRefresh)
-    }
-
-    func onSignOutClicked() {
-        helper.showLogoutConfirmation()
-    }
-
-    func onSignOutDialogDismissed() {
-        helper.hideLogoutConfirmation()
     }
 
     func onSignOutDialogConfirmed() {
@@ -85,13 +78,11 @@ class MeViewModelWrapper: ObservableObject {
         )
     }
 
-    func onReadingLogClicked() {
-        helper.onReadingLogClicked()
-    }
-
-    func onReadingLogDismissed() {
-        helper.onReadingLogDismissed()
-    }
+    // Sheets and dialogs
+    func onOpenSheet(_ sheet: Shared.MeSheet) { helper.onOpenSheet(sheet: sheet) }
+    func onDismissSheet() { helper.onDismissSheet() }
+    func onOpenDialog(_ dialog: Shared.MeDialog) { helper.onOpenDialog(dialog: dialog) }
+    func onDismissDialog() { helper.onDismissDialog() }
 
     deinit {
         cancellables.forEach { $0.close() }

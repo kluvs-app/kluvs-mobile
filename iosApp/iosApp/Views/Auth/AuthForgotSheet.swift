@@ -16,7 +16,6 @@ struct AuthForgotSheetModifier: ViewModifier {
                 header: viewModel.isForgotPasswordEmailSent
                     ? String(localized: "headline_check_your_inbox")
                     : String(localized: "headline_forgot_it"),
-                onDismiss: { viewModel.resetForgotPasswordState() },
                 content: {
                     if !viewModel.isForgotPasswordEmailSent {
                         AuthForgotSheetForm(viewModel: viewModel)

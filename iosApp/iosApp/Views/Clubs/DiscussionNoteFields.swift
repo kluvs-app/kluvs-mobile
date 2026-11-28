@@ -11,6 +11,8 @@ private let noteMaxLength = 4000
 /// a nil `noteId` means no note exists yet, so the sheet opens straight into
 /// an editable/create state.
 ///
+/// `onDelete` fires when Delete is tapped; the caller asks for confirmation before deleting.
+///
 /// No web equivalent exists for this one (mobile-only feature) — nothing to check against.
 ///
 /// Deliberately renders its own Edit/Delete or Cancel/Save button row as part of its content,
@@ -26,7 +28,6 @@ struct DiscussionNoteFields: View {
 
     @State private var isEditing: Bool = false
     @State private var content: String = ""
-    @State private var showDeleteConfirmation = false
     @State private var lastLoadedNoteId: String??
 
     var body: some View {
@@ -70,14 +71,6 @@ struct DiscussionNoteFields: View {
             content = note?.content ?? ""
             isEditing = newNoteId == nil
         }
-        .kluvsConfirmationDialog(
-            isPresented: $showDeleteConfirmation,
-            title: "Delete Note",
-            message: "Are you sure you want to delete this note?",
-            confirmLabel: "Delete",
-            isDestructive: true,
-            onConfirm: onDelete
-        )
     }
 
     @ViewBuilder
@@ -91,7 +84,7 @@ struct DiscussionNoteFields: View {
             HStack {
                 TextButton(text: "Edit", action: { isEditing = true })
                 Spacer()
-                TextButton(text: "Delete", action: { showDeleteConfirmation = true })
+                TextButton(text: "Delete", action: onDelete)
             }
         }
     }

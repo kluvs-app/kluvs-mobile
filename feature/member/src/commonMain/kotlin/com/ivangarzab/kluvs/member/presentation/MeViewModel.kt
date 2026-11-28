@@ -129,6 +129,7 @@ class MeViewModel(
                     _state.update { s ->
                         s.copy(shelf = s.shelf.map { if (it.sessionId == sessionId) it.copy(ownProgress = updated) else it })
                     }
+                    closeSheet(ifShowing = MeSheet.UpdateProgress(sessionId))
                 }
                 .onFailure { error ->
                     Bark.e("Operation failed: Progress update (Session ID: $sessionId). ${error.message}", error)
@@ -137,10 +138,39 @@ class MeViewModel(
         }
     }
 
-    fun onReadingLogClicked() {
-        _state.update { it.copy(showReadingLog = true) }
-        if (_state.value.readingLog != null) return
+    /** Opens [sheet], replacing any sheet already open. The reading log loads the first time it opens. */
+    fun onOpenSheet(sheet: MeSheet) {
+        _state.update { it.copy(activeSheet = sheet) }
+        if (sheet == MeSheet.ReadingLog) loadReadingLog()
+    }
 
+    /** Closes the open sheet: Cancel, the close button, swipe down, back, or a tap outside. */
+    fun onDismissSheet() {
+        _state.update { it.copy(activeSheet = null) }
+    }
+
+    /** Opens [dialog] on top of the screen. */
+    fun onOpenDialog(dialog: MeDialog) {
+        _state.update { it.copy(activeDialog = dialog) }
+    }
+
+    /** Closes the open dialog. Confirming a dialog closes it too. */
+    fun onDismissDialog() {
+        _state.update { it.copy(activeDialog = null) }
+    }
+
+    fun onSignOutDialogConfirmed() = viewModelScope.launch {
+        Bark.i("Signing out user")
+        onDismissDialog()
+        signOutUseCase()
+    }
+
+    fun clearSnackbarError() {
+        _state.update { it.copy(snackbarError = null) }
+    }
+
+    private fun loadReadingLog() {
+        if (_state.value.readingLog != null) return
         viewModelScope.launch {
             _state.update { it.copy(isReadingLogLoading = true) }
             getReadingLog()
@@ -152,25 +182,11 @@ class MeViewModel(
         }
     }
 
-    fun onReadingLogDismissed() {
-        _state.update { it.copy(showReadingLog = false) }
-    }
-
-    fun onSignOutClicked() {
-        _state.update { it.copy(showLogoutConfirmation = true) }
-    }
-
-    fun onSignOutDialogDismissed() {
-        _state.update { it.copy(showLogoutConfirmation = false) }
-    }
-
-    fun onSignOutDialogConfirmed() = viewModelScope.launch {
-        Bark.i("Signing out user")
-        _state.update { it.copy(showLogoutConfirmation = false) }
-        signOutUseCase()
-    }
-
-    fun clearSnackbarError() {
-        _state.update { it.copy(snackbarError = null) }
+    /**
+     * Closes the open sheet after a successful save, but only if it's still [ifShowing]. The user
+     * may have dismissed it mid-save and opened another one, which must stay open.
+     */
+    private fun closeSheet(ifShowing: MeSheet) {
+        _state.update { if (it.activeSheet == ifShowing) it.copy(activeSheet = null) else it }
     }
 }

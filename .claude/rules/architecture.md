@@ -33,14 +33,20 @@ paths:
   | | Platform effect | Screen effect (planned) | State |
   |---|---|---|---|
   | What | Something only the phone can do | A one-shot event the visible screen reacts to | Anything that stays visible |
-  | Examples | Open a link or the store listing, copy, share | Show a toast or snackbar, close a sheet after saving | Sheets, dialogs, banners, loading |
-  | Handled by | One Kotlin handler per platform | One shared listener per platform, in the screen scaffold | The screen, from `StateFlow` or local UI state |
+  | Examples | Open a link or the store listing, copy, share | Show a toast or snackbar | Sheets, dialogs, banners, loading |
+  | Handled by | One Kotlin handler per platform | One shared listener per platform, in the screen scaffold | The screen, from `StateFlow` |
 
 - **Platform effects** are cases of the sealed `PlatformEffect` class in `core/presentation/.../presentation/effect/`. A ViewModel takes a `PlatformEffectHandler`, owns an `EffectChannel<PlatformEffect>` wired to it (`EffectChannel<PlatformEffect>().apply { handleWith(viewModelScope, platformEffectHandler::handle) }`), and calls `platformEffects.send(...)`. Each platform runs every case in its own Kotlin handler (`AndroidPlatformEffectHandler`, `IosPlatformEffectHandler`), so screens on either platform never open URLs, the clipboard or the share sheet themselves.
   - Add a new kind as a case on `PlatformEffect`, never per screen, and handle it in both platform handlers.
   - Name a case after what the phone does, never why the screen wants it: `ShareText(text)`, not `ShareClubInvite`; `OpenUrl(url)`, not `OpenPrivacyPolicy`. The screen-specific part (which text, which link, when) stays in the ViewModel. The list should grow with the phone's capabilities, not with the number of screens.
 - **Screen effects** (`ScreenEffect`) aren't built yet; a planned base ViewModel adds them. Their shape (one shared type, per-screen types, or a mix) is still open and gets decided with that work. Until then, success notices and transient errors are state flags cleared by an `onDismiss<X>()` intent (e.g. `onDismissSaveSuccess`).
-- A sheet's visibility is state, because it has to survive rotation and be dismissed. Only the moment around it (close the sheet because the save succeeded) is an effect.
+- **Sheets and dialogs are ViewModel state**, never `remember` / `@State` flags, so the same tap opens the same sheet on both platforms and it survives rotation.
+  - Each screen's state has `activeSheet: {Screen}Sheet?` and `activeDialog: {Screen}Dialog?`. Both are sealed classes with one case per sheet or dialog; a case carries the ID it's about (`EditDiscussion(discussionId)`). See `ClubDetailsState`.
+  - Intents are always `onOpenSheet(sheet)`, `onDismissSheet()`, `onOpenDialog(dialog)` and `onDismissDialog()`, with these exact names (KT-363 moves them into the base ViewModel). Every way of closing calls the dismiss intent: Cancel, the close button, swipe down, back, a tap outside.
+  - A dialog can sit on top of a sheet (delete note over the Notes sheet). Draw dialogs after sheets so they land on top.
+  - A form sheet closes from the ViewModel when its save succeeds, via a private `closeSheet(ifShowing = …)` that leaves alone a sheet the user swapped to mid-save. A failed save leaves the sheet open. Because the sheet stays open while saving, ignore a repeat save while one is running.
+  - Confirming a dialog closes it right away: the action intent (`onDeleteClub()`) clears `activeDialog` first.
+  - What the user is typing inside a sheet can stay in local UI state.
 - Sheets are never navigation destinations: a sheet is a layer over its screen and uses that screen's ViewModel. Only screens can be deep linked into. If a sheet ever needs a deep link, its own ViewModel or its own data, promote it to a full screen destination instead (see `JoinBottomSheet` vs. `JoinScreen`).
 - When a refresh fails, keep the content already on screen and report the failure via a snackbar, not an error page (see `ClubDetailsViewModel`, `MeViewModel`).
 

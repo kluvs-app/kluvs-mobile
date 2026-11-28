@@ -6,7 +6,6 @@ struct MeView: View {
     let userId: String
     @StateObject private var viewModel = MeViewModelWrapper()
     @State private var showSettings = false
-    @State private var editingShelfItem: Shared.ShelfItem? = nil
     @State private var progressType: Shared.ProgressType = .page
     @State private var progressCurrentPageText = ""
     @State private var progressPercentText = ""
@@ -14,12 +13,23 @@ struct MeView: View {
     @State private var progressLastAutoTriggerValue: String? = nil
     @State private var progressSheetHeader = "Track Progress"
 
+    /// The shelf item whose progress sheet is open, from the shared ViewModel's `activeSheet`.
+    private var editingShelfItem: Binding<Shared.ShelfItem?> {
+        Binding(
+            get: {
+                guard let sheet = viewModel.activeSheet as? MeSheet.UpdateProgress else { return nil }
+                return viewModel.shelf.first { $0.sessionId == sheet.sessionId }
+            },
+            set: { if $0 == nil { viewModel.onDismissSheet() } }
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             MeTopBar(
-                onReadingLogClick: { viewModel.onReadingLogClicked() },
+                onReadingLogClick: { viewModel.onOpenSheet(MeSheet.ReadingLog.shared) },
                 onSettingsClick: { showSettings = true },
-                onSignOutClick: { viewModel.onSignOutClicked() }
+                onSignOutClick: { viewModel.onOpenDialog(MeDialog.SignOut.shared) }
             )
 
             ZStack {
@@ -99,7 +109,7 @@ struct MeView: View {
                                     progressMarkFinished = item?.ownProgress?.isCompleted ?? false
                                     progressLastAutoTriggerValue = nil
                                     progressSheetHeader = item?.ownProgress != nil ? "Update Progress" : "Track Progress"
-                                    editingShelfItem = item
+                                    viewModel.onOpenSheet(MeSheet.UpdateProgress(sessionId: sessionId))
                                 }
                             )
                         }
@@ -128,13 +138,13 @@ struct MeView: View {
             viewModel.loadUserData(userId: userId)
         }
         .kluvsConfirmationDialog(
-            isPresented: $viewModel.showLogoutConfirmation,
+            isPresented: Binding(get: { viewModel.activeDialog == MeDialog.SignOut.shared }, set: { _ in }),
             title: NSLocalizedString("logout_confirmation_title", comment: ""),
             message: NSLocalizedString("logout_confirmation_message", comment: ""),
             confirmLabel: NSLocalizedString("yes", comment: ""),
             dismissLabel: NSLocalizedString("no", comment: ""),
             isDestructive: true,
-            onDismiss: { viewModel.onSignOutDialogDismissed() },
+            onDismiss: { viewModel.onDismissDialog() },
             onConfirm: { viewModel.onSignOutDialogConfirmed() }
         )
         .sheet(isPresented: $showSettings) {
@@ -142,7 +152,7 @@ struct MeView: View {
                 SettingsView(userId: userId)
             }
         }
-        .kluvsBottomSheet(item: $editingShelfItem, header: progressSheetHeader) { item in
+        .kluvsBottomSheet(item: editingShelfItem, header: progressSheetHeader) { item in
             ReadingProgressFields(
                 bookTitle: item.bookTitle,
                 pageCount: item.bookPageCount?.int32Value,
@@ -174,16 +184,17 @@ struct MeView: View {
                         percentComplete: percent,
                         markFinished: progressMarkFinished
                     )
-                    editingShelfItem = nil
                 },
-                onCancel: { editingShelfItem = nil },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: canSave
             )
         }
         .kluvsBottomSheet(
-            isPresented: $viewModel.showReadingLog,
-            header: "Reading Log",
-            onDismiss: { viewModel.onReadingLogDismissed() }
+            isPresented: Binding(
+                get: { viewModel.activeSheet == MeSheet.ReadingLog.shared },
+                set: { if !$0 { viewModel.onDismissSheet() } }
+            ),
+            header: "Reading Log"
         ) {
             ReadingLogFields(log: viewModel.readingLog, isLoading: viewModel.isReadingLogLoading)
         }

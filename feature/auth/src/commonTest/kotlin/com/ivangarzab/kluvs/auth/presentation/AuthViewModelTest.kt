@@ -491,17 +491,38 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `resetForgotPasswordState clears state back to default`() = runTest {
+    fun `onOpenSheet opens Forgot Password`() = runTest {
+        viewModel.onOpenSheet(AuthSheet.ForgotPassword)
+
+        assertEquals(AuthSheet.ForgotPassword, viewModel.uiState.value.activeSheet)
+    }
+
+    @Test
+    fun `dismissing Forgot Password closes it and clears its state`() = runTest {
         // Given
+        viewModel.onOpenSheet(AuthSheet.ForgotPassword)
         viewModel.onForgotPasswordEmailChanged("test@example.com")
         everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
         viewModel.sendPasswordResetEmail()
 
         // When
-        viewModel.resetForgotPasswordState()
+        viewModel.onDismissSheet()
 
         // Then
+        assertNull(viewModel.uiState.value.activeSheet)
         assertEquals(ForgotPasswordUiState(), viewModel.forgotPasswordState.value)
+    }
+
+    @Test
+    fun `sending the reset email keeps Forgot Password open on its confirmation`() = runTest {
+        viewModel.onOpenSheet(AuthSheet.ForgotPassword)
+        viewModel.onForgotPasswordEmailChanged("test@example.com")
+        everySuspend { authRepository.resetPasswordForEmail("test@example.com") } returns Result.success(Unit)
+
+        viewModel.sendPasswordResetEmail()
+
+        assertEquals(AuthSheet.ForgotPassword, viewModel.uiState.value.activeSheet)
+        assertTrue(viewModel.forgotPasswordState.value.isEmailSent)
     }
 
     // ========== Edge Cases ==========

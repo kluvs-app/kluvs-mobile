@@ -6,6 +6,34 @@ private struct IDWrapper: Identifiable {
     let id: String
 }
 
+/// SwiftUI bindings over the shared ViewModel's `activeSheet` / `activeDialog`. The ViewModel
+/// decides what's open; a sheet the user closes (Cancel, drag, scrim tap) reports back through
+/// `onDismissSheet()`.
+private extension ClubDetailsViewModelWrapper {
+    /// Shown while `sheet` is the open one.
+    func isShowing(_ sheet: Shared.ClubDetailsSheet) -> Binding<Bool> {
+        Binding(
+            get: { self.activeSheet == sheet },
+            set: { if !$0 { self.onDismissSheet() } }
+        )
+    }
+
+    /// For sheets that carry an ID (Edit Discussion, Notes, Change Role): the ID while one of type
+    /// `T` is open.
+    func sheetItem<T: Shared.ClubDetailsSheet>(_ type: T.Type, id: @escaping (T) -> String) -> Binding<IDWrapper?> {
+        Binding(
+            get: { (self.activeSheet as? T).map { IDWrapper(id: id($0)) } },
+            set: { if $0 == nil { self.onDismissSheet() } }
+        )
+    }
+
+    /// Shown while a dialog of type `T` is open. Read-only: Cancel and scrim taps go through
+    /// `onDismiss`, and confirming calls an action that closes the dialog itself.
+    func isShowing<T: Shared.ClubDetailsDialog>(_ type: T.Type) -> Binding<Bool> {
+        Binding(get: { self.activeDialog is T }, set: { _ in })
+    }
+}
+
 /// Shared by both Clubs and Me's Reading Progress sheet call sites.
 func formatPercent(_ value: Float) -> String {
     value == value.rounded() ? String(Int(value)) : String(value)
@@ -26,9 +54,7 @@ struct ClubsView: View {
     @StateObject private var viewModel = ClubDetailsViewModelWrapper()
     @StateObject private var joinViewModel = JoinViewModelWrapper()
     @State private var path = NavigationPath()
-    @State private var showCreateClubSheet = false
     @State private var newClubName = ""
-    @State private var showJoinSheet = false
 
     private var isEmptyScreenState: Bool {
         if case .empty = viewModel.screenState { return true }
@@ -43,7 +69,7 @@ struct ClubsView: View {
                 TopAppBar(header: "Your", title: "Kluvs") {
                     // Empty state already shows its own "Join with a code" button.
                     if !isEmptyScreenState {
-                        OutlinedButton(text: "Join with a code", action: { showJoinSheet = true })
+                        OutlinedButton(text: "Join with a code", action: { viewModel.onOpenSheet(ClubDetailsSheet.JoinClub.shared) })
                     }
                 }
 
@@ -61,13 +87,13 @@ struct ClubsView: View {
                                 heading: "No clubs yet.",
                                 body: "Join a club or start your own to get things going."
                             ) {
-                                SecondaryButton(text: "Join with a code", action: { showJoinSheet = true })
+                                SecondaryButton(text: "Join with a code", action: { viewModel.onOpenSheet(ClubDetailsSheet.JoinClub.shared) })
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                             ClubsFAB(action: {
                                 newClubName = ""
-                                showCreateClubSheet = true
+                                viewModel.onOpenSheet(ClubDetailsSheet.CreateClub.shared)
                             })
                         }
                     case .content:
@@ -79,7 +105,7 @@ struct ClubsView: View {
                             },
                             onAddClub: {
                                 newClubName = ""
-                                showCreateClubSheet = true
+                                viewModel.onOpenSheet(ClubDetailsSheet.CreateClub.shared)
                             },
                             isRefreshing: viewModel.isLoading,
                             onRefresh: { viewModel.loadUserClubs(userId: userId, forceRefresh: true) }
@@ -110,35 +136,33 @@ struct ClubsView: View {
         .onChange(of: joinViewModel.joinedClubId) { _, newValue in
             if let clubId = newValue {
                 joinViewModel.onConsumeJoinedClubId()
-                showJoinSheet = false
+                // Joining runs in JoinViewModel, so this screen closes the sheet itself once it reports back
+                viewModel.onDismissSheet()
                 viewModel.selectClub(clubId: clubId)
                 path.append(clubId)
             }
         }
-        .kluvsBottomSheet(isPresented: $showJoinSheet, header: "Join with a Code") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.JoinClub.shared), header: "Join with a Code") {
             JoinFields(viewModel: joinViewModel)
         } footer: {
             let hasPreview = joinViewModel.preview != nil
             BottomSheetFooter(
                 actionLabel: hasPreview ? (joinViewModel.isJoining ? "Joining…" : "Join") : "Preview",
                 onAction: hasPreview ? { joinViewModel.onJoinClicked() } : { joinViewModel.previewInvite() },
-                onCancel: { showJoinSheet = false },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: hasPreview
                     ? !joinViewModel.isJoining
                     : !joinViewModel.tokenInput.trimmingCharacters(in: .whitespaces).isEmpty && !joinViewModel.isLoadingPreview
             )
         }
-        .kluvsBottomSheet(isPresented: $showCreateClubSheet, header: "New Club") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.CreateClub.shared), header: "New Club") {
             CreateClubFields(name: $newClubName)
         } footer: {
             let trimmedName = newClubName.trimmingCharacters(in: .whitespaces)
             BottomSheetFooter(
                 actionLabel: "Create",
-                onAction: {
-                    viewModel.onCreateClub(userId: userId, name: trimmedName)
-                    showCreateClubSheet = false
-                },
-                onCancel: { showCreateClubSheet = false },
+                onAction: { viewModel.onCreateClub(userId: userId, name: trimmedName) },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: !trimmedName.isEmpty
             )
         }
@@ -159,36 +183,22 @@ private struct ClubDetailView: View {
     @State private var selectedTab = 0
     @Environment(\.dismiss) private var dismiss
 
-    // Sheet / alert state
-    @State private var showEditClubSheet = false
+    // Sheet form fields. Which sheet or dialog is open lives in the shared ViewModel
+    // (`viewModel.activeSheet` / `activeDialog`); only what the user is typing stays here.
     @State private var editClubName = ""
-    @State private var showShareClubSheet = false
-    @State private var showDeleteClubAlert = false
-    @State private var showCreateSessionSheet = false
-    @State private var showEditSessionSheet = false
     @State private var createSessionHasDueDate = false
     @State private var createSessionDueDate = Date()
     @State private var editSessionHasDueDate = false
     @State private var editSessionDueDate = Date()
-    @State private var showEndSessionAlert = false
-    @State private var showProgressSheet = false
     @State private var progressType: Shared.ProgressType = .page
     @State private var progressCurrentPageText = ""
     @State private var progressPercentText = ""
     @State private var progressMarkFinished = false
     @State private var progressLastAutoTriggerValue: String? = nil
-    @State private var showCreateDiscussionSheet = false
-    @State private var editingDiscussionId: IDWrapper? = nil
     @State private var discussionTitle = ""
     @State private var discussionLocation = ""
     @State private var discussionDate = Date()
-    @State private var deletingDiscussionId: String? = nil
-    @State private var openNoteDiscussionId: IDWrapper? = nil
-    @State private var changingRoleMemberId: IDWrapper? = nil
     @State private var selectedRole: Shared.Role = .member
-    @State private var removingMemberId: String? = nil
-    @State private var showLeaveClubAlert = false
-    @State private var transferOwnershipTargetId: String? = nil
 
     /// The current user's own memberId (needed for role/remove calls and the Overview tab's
     /// participation toggle) — resolved independently of the club's member roster, see
@@ -197,12 +207,12 @@ private struct ClubDetailView: View {
 
     /// Resets Create Session's fields fresh each time it opens — since the sheet is now a
     /// persistent overlay rather than a re-instantiated `.sheet()` presentation, its `@State`
-    /// wouldn't otherwise reset between opens the way it used to for free.
+    /// wouldn't otherwise reset between opens the way it used to for free. The ViewModel resets
+    /// the book search itself when the sheet opens.
     private func openCreateSession() {
-        viewModel.onResetBookSearch()
         createSessionHasDueDate = false
         createSessionDueDate = Date()
-        showCreateSessionSheet = true
+        viewModel.onOpenSheet(ClubDetailsSheet.CreateSession.shared)
     }
 
     private func openProgressSheet() {
@@ -214,14 +224,14 @@ private struct ClubDetailView: View {
         progressPercentText = percentComplete.map { formatPercent($0) } ?? ""
         progressMarkFinished = ownProgress?.isCompleted ?? false
         progressLastAutoTriggerValue = nil
-        showProgressSheet = true
+        viewModel.onOpenSheet(ClubDetailsSheet.UpdateProgress.shared)
     }
 
     private func openCreateDiscussion() {
         discussionTitle = ""
         discussionLocation = ""
         discussionDate = Date()
-        showCreateDiscussionSheet = true
+        viewModel.onOpenSheet(ClubDetailsSheet.CreateDiscussion.shared)
     }
 
     private func openEditDiscussion(discussionId: String) {
@@ -229,13 +239,13 @@ private struct ClubDetailView: View {
         discussionTitle = discussion?.title ?? ""
         discussionLocation = discussion?.location ?? ""
         discussionDate = viewModel.discussionDateIso(for: discussionId)?.toSwiftDate() ?? Date()
-        editingDiscussionId = IDWrapper(id: discussionId)
+        viewModel.onOpenSheet(ClubDetailsSheet.EditDiscussion(discussionId: discussionId))
     }
 
     private func openEditSession() {
         editSessionHasDueDate = viewModel.sessionDueDateIso != nil
         editSessionDueDate = viewModel.sessionDueDateIso?.toSwiftDate() ?? Date()
-        showEditSessionSheet = true
+        viewModel.onOpenSheet(ClubDetailsSheet.EditSession.shared)
     }
 
     var body: some View {
@@ -256,16 +266,16 @@ private struct ClubDetailView: View {
                 if viewModel.userRole != nil {
                     ActionMenu(items: {
                         var items = [
-                            ActionMenuItem(label: "Share", action: { showShareClubSheet = true })
+                            ActionMenuItem(label: "Share", action: { viewModel.onOpenSheet(ClubDetailsSheet.ShareClub.shared) })
                         ]
                         if viewModel.userRole == .owner {
                             items.append(ActionMenuItem(label: "Edit", action: {
                                 editClubName = viewModel.clubDetails?.clubName ?? ""
-                                showEditClubSheet = true
+                                viewModel.onOpenSheet(ClubDetailsSheet.EditClub.shared)
                             }))
-                            items.append(ActionMenuItem(label: "Delete", action: { showDeleteClubAlert = true }, isDestructive: true))
+                            items.append(ActionMenuItem(label: "Delete", action: { viewModel.onOpenDialog(ClubDetailsDialog.DeleteClub.shared) }, isDestructive: true))
                         } else {
-                            items.append(ActionMenuItem(label: "Leave Club", action: { showLeaveClubAlert = true }, isDestructive: true))
+                            items.append(ActionMenuItem(label: "Leave Club", action: { viewModel.onOpenDialog(ClubDetailsDialog.LeaveClub.shared) }, isDestructive: true))
                         }
                         return items
                     }())
@@ -312,7 +322,7 @@ private struct ClubDetailView: View {
                         members: viewModel.members,
                         currentMemberId: viewModel.currentMemberId,
                         onEditSession: { openEditSession() },
-                        onEndSession: { showEndSessionAlert = true },
+                        onEndSession: { viewModel.onOpenDialog(ClubDetailsDialog.EndSession.shared) },
                         onUpdateProgress: { openProgressSheet() },
                         onCreateSession: { openCreateSession() },
                         onToggleParticipation: { isReading in
@@ -329,8 +339,8 @@ private struct ClubDetailView: View {
                         onCreateSession: { openCreateSession() },
                         onCreateDiscussion: { openCreateDiscussion() },
                         onEditDiscussion: { id in openEditDiscussion(discussionId: id) },
-                        onDeleteDiscussion: { id in deletingDiscussionId = id },
-                        onOpenNote: { id in openNoteDiscussionId = IDWrapper(id: id) },
+                        onDeleteDiscussion: { id in viewModel.onOpenDialog(ClubDetailsDialog.DeleteDiscussion(discussionId: id)) },
+                        onOpenNote: { id in viewModel.onOpenSheet(ClubDetailsSheet.DiscussionNote(discussionId: id)) },
                         discussionRosters: viewModel.discussionRosters,
                         onLoadAttendanceRoster: { id in viewModel.onLoadAttendanceRoster(discussionId: id) },
                         onSetAttendance: { id, status in viewModel.onSetAttendance(discussionId: id, status: status) }
@@ -346,11 +356,11 @@ private struct ClubDetailView: View {
                             let member = viewModel.members.first { $0.memberId == memberId }
                             let assignable: [Shared.Role] = [.admin, .member]
                             selectedRole = assignable.contains(member?.role ?? .member) ? (member?.role ?? .member) : .member
-                            changingRoleMemberId = IDWrapper(id: memberId)
+                            viewModel.onOpenSheet(ClubDetailsSheet.ChangeRole(memberId: memberId))
                         },
-                        onRemoveMember: { memberId in removingMemberId = memberId },
-                        onTransferOwnership: { memberId in transferOwnershipTargetId = memberId },
-                        onInviteMember: { showShareClubSheet = true }
+                        onRemoveMember: { memberId in viewModel.onOpenDialog(ClubDetailsDialog.RemoveMember(memberId: memberId)) },
+                        onTransferOwnership: { memberId in viewModel.onOpenDialog(ClubDetailsDialog.TransferOwnership(memberId: memberId)) },
+                        onInviteMember: { viewModel.onOpenSheet(ClubDetailsSheet.ShareClub.shared) }
                     )
                     .tag(2)
                 }
@@ -375,7 +385,7 @@ private struct ClubDetailView: View {
             set: { if $0 == nil { viewModel.onConsumeOperationResult() } }
         ))
         // Share club invite link
-        .kluvsBottomSheet(isPresented: $showShareClubSheet, header: "Share Club") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.ShareClub.shared), header: "Share Club") {
             ShareClubFields(
                 joinPolicy: viewModel.clubDetails?.joinPolicy,
                 inviteToken: viewModel.clubDetails?.inviteToken,
@@ -388,38 +398,26 @@ private struct ClubDetailView: View {
             )
         }
         // Edit club name
-        .kluvsBottomSheet(isPresented: $showEditClubSheet, header: "Edit Club") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.EditClub.shared), header: "Edit Club") {
             EditClubFields(
                 currentName: viewModel.clubDetails?.clubName ?? "",
                 name: $editClubName,
                 onDeleteClub: {
-                    showEditClubSheet = false
-                    showDeleteClubAlert = true
+                    viewModel.onDismissSheet()
+                    viewModel.onOpenDialog(ClubDetailsDialog.DeleteClub.shared)
                 }
             )
         } footer: {
             BottomSheetFooter(
                 actionLabel: "Save",
-                onAction: {
-                    viewModel.onUpdateClubName(editClubName.trimmingCharacters(in: .whitespaces))
-                    showEditClubSheet = false
-                },
-                onCancel: { showEditClubSheet = false },
+                onAction: { viewModel.onUpdateClubName(editClubName.trimmingCharacters(in: .whitespaces)) },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: {
                     let trimmed = editClubName.trimmingCharacters(in: .whitespaces)
                     return !trimmed.isEmpty && trimmed != (viewModel.clubDetails?.clubName ?? "")
                 }()
             )
         }
-        // Delete club confirmation
-        .kluvsConfirmationDialog(
-            isPresented: $showDeleteClubAlert,
-            title: "Delete Club",
-            message: "Are you sure you want to delete \"\(viewModel.clubDetails?.clubName ?? "this club")\"? This action cannot be undone.",
-            confirmLabel: "Delete",
-            isDestructive: true,
-            onConfirm: { viewModel.onDeleteClub() }
-        )
         .onChange(of: viewModel.deletedClubId) { _, newValue in
             if newValue != nil {
                 dismiss()
@@ -433,7 +431,7 @@ private struct ClubDetailView: View {
             }
         }
         // Create session
-        .kluvsBottomSheet(isPresented: $showCreateSessionSheet, header: "Create Session") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.CreateSession.shared), header: "Create Session") {
             CreateSessionFields(
                 bookSearchQuery: Binding(
                     get: { viewModel.bookSearchQuery },
@@ -457,18 +455,13 @@ private struct ClubDetailView: View {
                     guard let book = viewModel.selectedBook else { return }
                     let resolvedDueDateIso = createSessionHasDueDate ? createSessionDueDate.toIsoString() : nil
                     viewModel.onCreateSession(book: book, dueDateIso: resolvedDueDateIso)
-                    viewModel.onResetBookSearch()
-                    showCreateSessionSheet = false
                 },
-                onCancel: {
-                    viewModel.onResetBookSearch()
-                    showCreateSessionSheet = false
-                },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: viewModel.selectedBook != nil
             )
         }
         // Edit session
-        .kluvsBottomSheet(isPresented: $showEditSessionSheet, header: "Edit Session") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.EditSession.shared), header: "Edit Session") {
             EditSessionFields(
                 hasDueDate: $editSessionHasDueDate,
                 dueDate: $editSessionDueDate
@@ -481,30 +474,14 @@ private struct ClubDetailView: View {
                 onAction: {
                     let resolvedDueDateIso = editSessionHasDueDate ? editSessionDueDate.toIsoString() : nil
                     viewModel.onUpdateSession(book: nil, dueDateIso: resolvedDueDateIso)
-                    showEditSessionSheet = false
                 },
-                onCancel: { showEditSessionSheet = false },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: hasChanges
             )
         }
-        // End session confirmation
-        .kluvsConfirmationDialog(
-            isPresented: $showEndSessionAlert,
-            title: "End Session",
-            message: {
-                let readingCount = viewModel.activeSession?.participants.filter { $0.isReading }.count ?? 0
-                let creditMessage = readingCount > 0
-                    ? "\(readingCount) member\(readingCount != 1 ? "s" : "") will receive credit."
-                    : "No members are marked as reading — no credit will be awarded."
-                return "Are you sure you want to end the current reading session for \"\(viewModel.activeSession?.book.title ?? "")\"?\n\n\(creditMessage)"
-            }(),
-            confirmLabel: "Confirm End",
-            isDestructive: true,
-            onConfirm: { viewModel.onEndSession() }
-        )
         // Update reading progress
         .kluvsBottomSheet(
-            isPresented: $showProgressSheet,
+            isPresented: viewModel.isShowing(ClubDetailsSheet.UpdateProgress.shared),
             header: viewModel.ownProgress != nil ? "Update Progress" : "Track Progress"
         ) {
             if let session = viewModel.activeSession {
@@ -534,14 +511,13 @@ private struct ClubDetailView: View {
                         ? Float(progressPercentText).map { Int32(Swift.min(100, Swift.max(0, $0.rounded()))) }
                         : nil
                     viewModel.onSaveProgress(type: progressType, currentPage: page, percentComplete: percent, markFinished: progressMarkFinished)
-                    showProgressSheet = false
                 },
-                onCancel: { showProgressSheet = false },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: canSave
             )
         }
         // Create discussion
-        .kluvsBottomSheet(isPresented: $showCreateDiscussionSheet, header: "Add Discussion") {
+        .kluvsBottomSheet(isPresented: viewModel.isShowing(ClubDetailsSheet.CreateDiscussion.shared), header: "Add Discussion") {
             DiscussionFields(
                 title: $discussionTitle,
                 location: $discussionLocation,
@@ -558,14 +534,16 @@ private struct ClubDetailView: View {
                         location: discussionLocation.trimmingCharacters(in: .whitespaces),
                         dateIso: discussionDate.toIsoString()
                     )
-                    showCreateDiscussionSheet = false
                 },
-                onCancel: { showCreateDiscussionSheet = false },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: !trimmedTitle.isEmpty
             )
         }
         // Edit discussion
-        .kluvsBottomSheet(item: $editingDiscussionId, header: "Edit Discussion") { wrapper in
+        .kluvsBottomSheet(
+            item: viewModel.sheetItem(ClubDetailsSheet.EditDiscussion.self) { $0.discussionId },
+            header: "Edit Discussion"
+        ) { _ in
             DiscussionFields(
                 title: $discussionTitle,
                 location: $discussionLocation,
@@ -589,46 +567,30 @@ private struct ClubDetailView: View {
                         location: trimmedLocation,
                         dateIso: discussionDate.toIsoString()
                     )
-                    editingDiscussionId = nil
                 },
-                onCancel: { editingDiscussionId = nil },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: !trimmedTitle.isEmpty && hasChanges
             )
         }
-        // Delete discussion confirmation
-        .kluvsConfirmationDialog(
-            isPresented: Binding(
-                get: { deletingDiscussionId != nil },
-                set: { _ in }
-            ),
-            title: "Delete Discussion",
-            message: "Are you sure you want to delete this discussion?",
-            confirmLabel: "Delete",
-            isDestructive: true,
-            onDismiss: { deletingDiscussionId = nil },
-            onConfirm: {
-                if let id = deletingDiscussionId {
-                    viewModel.onDeleteDiscussion(discussionId: id)
-                }
-                deletingDiscussionId = nil
-            }
-        )
         // Discussion note
-        .kluvsBottomSheet(item: $openNoteDiscussionId, header: "Notes") { wrapper in
+        .kluvsBottomSheet(
+            item: viewModel.sheetItem(ClubDetailsSheet.DiscussionNote.self) { $0.discussionId },
+            header: "Notes"
+        ) { wrapper in
             let discussionId = wrapper.id
             DiscussionNoteFields(
                 discussionTitle: viewModel.activeSession?.discussions.first { $0.id == discussionId }?.title,
                 note: viewModel.discussionNotes[discussionId],
                 onSave: { content in viewModel.onSaveDiscussionNote(discussionId: discussionId, content: content) },
-                onDelete: {
-                    viewModel.onDeleteDiscussionNote(discussionId: discussionId)
-                    openNoteDiscussionId = nil
-                }
+                onDelete: { viewModel.onOpenDialog(ClubDetailsDialog.DeleteDiscussionNote(discussionId: discussionId)) }
             )
             .onAppear { viewModel.onLoadDiscussionNote(discussionId: discussionId) }
         }
         // Change role
-        .kluvsBottomSheet(item: $changingRoleMemberId, header: "Change Role") { wrapper in
+        .kluvsBottomSheet(
+            item: viewModel.sheetItem(ClubDetailsSheet.ChangeRole.self) { $0.memberId },
+            header: "Change Role"
+        ) { wrapper in
             let member = viewModel.members.first { $0.memberId == wrapper.id }
             ChangeRoleFields(memberName: member?.name ?? "", selectedRole: $selectedRole)
         } footer: { wrapper in
@@ -640,62 +602,114 @@ private struct ClubDetailView: View {
                     if let mid = currentMemberId {
                         viewModel.onUpdateMemberRole(memberId: memberId, currentMemberId: mid, newRole: selectedRole)
                     }
-                    changingRoleMemberId = nil
                 },
-                onCancel: { changingRoleMemberId = nil },
+                onCancel: { viewModel.onDismissSheet() },
                 actionEnabled: selectedRole != (member?.role ?? .member)
             )
         }
+        // ---- Dialogs: applied after every sheet so a dialog opened over a sheet (delete note) draws on top ----
+        // Delete club confirmation
+        .kluvsConfirmationDialog(
+            isPresented: viewModel.isShowing(ClubDetailsDialog.DeleteClub.self),
+            title: "Delete Club",
+            message: "Are you sure you want to delete \"\(viewModel.clubDetails?.clubName ?? "this club")\"? This action cannot be undone.",
+            confirmLabel: "Delete",
+            isDestructive: true,
+            onDismiss: { viewModel.onDismissDialog() },
+            onConfirm: { viewModel.onDeleteClub() }
+        )
+        // End session confirmation
+        .kluvsConfirmationDialog(
+            isPresented: viewModel.isShowing(ClubDetailsDialog.EndSession.self),
+            title: "End Session",
+            message: {
+                let readingCount = viewModel.activeSession?.participants.filter { $0.isReading }.count ?? 0
+                let creditMessage = readingCount > 0
+                    ? "\(readingCount) member\(readingCount != 1 ? "s" : "") will receive credit."
+                    : "No members are marked as reading — no credit will be awarded."
+                return "Are you sure you want to end the current reading session for \"\(viewModel.activeSession?.book.title ?? "")\"?\n\n\(creditMessage)"
+            }(),
+            confirmLabel: "Confirm End",
+            isDestructive: true,
+            onDismiss: { viewModel.onDismissDialog() },
+            onConfirm: { viewModel.onEndSession() }
+        )
+        // Delete discussion confirmation
+        .kluvsConfirmationDialog(
+            isPresented: viewModel.isShowing(ClubDetailsDialog.DeleteDiscussion.self),
+            title: "Delete Discussion",
+            message: "Are you sure you want to delete this discussion?",
+            confirmLabel: "Delete",
+            isDestructive: true,
+            onDismiss: { viewModel.onDismissDialog() },
+            onConfirm: {
+                if let dialog = viewModel.activeDialog as? ClubDetailsDialog.DeleteDiscussion {
+                    viewModel.onDeleteDiscussion(discussionId: dialog.discussionId)
+                }
+            }
+        )
+        // Delete note confirmation, over the Notes sheet
+        .kluvsConfirmationDialog(
+            isPresented: viewModel.isShowing(ClubDetailsDialog.DeleteDiscussionNote.self),
+            title: "Delete Note",
+            message: "Are you sure you want to delete this note?",
+            confirmLabel: "Delete",
+            isDestructive: true,
+            onDismiss: { viewModel.onDismissDialog() },
+            onConfirm: {
+                if let dialog = viewModel.activeDialog as? ClubDetailsDialog.DeleteDiscussionNote {
+                    viewModel.onDeleteDiscussionNote(discussionId: dialog.discussionId)
+                }
+            }
+        )
         // Remove member confirmation
         .kluvsConfirmationDialog(
-            isPresented: Binding(
-                get: { removingMemberId != nil },
-                set: { _ in }
-            ),
+            isPresented: viewModel.isShowing(ClubDetailsDialog.RemoveMember.self),
             title: "Remove Member",
             message: {
-                let memberName = viewModel.members.first { $0.memberId == removingMemberId }?.name ?? "this member"
+                let memberId = (viewModel.activeDialog as? ClubDetailsDialog.RemoveMember)?.memberId
+                let memberName = viewModel.members.first { $0.memberId == memberId }?.name ?? "this member"
                 return "Are you sure you want to remove \(memberName) from the club?"
             }(),
             confirmLabel: "Remove",
             isDestructive: true,
-            onDismiss: { removingMemberId = nil },
+            onDismiss: { viewModel.onDismissDialog() },
             onConfirm: {
-                if let memberId = removingMemberId, let mid = currentMemberId {
-                    viewModel.onRemoveMember(memberId: memberId, currentMemberId: mid)
+                // Without our own member ID there's nothing to send; just close the dialog
+                if let dialog = viewModel.activeDialog as? ClubDetailsDialog.RemoveMember, let mid = currentMemberId {
+                    viewModel.onRemoveMember(memberId: dialog.memberId, currentMemberId: mid)
+                } else {
+                    viewModel.onDismissDialog()
                 }
-                removingMemberId = nil
             }
         )
         // Leave club confirmation
         .kluvsConfirmationDialog(
-            isPresented: $showLeaveClubAlert,
+            isPresented: viewModel.isShowing(ClubDetailsDialog.LeaveClub.self),
             title: "Leave Club",
             message: "Are you sure you want to leave \"\(viewModel.clubDetails?.clubName ?? "this club")\"? You'll need a new invite to rejoin.",
             confirmLabel: "Leave",
             isDestructive: true,
+            onDismiss: { viewModel.onDismissDialog() },
             onConfirm: { viewModel.onLeaveClub() }
         )
         // Transfer ownership confirmation
         .kluvsConfirmationDialog(
-            isPresented: Binding(
-                get: { transferOwnershipTargetId != nil },
-                set: { _ in }
-            ),
+            isPresented: viewModel.isShowing(ClubDetailsDialog.TransferOwnership.self),
             title: "Transfer Ownership",
             message: {
-                let memberName = viewModel.members.first { $0.memberId == transferOwnershipTargetId }?.name ?? "this member"
+                let memberId = (viewModel.activeDialog as? ClubDetailsDialog.TransferOwnership)?.memberId
+                let memberName = viewModel.members.first { $0.memberId == memberId }?.name ?? "this member"
                 let clubName = viewModel.clubDetails?.clubName ?? "this club"
                 return "Are you sure you want to make \(memberName) the new owner of \"\(clubName)\"? You'll become an Admin."
             }(),
             confirmLabel: "Transfer",
             isDestructive: true,
-            onDismiss: { transferOwnershipTargetId = nil },
+            onDismiss: { viewModel.onDismissDialog() },
             onConfirm: {
-                if let newOwnerId = transferOwnershipTargetId {
-                    viewModel.onTransferOwnership(newOwnerId: newOwnerId)
+                if let dialog = viewModel.activeDialog as? ClubDetailsDialog.TransferOwnership {
+                    viewModel.onTransferOwnership(newOwnerId: dialog.memberId)
                 }
-                transferOwnershipTargetId = nil
             }
         )
     }
