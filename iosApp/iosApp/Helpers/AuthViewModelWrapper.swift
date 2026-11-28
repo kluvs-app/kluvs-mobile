@@ -23,6 +23,8 @@ class AuthViewModelWrapper: ObservableObject {
     @Published var confirmPasswordError: String? = nil
 
     private let helper: AuthViewModelHelper
+    /// What `.screenEffects(_:)` listens to: this screen's snackbars.
+    var screenEffectSource: ScreenEffectSource { helper }
     private var cancellables: [Shared.Closeable] = []
 
     init() {
@@ -31,28 +33,19 @@ class AuthViewModelWrapper: ObservableObject {
     }
 
     private func startObserving() {
-        // Observe auth state
         let stateCancellable = helper.observeState { [weak self] state in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.authState = AuthStateWrapper.from(state)
+                self.authState = AuthStateWrapper.from(state.authState)
+                self.emailField = state.emailField
+                self.passwordField = state.passwordField
+                self.confirmPasswordField = state.confirmPasswordField
+                self.emailError = state.emailError
+                self.passwordError = state.passwordError
+                self.confirmPasswordError = state.confirmPasswordError
             }
         }
         cancellables.append(stateCancellable)
-
-        // Observe UI state
-        let uiStateCancellable = helper.observeUiState { [weak self] uiState in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.emailField = uiState.emailField
-                self.passwordField = uiState.passwordField
-                self.confirmPasswordField = uiState.confirmPasswordField
-                self.emailError = uiState.emailError
-                self.passwordError = uiState.passwordError
-                self.confirmPasswordError = uiState.confirmPasswordError
-            }
-        }
-        cancellables.append(uiStateCancellable)
     }
 
     func onEmailChanged(_ value: String) {
@@ -105,7 +98,6 @@ enum AuthStateWrapper: Equatable {
     case unauthenticated
     case loading
     case authenticated(user: Shared.User)
-    case error(error: Shared.AuthError)
     case emailConfirmationPending(email: String)
 
     // Custom Equatable implementation since Kotlin classes may not be Equatable
@@ -117,8 +109,6 @@ enum AuthStateWrapper: Equatable {
             return true
         case (.authenticated(let lUser), .authenticated(let rUser)):
             return lUser.id == rUser.id
-        case (.error, .error):
-            return true // We just care that it's an error state
         case (.emailConfirmationPending(let lEmail), .emailConfirmationPending(let rEmail)):
             return lEmail == rEmail
         default:
@@ -133,8 +123,6 @@ enum AuthStateWrapper: Equatable {
             return .loading
         } else if let authenticated = kotlinState as? Shared.AuthState.Authenticated {
             return .authenticated(user: authenticated.user)
-        } else if let error = kotlinState as? Shared.AuthState.Error {
-            return .error(error: error.error)
         } else if let emailConfirmationPending = kotlinState as? Shared.AuthState.EmailConfirmationPending {
             return .emailConfirmationPending(email: emailConfirmationPending.email)
         }

@@ -28,7 +28,7 @@ paths:
 
 ## ViewModel state
 - Every screen ViewModel extends `BaseViewModel<{Screen}State>` (`core/presentation/.../presentation/viewmodel/`), which owns the screen's one `state: StateFlow<S>`. Subclasses read it with `currentState` and change it with `updateState { it.copy(...) }`, never their own `MutableStateFlow`. User intents are `on<Event>()` functions.
-  - Not every ViewModel has moved yet; `AuthViewModel` (three `StateFlow`s) and `AppCoordinator` (not a screen) still own their flows and their `EffectChannel`.
+  - `AppCoordinator` isn't a screen, so it still owns its flows and its `EffectChannel`.
   - `S` is bound to `Any` so Kotlin/Native exports it to Swift as a typed generic (checked in the KT-363 spike). Keep the base's generics at class level: generic *functions* lose their types in Swift.
 - **Side effects** are one-shot things a ViewModel wants to happen. There are three categories, named after who handles them. To pick one: could it run with no screen on top? It's a platform effect. Does it need this screen and disappear once it happens? It's a screen effect. Does it stay on screen? It's state.
 

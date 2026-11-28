@@ -6,6 +6,10 @@ import com.ivangarzab.kluvs.model.AuthProvider
 import com.ivangarzab.kluvs.model.User
 import com.ivangarzab.kluvs.presentation.effect.PlatformEffect
 import com.ivangarzab.kluvs.presentation.effect.PlatformEffectHandler
+import com.ivangarzab.kluvs.presentation.effect.NoticeKey
+import com.ivangarzab.kluvs.presentation.effect.ScreenEffect
+import com.ivangarzab.kluvs.presentation.effect.SnackbarMessage
+import com.ivangarzab.kluvs.presentation.effect.SnackbarTone
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -18,10 +22,16 @@ import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -49,12 +59,15 @@ class AuthViewModelTest {
         every { authRepository.currentUser } returns currentUserFlow
         everySuspend { authRepository.initialize() } returns Result.success(null)
 
+        // BaseViewModel gets its PlatformEffectHandler from Koin
         platformEffectHandler = mock(MockMode.autoUnit)
-        viewModel = createAuthViewModel(authRepository, platformEffectHandler)
+        startKoin { modules(module { single<PlatformEffectHandler> { platformEffectHandler } }) }
+        viewModel = createAuthViewModel(authRepository)
     }
 
     @AfterTest
     fun tearDown() {
+        stopKoin()
         Dispatchers.resetMain()
     }
 
@@ -63,13 +76,13 @@ class AuthViewModelTest {
     @Test
     fun `initial state is unauthenticated`() {
         // Then
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
-        assertEquals("", viewModel.uiState.value.emailField)
-        assertEquals("", viewModel.uiState.value.passwordField)
-        assertEquals("", viewModel.uiState.value.confirmPasswordField)
-        assertNull(viewModel.uiState.value.emailError)
-        assertNull(viewModel.uiState.value.passwordError)
-        assertNull(viewModel.uiState.value.confirmPasswordError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
+        assertEquals("", viewModel.state.value.emailField)
+        assertEquals("", viewModel.state.value.passwordField)
+        assertEquals("", viewModel.state.value.confirmPasswordField)
+        assertNull(viewModel.state.value.emailError)
+        assertNull(viewModel.state.value.passwordError)
+        assertNull(viewModel.state.value.confirmPasswordError)
     }
 
     @Test
@@ -89,8 +102,8 @@ class AuthViewModelTest {
         viewModel.onEmailFieldChanged("test@example.com")
 
         // Then
-        assertEquals("test@example.com", viewModel.uiState.value.emailField)
-        assertNull(viewModel.uiState.value.emailError)
+        assertEquals("test@example.com", viewModel.state.value.emailField)
+        assertNull(viewModel.state.value.emailError)
     }
 
     @Test
@@ -102,8 +115,8 @@ class AuthViewModelTest {
         viewModel.onPasswordFieldChanged("password123")
 
         // Then
-        assertEquals("password123", viewModel.uiState.value.passwordField)
-        assertNull(viewModel.uiState.value.passwordError)
+        assertEquals("password123", viewModel.state.value.passwordField)
+        assertNull(viewModel.state.value.passwordError)
     }
 
     @Test
@@ -117,8 +130,8 @@ class AuthViewModelTest {
         viewModel.onConfirmPasswordFieldChanged("password123")
 
         // Then
-        assertEquals("password123", viewModel.uiState.value.confirmPasswordField)
-        assertNull(viewModel.uiState.value.confirmPasswordError)
+        assertEquals("password123", viewModel.state.value.confirmPasswordField)
+        assertNull(viewModel.state.value.confirmPasswordError)
     }
 
     // ========== Sign In Validation Tests ==========
@@ -133,8 +146,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertEquals("Email is required", viewModel.uiState.value.emailError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value) // Should not call repository
+        assertEquals("Email is required", viewModel.state.value.emailError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState) // Should not call repository
     }
 
     @Test
@@ -147,8 +160,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertEquals("Please enter a valid email", viewModel.uiState.value.emailError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Please enter a valid email", viewModel.state.value.emailError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -161,8 +174,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertEquals("Password is required", viewModel.uiState.value.passwordError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Password is required", viewModel.state.value.passwordError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -175,8 +188,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertEquals("Password must be at least 6 characters", viewModel.uiState.value.passwordError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Password must be at least 6 characters", viewModel.state.value.passwordError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -192,8 +205,8 @@ class AuthViewModelTest {
 
         // Then
         verifySuspend { authRepository.signInWithEmail("test@example.com", "password123") }
-        assertIs<AuthState.Authenticated>(viewModel.state.value)
-        assertEquals(user, (viewModel.state.value as AuthState.Authenticated).user)
+        assertIs<AuthState.Authenticated>(viewModel.state.value.authState)
+        assertEquals(user, (viewModel.state.value.authState as AuthState.Authenticated).user)
     }
 
     // ========== Sign Up Validation Tests ==========
@@ -209,8 +222,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Email is required", viewModel.uiState.value.emailError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Email is required", viewModel.state.value.emailError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -224,8 +237,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Please enter a valid email", viewModel.uiState.value.emailError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Please enter a valid email", viewModel.state.value.emailError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -239,8 +252,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Password is required", viewModel.uiState.value.passwordError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Password is required", viewModel.state.value.passwordError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -254,8 +267,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Password must be at least 6 characters", viewModel.uiState.value.passwordError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Password must be at least 6 characters", viewModel.state.value.passwordError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -269,8 +282,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Passwords must match", viewModel.uiState.value.confirmPasswordError)
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertEquals("Passwords must match", viewModel.state.value.confirmPasswordError)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     @Test
@@ -287,8 +300,8 @@ class AuthViewModelTest {
 
         // Then
         verifySuspend { authRepository.signUpWithEmail("test@example.com", "password123") }
-        assertIs<AuthState.Authenticated>(viewModel.state.value)
-        assertEquals(user, (viewModel.state.value as AuthState.Authenticated).user)
+        assertIs<AuthState.Authenticated>(viewModel.state.value.authState)
+        assertEquals(user, (viewModel.state.value.authState as AuthState.Authenticated).user)
     }
 
     // ========== Sign In Flow Tests ==========
@@ -305,16 +318,17 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertIs<AuthState.Authenticated>(viewModel.state.value)
-        assertEquals(user, (viewModel.state.value as AuthState.Authenticated).user)
+        assertIs<AuthState.Authenticated>(viewModel.state.value.authState)
+        assertEquals(user, (viewModel.state.value.authState as AuthState.Authenticated).user)
         // Form should be cleared
-        assertEquals("", viewModel.uiState.value.emailField)
-        assertEquals("", viewModel.uiState.value.passwordField)
+        assertEquals("", viewModel.state.value.emailField)
+        assertEquals("", viewModel.state.value.passwordField)
     }
 
     @Test
-    fun `signIn failure updates state to error`() = runTest {
+    fun `signIn failure shows a danger snackbar and keeps the form`() = runTest {
         // Given
+        val effects = collectScreenEffects()
         viewModel.onEmailFieldChanged("test@example.com")
         viewModel.onPasswordFieldChanged("wrong-password")
         everySuspend { authRepository.signInWithEmail("test@example.com", "wrong-password") } returns Result.failure(AuthError.InvalidCredentials)
@@ -323,8 +337,9 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertIs<AuthState.Error>(viewModel.state.value)
-        assertEquals(AuthError.InvalidCredentials, (viewModel.state.value as AuthState.Error).error)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
+        assertEquals("test@example.com", viewModel.state.value.emailField)
+        assertEquals(listOf(snackbar(NoticeKey.AUTH_INVALID_CREDENTIALS)), effects)
     }
 
     @Test
@@ -359,17 +374,18 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertIs<AuthState.Authenticated>(viewModel.state.value)
-        assertEquals(user, (viewModel.state.value as AuthState.Authenticated).user)
+        assertIs<AuthState.Authenticated>(viewModel.state.value.authState)
+        assertEquals(user, (viewModel.state.value.authState as AuthState.Authenticated).user)
         // Form should be cleared
-        assertEquals("", viewModel.uiState.value.emailField)
-        assertEquals("", viewModel.uiState.value.passwordField)
-        assertEquals("", viewModel.uiState.value.confirmPasswordField)
+        assertEquals("", viewModel.state.value.emailField)
+        assertEquals("", viewModel.state.value.passwordField)
+        assertEquals("", viewModel.state.value.confirmPasswordField)
     }
 
     @Test
-    fun `signUp failure updates state to error`() = runTest {
+    fun `signUp failure shows a danger snackbar and keeps the form`() = runTest {
         // Given
+        val effects = collectScreenEffects()
         viewModel.onEmailFieldChanged("existing@example.com")
         viewModel.onPasswordFieldChanged("password123")
         viewModel.onConfirmPasswordFieldChanged("password123")
@@ -379,13 +395,15 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertIs<AuthState.Error>(viewModel.state.value)
-        assertEquals(AuthError.UserAlreadyExists, (viewModel.state.value as AuthState.Error).error)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
+        assertEquals("existing@example.com", viewModel.state.value.emailField)
+        assertEquals(listOf(snackbar(NoticeKey.AUTH_USER_ALREADY_EXISTS)), effects)
     }
 
     @Test
     fun `signUp with email confirmation required updates state to pending and clears form`() = runTest {
         // Given
+        val effects = collectScreenEffects()
         viewModel.onEmailFieldChanged("new@example.com")
         viewModel.onPasswordFieldChanged("password123")
         viewModel.onConfirmPasswordFieldChanged("password123")
@@ -396,10 +414,11 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertIs<AuthState.EmailConfirmationPending>(viewModel.state.value)
-        assertEquals("new@example.com", (viewModel.state.value as AuthState.EmailConfirmationPending).email)
-        assertEquals("", viewModel.uiState.value.emailField)
-        assertEquals("", viewModel.uiState.value.passwordField)
+        assertIs<AuthState.EmailConfirmationPending>(viewModel.state.value.authState)
+        assertEquals("new@example.com", (viewModel.state.value.authState as AuthState.EmailConfirmationPending).email)
+        assertEquals("", viewModel.state.value.emailField)
+        assertEquals("", viewModel.state.value.passwordField)
+        assertTrue(effects.isEmpty())
     }
 
     @Test
@@ -416,14 +435,15 @@ class AuthViewModelTest {
         viewModel.dismissEmailConfirmationSheet()
 
         // Then
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
     }
 
     // ========== Edge Cases ==========
 
     @Test
-    fun `handles non-AuthError exceptions by converting to UnexpectedError`() = runTest {
+    fun `handles non-AuthError exceptions by showing the unexpected error`() = runTest {
         // Given
+        val effects = collectScreenEffects()
         viewModel.onEmailFieldChanged("test@example.com")
         viewModel.onPasswordFieldChanged("password123")
         everySuspend { authRepository.signInWithEmail(any(), any()) } returns Result.failure(Exception("Something went wrong"))
@@ -432,8 +452,8 @@ class AuthViewModelTest {
         viewModel.validateAndSignIn()
 
         // Then
-        assertIs<AuthState.Error>(viewModel.state.value)
-        assertEquals(AuthError.UnexpectedError, (viewModel.state.value as AuthState.Error).error)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
+        assertEquals(listOf(snackbar(NoticeKey.AUTH_UNEXPECTED_ERROR)), effects)
     }
 
     @Test
@@ -447,9 +467,9 @@ class AuthViewModelTest {
         viewModel.validateAndSignUp()
 
         // Then
-        assertEquals("Please enter a valid email", viewModel.uiState.value.emailError)
-        assertEquals("Password must be at least 6 characters", viewModel.uiState.value.passwordError)
-        assertEquals("Passwords must match", viewModel.uiState.value.confirmPasswordError)
+        assertEquals("Please enter a valid email", viewModel.state.value.emailError)
+        assertEquals("Password must be at least 6 characters", viewModel.state.value.passwordError)
+        assertEquals("Passwords must match", viewModel.state.value.confirmPasswordError)
     }
 
     // ========== OAuth Tests ==========
@@ -463,7 +483,7 @@ class AuthViewModelTest {
         viewModel.signInWithDiscord()
 
         // Then
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
         verify { platformEffectHandler.handle(PlatformEffect.OpenUrl(OAUTH_URL)) }
     }
 
@@ -476,22 +496,33 @@ class AuthViewModelTest {
         viewModel.signInWithGoogle()
 
         // Then
-        assertIs<AuthState.Unauthenticated>(viewModel.state.value)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
         verify { platformEffectHandler.handle(PlatformEffect.OpenUrl(OAUTH_URL)) }
     }
 
     @Test
-    fun `signInWithDiscord shows an error and opens nothing when the URL request fails`() {
+    fun `signInWithDiscord shows an error and opens nothing when the URL request fails`() = runTest {
         // Given
+        val effects = collectScreenEffects()
         everySuspend { authRepository.signInWithDiscord() } returns Result.failure(AuthError.UnexpectedError)
 
         // When
         viewModel.signInWithDiscord()
 
         // Then
-        assertIs<AuthState.Error>(viewModel.state.value)
+        assertIs<AuthState.Unauthenticated>(viewModel.state.value.authState)
+        assertEquals(listOf(snackbar(NoticeKey.AUTH_UNEXPECTED_ERROR)), effects)
         verify(VerifyMode.not) { platformEffectHandler.handle(any()) }
     }
+
+    private fun TestScope.collectScreenEffects(): List<ScreenEffect> {
+        val effects = mutableListOf<ScreenEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.screenEffects.toList(effects) }
+        return effects
+    }
+
+    private fun snackbar(key: NoticeKey) =
+        ScreenEffect.ShowSnackbar(SnackbarMessage.Notice(key), SnackbarTone.DANGER)
 
     private companion object {
         const val OAUTH_URL = "https://auth.example.com/authorize"

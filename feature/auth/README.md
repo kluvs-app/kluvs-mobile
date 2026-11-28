@@ -9,19 +9,18 @@ Discord/Google OAuth, native Apple sign-in, and forgot-password.
 
 ## Key Components
 
-- **`AuthViewModel`**: exposes `state: StateFlow<AuthState>` and `uiState: StateFlow<AuthUiState>`
-  (form fields and field errors).
+- **`AuthViewModel`**: Sign in and Sign up, on `BaseViewModel<AuthScreenState>` (`authState`
+  plus form fields and field errors). OAuth URLs open through `PlatformEffect.OpenUrl`.
 - **`ForgotPasswordViewModel`**: the Forgot Password screen, on `BaseViewModel<ForgotPasswordState>`.
   Failures are danger snackbars keyed by `NoticeKey.AUTH_*` (`AuthErrorNotice.kt`).
-- **`AuthState`**: `Unauthenticated`, `Loading`, `Authenticated(user)`, `Error(AuthError)`,
-  `OAuthPending(url)`, `EmailConfirmationPending(email)`.
+- **`AuthState`**: `Unauthenticated`, `Loading`, `Authenticated(user)`,
+  `EmailConfirmationPending(email)`. Failures aren't a state: they're danger snackbars.
 - **`LoginNavigation`**: `SignIn`, `SignUp`, `ForgetPassword`.
-- **`AuthViewModelHelper`** (iosMain): iOS bridge, consumed by
-  `iosApp/iosApp/Helpers/AuthViewModelWrapper.swift`.
+- **`AuthViewModelHelper`** / **`ForgotPasswordViewModelHelper`** (iosMain): iOS bridges on
+  `BaseViewModelHelper`, consumed by the matching `iosApp/iosApp/Helpers/*ViewModelWrapper.swift`.
 - `authFeatureModule`: Koin wiring.
 
-This module has no `domain/` UseCases yet: `AuthViewModel` calls `AuthRepository` directly, an
-exception to the ViewModel → UseCase rule. New auth logic should go into UseCases.
+UseCases live in `domain/` and wrap `AuthRepository` (`core:auth`).
 
 ## Dependencies
 
@@ -35,8 +34,9 @@ exception to the ViewModel → UseCase rule. New auth logic should go into UseCa
 @Composable
 fun LoginScreen(viewModel: AuthViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
-    // render form from uiState; react to state (OAuthPending → open URL, Authenticated → done)
+    val snackbarHostState = remember { SnackbarHostState() }
+    ScreenEffectHost(viewModel.screenEffects, snackbarHostState)  // failure snackbars
+    // render the form from state; state.authState drives Loading / Authenticated
     PrimaryButton(text = "Sign in", onClick = viewModel::validateAndSignIn)
 }
 ```

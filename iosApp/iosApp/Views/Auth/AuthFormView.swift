@@ -195,17 +195,9 @@ struct AuthFormView: View {
         // bottom — a ScrollView only claims as much height as its content needs unless told
         // otherwise.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Only the native Apple Sign-In failure, which never reaches the shared ViewModel.
+        // Every other failure is a screen effect, shown by AuthView's `.screenEffects`.
         .snackbar($snackbarData)
-        // `.task(id:)`, not `.onChange` — this view is recreated fresh each time the parent
-        // switches away from `.loading` back to `.error` (a different switch case), so by the
-        // time it exists the state has already "changed" from `.onChange`'s perspective and it
-        // never fires. `.task(id:)` runs immediately on appearance for the current id too,
-        // matching Android's `LaunchedEffect(key)` semantics.
-        .task(id: viewModel.authState) {
-            if case .error(let error) = viewModel.authState {
-                snackbarData = SnackbarData(message: error.toLocalizedMessage(), variant: .danger)
-            }
-        }
     }
 }
 
