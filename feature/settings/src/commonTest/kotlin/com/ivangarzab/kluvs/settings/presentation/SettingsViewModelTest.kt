@@ -29,6 +29,11 @@ import com.ivangarzab.kluvs.settings.domain.DeleteAccountUseCase
 import com.ivangarzab.kluvs.settings.domain.GetEditableProfileUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateAvatarUseCase
 import com.ivangarzab.kluvs.settings.domain.UpdateUserProfileUseCase
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
@@ -36,6 +41,7 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -693,6 +699,27 @@ class SettingsViewModelTest {
         val state = viewModel.state.value
         assertFalse(state.isDeletingAccount)
         assertTrue(effects.isEmpty())
+        verifySuspend { authRepository.signOut() }
+    }
+
+    @Test
+    fun `onDeleteAccountConfirmed still signs out when the ViewModel is cleared mid-delete`() = runTest {
+        // Given: the ViewModel lives in a store, like a screen's (cleared when the screen closes)
+        val store = ViewModelStore()
+        val factory = viewModelFactory { initializer { viewModel } }
+        val scopedViewModel = ViewModelProvider.create(store, factory)[SettingsViewModel::class]
+        everySuspend { memberRepository.getMemberByUserId(userId) } returns Result.success(testMember)
+        scopedViewModel.loadProfile(userId)
+        val deleteResponse = CompletableDeferred<Result<String>>()
+        everySuspend { memberRepository.deleteMember(memberId) } calls { deleteResponse.await() }
+        everySuspend { authRepository.signOut() } returns Result.success(Unit)
+
+        // When: the screen closes while the delete request is in flight
+        scopedViewModel.onDeleteAccountConfirmed()
+        store.clear()
+        deleteResponse.complete(Result.success("Account deleted"))
+
+        // Then: the account is gone server-side, so the client must still sign out
         verifySuspend { authRepository.signOut() }
     }
 
