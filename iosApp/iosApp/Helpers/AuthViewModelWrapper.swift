@@ -90,6 +90,7 @@ class AuthViewModelWrapper: ObservableObject {
 
     deinit {
         cancellables.forEach { $0.close() }
+        helper.close()
     }
 }
 

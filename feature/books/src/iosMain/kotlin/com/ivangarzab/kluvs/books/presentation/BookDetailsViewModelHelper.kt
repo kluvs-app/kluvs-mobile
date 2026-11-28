@@ -4,7 +4,6 @@ import com.ivangarzab.kluvs.model.Book
 import com.ivangarzab.kluvs.model.ShelfSource
 import com.ivangarzab.kluvs.model.ShelfStatus
 import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
-import org.koin.core.component.inject
 
 /**
  * The purpose of this class is to wrap the [BookDetailsViewModel] for easier
@@ -13,7 +12,7 @@ import org.koin.core.component.inject
 @Suppress("unused")
 class BookDetailsViewModelHelper : BaseViewModelHelper<BookDetailsState>() {
 
-    override val viewModel: BookDetailsViewModel by inject()
+    override val viewModel: BookDetailsViewModel by viewModel()
 
     val isRegistered: Boolean get() = viewModel.isRegistered
 

@@ -1,13 +1,12 @@
 package com.ivangarzab.kluvs.auth.presentation
 
 import com.ivangarzab.kluvs.presentation.viewmodel.BaseViewModelHelper
-import org.koin.core.component.inject
 
 /** iOS bridge to [AuthViewModel]. */
 @Suppress("unused")
 class AuthViewModelHelper : BaseViewModelHelper<AuthScreenState>() {
 
-    override val viewModel: AuthViewModel by inject()
+    override val viewModel: AuthViewModel by viewModel()
 
     fun onEmailFieldChanged(value: String) = viewModel.onEmailFieldChanged(value)
 

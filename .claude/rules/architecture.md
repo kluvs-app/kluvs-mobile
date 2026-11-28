@@ -57,7 +57,8 @@ paths:
 
 ## iOS bridge
 - Each shared ViewModel gets a `{Name}ViewModelHelper` in `feature/{name}/src/iosMain/.../presentation/`. It extends `BaseViewModelHelper<{Screen}State>` (`core/presentation/src/iosMain/`), which provides `observeState(callback): Closeable`, and adds only 1:1 action passthroughs. Swift sees the concrete state type through the generic base.
-- SwiftUI consumes it through `iosApp/iosApp/Helpers/{Name}ViewModelWrapper.swift`, which mirrors state into `@Published` properties and closes its `Closeable`s in `deinit`.
+- The Helper owns its ViewModel's lifetime: declare it `override val viewModel: XViewModel by viewModel()`, never `by inject()`. That puts the ViewModel in the Helper's `ViewModelStore`, and `close()` clears it (cancels `viewModelScope`, runs `onCleared()`), as popping a `NavBackStackEntry` does on Android.
+- SwiftUI consumes it through `iosApp/iosApp/Helpers/{Name}ViewModelWrapper.swift`, which mirrors state into `@Published` properties. Its `deinit` closes its `Closeable`s, then calls `helper.close()`.
 - Screen effects: the wrapper exposes `screenEffectSource` (its Helper, as the non-generic `ScreenEffectSource`), and the view attaches `.screenEffects(viewModel.screenEffectSource)` once (`iosApp/iosApp/Components/ScreenEffectsModifier.swift`). That's the iOS counterpart of Android's `ScreenEffectHost`. It listens only while the view is on screen.
 - A new ViewModel needs a Helper, a Wrapper, and a `{Name}ViewModelHelperTest` in `iosTest`.
 
