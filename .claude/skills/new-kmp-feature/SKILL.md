@@ -78,6 +78,7 @@ Use this file map as reference:
 **Phase 4 — iOS Bridge**
 - `feature/{name}/src/iosMain/.../{Name}ViewModelHelper.kt`
 - `feature/{name}/src/iosTest/.../{Name}ViewModelHelperTest.kt`
+- `iosApp/iosApp/Helpers/{Name}ViewModelWrapper.swift`
 
 ---
 
@@ -120,9 +121,9 @@ kotlin {
 ```
 
 **ViewModel**
-- Extends `ViewModel()`
-- Single `MutableStateFlow<{Name}State>` exposed as read-only `StateFlow`
-- Updates via `_state.update { it.copy(...) }`
+- Extends `BaseViewModel<{Name}State>({Name}State())` (`core/presentation/.../presentation/viewmodel/`), which owns the one `state: StateFlow`. Never declare its own `MutableStateFlow`.
+- Reads state with `currentState`, updates it with `updateState { it.copy(...) }`
+- Platform and screen effects go through the base's `send(...)`. Never take a `PlatformEffectHandler` or wire a channel (see `.claude/rules/architecture.md` § ViewModel state)
 - Parallel data loading with `async` / `await`
 - No platform-specific code
 
@@ -147,17 +148,14 @@ val {name}FeatureModule = module {
 
 **iOS Helper**
 ```kotlin
-class {Name}ViewModelHelper : KoinComponent {
-    private val viewModel: {Name}ViewModel by inject()
-    private val coroutineScope: CoroutineScope by inject()
+class {Name}ViewModelHelper : BaseViewModelHelper<{Name}State>() {
 
-    fun observeState(callback: ({Name}State) -> Unit): Closeable {
-        val job = viewModel.state.onEach { callback(it) }.launchIn(coroutineScope)
-        return Closeable { job.cancel() }
-    }
-    // Delegate all public ViewModel methods below
+    override val viewModel: {Name}ViewModel by viewModel()
+
+    // 1:1 passthroughs for the ViewModel's public intents only; observeState comes from the base
 }
 ```
+`by viewModel()`, never `by inject()`: the Helper owns the ViewModel's lifetime (see `JoinViewModelHelper`).
 
 **Android Screen**
 - Outer composable: receives params + `viewModel = koinViewModel()`
