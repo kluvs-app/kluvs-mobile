@@ -11,6 +11,7 @@ struct AuthView: View {
     @StateObject private var viewModel = AuthViewModelWrapper()
     @StateObject private var oauthHandler = OAuthCallbackHandler.shared
     @State private var authMode: AuthMode = .login
+    @State private var isShowingForgotPassword = false
 
     var body: some View {
         Group {
@@ -34,7 +35,7 @@ struct AuthView: View {
                                 authMode = .login
                             }
                         case .forgetPassword:
-                            viewModel.onOpenSheet(AuthSheet.ForgotPassword.shared)
+                            isShowingForgotPassword = true
                         }
                     }
                 )
@@ -46,13 +47,9 @@ struct AuthView: View {
                 oauthHandler.clearCallback()
             }
         }
-        .authForgotSheet(
-            isPresented: Binding(
-                get: { viewModel.activeSheet == AuthSheet.ForgotPassword.shared },
-                set: { if !$0 { viewModel.onDismissSheet() } }
-            ),
-            viewModel: viewModel
-        )
+        .navigationDestination(isPresented: $isShowingForgotPassword) {
+            ForgotPasswordView()
+        }
         .authSignupSentSheet(
             isPresented: isEmailConfirmationPendingBinding,
             email: emailConfirmationPendingEmail,

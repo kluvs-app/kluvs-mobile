@@ -50,6 +50,15 @@ private val NoticeKey.stringRes: Int
     get() = when (this) {
         NoticeKey.SAVE_SUCCESS -> R.string.save_success
         NoticeKey.PASSWORD_UPDATED -> R.string.password_updated
+        NoticeKey.AUTH_INVALID_CREDENTIALS -> R.string.error_invalid_credentials
+        NoticeKey.AUTH_EMAIL_NOT_CONFIRMED -> R.string.error_email_not_confirmed
+        NoticeKey.AUTH_NO_CONNECTION -> R.string.error_no_connection
+        NoticeKey.AUTH_RATE_LIMIT_EXCEEDED -> R.string.error_rate_limit_exceeded
+        NoticeKey.AUTH_USER_NOT_FOUND -> R.string.error_user_not_found
+        NoticeKey.AUTH_WEAK_PASSWORD -> R.string.error_weak_password
+        NoticeKey.AUTH_USER_ALREADY_EXISTS -> R.string.error_user_already_exists
+        NoticeKey.AUTH_AUTHENTICATION_FAILED -> R.string.error_authentication_failed
+        NoticeKey.AUTH_UNEXPECTED_ERROR -> R.string.error_unexpected
     }
 
 private val SnackbarTone.variant: SnackbarVariant

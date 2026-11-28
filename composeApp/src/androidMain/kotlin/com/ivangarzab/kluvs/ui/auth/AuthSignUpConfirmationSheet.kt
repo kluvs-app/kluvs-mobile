@@ -22,7 +22,7 @@ import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
 
 /**
  * "Check your inbox" prompt shown after email sign up succeeds but requires email confirmation
- * before a session can be created. Unlike [AuthForgotSheet], there is no form phase — by the
+ * before a session can be created. Unlike [ForgotPasswordScreen], there is no form phase — by the
  * time this shows, sign up has already completed.
  */
 @OptIn(ExperimentalMaterial3Api::class)

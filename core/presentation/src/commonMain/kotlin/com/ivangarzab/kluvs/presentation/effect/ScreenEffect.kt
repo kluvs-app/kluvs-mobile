@@ -38,7 +38,18 @@ sealed class SnackbarMessage {
 /** Snackbar notices whose text lives in platform string resources. */
 enum class NoticeKey {
     SAVE_SUCCESS,
-    PASSWORD_UPDATED
+    PASSWORD_UPDATED,
+
+    // Auth failures, one per user-facing `AuthError` (mapped in feature/auth)
+    AUTH_INVALID_CREDENTIALS,
+    AUTH_EMAIL_NOT_CONFIRMED,
+    AUTH_NO_CONNECTION,
+    AUTH_RATE_LIMIT_EXCEEDED,
+    AUTH_USER_NOT_FOUND,
+    AUTH_WEAK_PASSWORD,
+    AUTH_USER_ALREADY_EXISTS,
+    AUTH_AUTHENTICATION_FAILED,
+    AUTH_UNEXPECTED_ERROR
 }
 
 /** The design system's two snackbar tones. */

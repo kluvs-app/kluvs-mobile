@@ -25,8 +25,7 @@ import com.ivangarzab.kluvs.ui.extensions.toLocalizedMessage
 
 /**
  * "Change Password" as a bottom sheet extending [com.ivangarzab.kluvs.settings.presentation.SettingsViewModel]
- * rather than a dedicated sheet view model — same shared-VM pattern used for auth's forgot-
- * password sheet (see [com.ivangarzab.kluvs.ui.auth.AuthForgotSheet]).
+ * rather than a dedicated sheet view model, per the shared-VM pattern for sheets.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

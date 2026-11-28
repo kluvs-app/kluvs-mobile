@@ -37,6 +37,7 @@ import com.ivangarzab.kluvs.app.AutoJoinResult
 import com.ivangarzab.kluvs.app.NavigationState
 import com.ivangarzab.kluvs.app.PendingJoinCoordinator
 import com.ivangarzab.kluvs.designsystem.theme.KluvsTheme
+import com.ivangarzab.kluvs.ui.auth.ForgotPasswordScreen
 import com.ivangarzab.kluvs.ui.auth.LoginScreen
 import com.ivangarzab.kluvs.ui.auth.SignupScreen
 import com.ivangarzab.kluvs.ui.join.JoinScreen
@@ -200,7 +201,13 @@ fun MainNavHost(
                     onNavigateToSignUp = {
                         navController.navigate(NavDestinations.SIGNUP)
                     },
+                    onNavigateToForgotPassword = {
+                        navController.navigate(NavDestinations.FORGOT_PASSWORD)
+                    },
                 )
+            }
+            composable(NavDestinations.FORGOT_PASSWORD) {
+                ForgotPasswordScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(NavDestinations.UPDATE) {
                 ForceUpdateScreen(onUpdate = appCoordinator::onUpdateApp)
@@ -275,6 +282,7 @@ fun MainNavHost(
 object NavDestinations {
     const val LOGIN = "login"
     const val SIGNUP = "signup"
+    const val FORGOT_PASSWORD = "forgot_password"
     const val MAIN = "main"
     const val SETTINGS = "settings"
     const val SETTINGS_ROUTE = "$SETTINGS/{userId}"
@@ -294,8 +302,10 @@ object NavDestinations {
      * invite link can be opened by someone who has never signed in — they preview the club
      * first, then get routed to auth by their own action.
      *
+     * [FORGOT_PASSWORD] is here so an auth-state emission doesn't pull the user off it mid-reset.
+     *
      * [SIGNUP] is deliberately absent, preserving existing behavior: it gets reset to [LOGIN]
      * on an auth-state emission just as it did before this set existed.
      */
-    val UNAUTHENTICATED_ROUTES = setOf(LOGIN, JOIN_ROUTE)
+    val UNAUTHENTICATED_ROUTES = setOf(LOGIN, FORGOT_PASSWORD, JOIN_ROUTE)
 }
