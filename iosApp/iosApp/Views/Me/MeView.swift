@@ -124,16 +124,7 @@ struct MeView: View {
             .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
             .animation(.easeInOut(duration: 0.3), value: viewModel.error)
         }
-        .overlay(alignment: .bottom) {
-            if let snackbarError = viewModel.snackbarError {
-                SnackbarView(message: snackbarError) {
-                    viewModel.clearSnackbarError()
-                }
-                .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: viewModel.snackbarError)
+        .screenEffects(viewModel.screenEffectSource)
         .onAppear {
             viewModel.loadUserData(userId: userId)
         }
@@ -236,37 +227,6 @@ struct ProfileSection: View {
         // every section; adding it again here doubled it (16 + 16), leaving this section visibly
         // more indented than StatisticsSection right below it, which has none of its own.
         .padding(.vertical, 16)
-    }
-}
-
-// MARK: - Snackbar View
-struct SnackbarView: View {
-    let message: String
-    let onDismiss: () -> Void
-
-    var body: some View {
-        HStack {
-            Text(message)
-                .font(.body)
-                .foregroundColor(.white)
-                .lineLimit(2)
-
-            Spacer()
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .foregroundColor(.white)
-            }
-        }
-        .padding()
-        .background(KluvsTheme.colors.danger.opacity(0.9))
-        .cornerRadius(8)
-        .shadow(radius: 4)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                onDismiss()
-            }
-        }
     }
 }
 

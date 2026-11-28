@@ -98,18 +98,7 @@ struct BooksView: View {
                 viewModel.search(query)
             }
         }
-        .kluvsConfirmationDialog(
-            isPresented: Binding(
-                get: { viewModel.operationError != nil },
-                set: { _ in }
-            ),
-            title: "Result",
-            message: viewModel.operationError ?? "",
-            confirmLabel: "OK",
-            dismissLabel: nil,
-            onDismiss: { viewModel.onConsumeOperationError() },
-            onConfirm: { viewModel.onConsumeOperationError() }
-        )
+        .screenEffects(viewModel.screenEffectSource)
     }
 }
 

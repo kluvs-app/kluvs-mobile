@@ -29,8 +29,6 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     @Published var discussionRosters: [String: Shared.AttendanceRoster] = [:]
     @Published var discussionNotes: [String: Shared.DiscussionNoteInfo] = [:]
     @Published var isOperationInProgress: Bool = false
-    @Published var operationMessage: String? = nil
-    @Published var operationIsError: Bool = false
     @Published var createdClubId: String? = nil
     @Published var deletedClubId: String? = nil
     @Published var leftClubId: String? = nil
@@ -50,6 +48,8 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     @Published var activeDialog: Shared.ClubDetailsDialog? = nil
 
     private let helper: ClubDetailsViewModelHelper
+    /// What `.screenEffects(_:)` listens to: this screen's snackbars.
+    var screenEffectSource: ScreenEffectSource { helper }
     private var cancellables: [Shared.Closeable] = []
 
     init() {
@@ -79,8 +79,6 @@ class ClubDetailsViewModelWrapper: ObservableObject {
                 self.discussionRosters = state.discussionRosters
                 self.discussionNotes = state.discussionNotes
                 self.isOperationInProgress = state.isOperationInProgress
-                self.operationMessage = self.helper.operationResultMessage(result: state.operationResult)
-                self.operationIsError = self.helper.isOperationError(result: state.operationResult)
                 self.createdClubId = state.createdClubId
                 self.deletedClubId = state.deletedClubId
                 self.leftClubId = state.leftClubId
@@ -187,8 +185,6 @@ class ClubDetailsViewModelWrapper: ObservableObject {
     func onLeaveClub() { helper.onLeaveClub() }
     func onConsumeLeftClubId() { helper.onConsumeLeftClubId() }
     func onTransferOwnership(newOwnerId: String) { helper.onTransferOwnership(newOwnerId: newOwnerId) }
-
-    func onConsumeOperationResult() { helper.onConsumeOperationResult() }
 
     // Sheets and dialogs
     func onOpenSheet(_ sheet: Shared.ClubDetailsSheet) { helper.onOpenSheet(sheet: sheet) }

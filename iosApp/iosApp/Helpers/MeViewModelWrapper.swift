@@ -7,7 +7,6 @@
 import Swift
 import Shared
 
-
 @MainActor
 class MeViewModelWrapper: ObservableObject {
     @Published var isLoading: Bool = false
@@ -16,7 +15,6 @@ class MeViewModelWrapper: ObservableObject {
     @Published var statistics: Shared.UserStatistics? = nil
     @Published var shelf: [Shared.ShelfItem] = []
     @Published var upNext: Shared.UpNextItem? = nil
-    @Published var snackbarError: String? = nil
     @Published var readingLog: Shared.ReadingLog? = nil
     @Published var isReadingLogLoading: Bool = false
     // Sheets and dialogs — owned by the shared ViewModel, see MeState.activeSheet
@@ -24,6 +22,8 @@ class MeViewModelWrapper: ObservableObject {
     @Published var activeDialog: Shared.MeDialog? = nil
 
     private let helper: MeViewModelHelper
+    /// What `.screenEffects(_:)` listens to: this screen's snackbars.
+    var screenEffectSource: ScreenEffectSource { helper }
     private var cancellables: [Shared.Closeable] = []
 
     init() {
@@ -41,7 +41,6 @@ class MeViewModelWrapper: ObservableObject {
                 self.statistics = state.statistics
                 self.shelf = state.shelf
                 self.upNext = state.upNext
-                self.snackbarError = state.snackbarError
                 self.readingLog = state.readingLog
                 self.isReadingLogLoading = state.isReadingLogLoading
                 self.activeSheet = state.activeSheet
@@ -61,10 +60,6 @@ class MeViewModelWrapper: ObservableObject {
 
     func onSignOutDialogConfirmed() {
         helper.confirmLogout()
-    }
-
-    func clearSnackbarError() {
-        helper.clearSnackbarError()
     }
 
     /// `percentComplete` is a plain Int (0-100) — the KMP helper converts it to Float internally.

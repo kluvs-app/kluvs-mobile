@@ -7,8 +7,6 @@ import DesignSystem
 struct SettingsView: View {
     let userId: String
     @StateObject private var viewModel = SettingsViewModelWrapper()
-    @State private var showSaveSuccess = false
-    @State private var showChangePasswordSuccess = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -71,50 +69,7 @@ struct SettingsView: View {
         .onAppear {
             viewModel.loadProfile(userId: userId)
         }
-        .onChange(of: viewModel.saveSuccess) { success in
-            if success {
-                showSaveSuccess = true
-                viewModel.onDismissSaveSuccess()
-            }
-        }
-        .onChange(of: viewModel.changePasswordSuccess) { success in
-            if success {
-                // The ViewModel already closed the sheet
-                showChangePasswordSuccess = true
-                viewModel.onDismissChangePasswordSuccess()
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if showSaveSuccess {
-                SaveSuccessToast {
-                    showSaveSuccess = false
-                }
-                .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if showChangePasswordSuccess {
-                SaveSuccessToast(message: String(localized: "password_updated")) {
-                    showChangePasswordSuccess = false
-                }
-                .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if let avatarError = viewModel.avatarError {
-                SnackbarView(message: avatarError) {
-                    viewModel.clearAvatarError()
-                }
-                .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if let deleteAccountError = viewModel.deleteAccountError {
-                SnackbarView(message: deleteAccountError) {
-                    viewModel.clearDeleteAccountError()
-                }
-                .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: showSaveSuccess)
-        .animation(.easeInOut(duration: 0.3), value: showChangePasswordSuccess)
-        .animation(.easeInOut(duration: 0.3), value: viewModel.avatarError)
-        .animation(.easeInOut(duration: 0.3), value: viewModel.deleteAccountError)
+        .screenEffects(viewModel.screenEffectSource)
         .kluvsConfirmationDialog(
             isPresented: Binding(get: { viewModel.activeDialog == SettingsDialog.DeleteAccount.shared }, set: { _ in }),
             title: String(localized: "delete_account"),
@@ -418,38 +373,6 @@ private struct CreditsSheetContent: View {
         .kluvsStyle(KluvsTheme.typography.body.medium)
         .foregroundColor(KluvsTheme.colors.content)
         .tint(KluvsTheme.colors.accent)
-    }
-}
-
-// MARK: - Save Success Toast
-
-private struct SaveSuccessToast: View {
-    var message: String = String(localized: "save_success")
-    let onDismiss: () -> Void
-
-    var body: some View {
-        HStack {
-            Text(message)
-                .font(.body)
-                .foregroundColor(.white)
-                .lineLimit(2)
-
-            Spacer()
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .foregroundColor(.white)
-            }
-        }
-        .padding()
-        .background(KluvsTheme.colors.success.opacity(0.9))
-        .cornerRadius(8)
-        .shadow(radius: 4)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                onDismiss()
-            }
-        }
     }
 }
 
